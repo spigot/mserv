@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.5 2004/03/28 20:39:27 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.6 2004/03/28 21:18:32 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -187,9 +187,72 @@ int ossaudio_output_volume(t_channel *c, t_channel_outputstream *os,
   (void)c;
   (void)os;
   (void)volume;
+
+  int mixer_fd;
+  int is_getter = (*volume == -1);
   
-  snprintf(error, errsize, "%s() unimplemented", __FUNCTION__);
+  if ((mixer_fd = open(ossaudio->mixer_name,
+		       is_getter ? O_RDONLY : O_WRONLY,
+		       0)) == -1)
+  {
+    snprintf(error, errsize,
+	     "failed opening mixer device '%s' for %s: %s",
+	     ossaudio->mixer_name,
+	     is_getter ? "reading" : "writing",
+	     strerror(errno));
+    return MSERV_FAILURE;
+  }
   
+  if (is_getter) {
+    if (ioctl(mixer_fd,
+	      SOUND_MIXER_READ_PCM,
+	      volume) == -1)
+    {
+      snprintf(error, errsize,
+	       "failed reading volume from mixer device '%s': %s",
+	       ossaudio->mixer_name,
+	       strerror(errno));
+      goto failed;
+    }
+
+    // The volume is encoded using one byte per channel
+    switch (os->channels) {
+    case 1:
+      *volume = *volume & 0xff;
+      break;
+      
+    case 2:
+      // Calculate the average of the left and the right channel
+      *volume = ((*volume & 0xff) +
+		 ((*volume >> 8) & 0xff)) / 2;
+      break;
+    }
+  } else {
+    int local_volume = *volume;
+
+    // The volume is encoded using one byte per channel
+    if (os->channels == 2) {
+      local_volume |= local_volume << 8;
+    }
+    
+    if (ioctl(mixer_fd,
+	      SOUND_MIXER_WRITE_PCM,
+	      &local_volume) == -1)
+    {
+      snprintf(error, errsize,
+	       "failed setting volume to %d%% using mixer device '%s': %s",
+	       *volume,
+	       ossaudio->mixer_name,
+	       strerror(errno));
+      goto failed;
+    }
+  }
+
+  close(mixer_fd);
+  return MSERV_SUCCESS;
+
+ failed:
+  close(mixer_fd);
   return MSERV_FAILURE;
 }
 

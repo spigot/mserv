@@ -25,6 +25,16 @@ expect "Welcome johan"
 send "who\n"
 expect "The following people are online"
 
+# Test only bogus rating commands, root will test actual re-ratings
+send "rate\n"
+expect "Bad rate type"
+send "rate neutral\n"
+expect "Nothing playing"
+send "rate 999999 neutral\n"
+expect "No such album"
+send "rate 1 999999 neutral\n"
+expect "No such track"
+
 send "ratings\n"
 expect "Nothing playing"
 send "ratings 1 1\n"
@@ -45,8 +55,11 @@ expect "Nothing playing"
 send "tracks 1\n"
 expect "Tracks in album"
 
-send "asearch root\n"
-expect "Search results"
+send "asearch kljhlkhufwiuytrqwerfskhuiwregf\n"
+expect "No albums matching"
+
+send "search kljhlkhufwiuytrqwerfskhuiwregf\n"
+expect "No tracks matching"
 
 send "status\n"
 expect "Nothing currently playing"
@@ -136,7 +149,7 @@ expect "PASS"
 send "pass johan\n"
 expect "Welcome johan"
 
-# Log in as root and shut down
+# Log in as root for testing root-only commands
 spawn telnet localhost 4444
 set rootlogin $spawn_id
 expect "USER"
@@ -161,8 +174,45 @@ set spawn_id $johanlogin
 expect "You have been kicked off"
 wait
 
-# Back to root, shut down mserv
+# Back to root
 set spawn_id $rootlogin
+
+# Test ratings.  Better do this as root so we don't mess up Johan's
+# ratings...
+send "rate 1 1 awful\n"
+expect "The track 1/1 has been rated AWFUL by root"
+send "rate 1 1 bad\n"
+expect "The track 1/1 has been rated BAD by root"
+send "rate 1 1 good\n"
+expect "The track 1/1 has been rated GOOD by root"
+send "rate 1 1 superb\n"
+expect "The track 1/1 has been rated SUPERB by root"
+send "rate 1 1 neutral\n"
+expect "The track 1/1 has been rated NEUTRAL by root"
+
+send "ratings 1 1\n"
+expect "root"
+expect "NEUTRAL"
+
+send "info 1 1\n"
+expect "NEUTRAL"
+
+send "play\n"
+expect "Playing"
+
+send "rate neutral\n"
+expect "This track has been rated NEUTRAL by root"
+
+send "ratings\n"
+expect "root"
+expect "NEUTRAL"
+
+send "info\n"
+expect "NEUTRAL"
+
+send "stop\n"
+expect "stopped"
+
 send "shutdown\n"
 expect "shutdown by root"
 wait

@@ -342,7 +342,7 @@ expect -i $humanjohan "johan has connected"
 
 # Log in as root for testing root-only commands
 spawn telnet localhost 4444
-set rootlogin $spawn_id
+set humanroot $spawn_id
 expect "USER"
 send "user root\n"
 expect "PASS"
@@ -379,21 +379,42 @@ expect {
 }
 wait
 
-# Back to root
-set spawn_id $rootlogin
+# Log in as a computerized root
+spawn telnet localhost 4444
+set computerroot $spawn_id
+expect "USER"
+send "user root\n"
+expect "PASS"
+send "pass root rtcomputer\n"
+expect "202"
+expect "Welcome root"
+expect -i $humanroot "root has connected"
+
+# Back to the human root
+set spawn_id $humanroot
 
 # Test ratings.  Better do this as root so we don't mess up Johan's
 # ratings...
 send "rate 1 1 awful\n"
 expect "The track 1/1 has been rated AWFUL by root"
+expect -i $computerroot "=614"
+expect -i $computerroot "AWFUL"
 send "rate 1 1 bad\n"
 expect "The track 1/1 has been rated BAD by root"
+expect -i $computerroot "=614"
+expect -i $computerroot "BAD"
 send "rate 1 1 good\n"
 expect "The track 1/1 has been rated GOOD by root"
+expect -i $computerroot "=614"
+expect -i $computerroot "GOOD"
 send "rate 1 1 superb\n"
 expect "The track 1/1 has been rated SUPERB by root"
+expect -i $computerroot "=614"
+expect -i $computerroot "SUPERB"
 send "rate 1 1 neutral\n"
 expect "The track 1/1 has been rated NEUTRAL by root"
+expect -i $computerroot "=614"
+expect -i $computerroot "NEUTRAL"
 
 send "ratings 1 1\n"
 expect "root"
@@ -404,9 +425,14 @@ expect "NEUTRAL"
 
 send "play\n"
 expect "Playing"
+expect -i $computerroot "=622\trandom"
 
 send "rate neutral\n"
 expect "This track has been rated NEUTRAL by root"
+# Note that the rtcomputer rating notification differs between "track
+# foo has been rated" (=614) and "this track has been rated" (=615).
+expect -i $computerroot "=615"
+expect -i $computerroot "NEUTRAL"
 
 send "ratings\n"
 expect "root"
@@ -417,6 +443,7 @@ expect "NEUTRAL"
 
 send "stop\n"
 expect "stopped"
+expect -i $computerroot "=623\troot"
 
 send "shutdown\n"
 expect "shutdown by root"

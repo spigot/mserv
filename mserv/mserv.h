@@ -49,7 +49,7 @@ t_rating *mserv_getrate(const char *user, t_track *track);
 int mserv_getsatisfaction(const t_client *cl, double *satisfaction);
 int mserv_addqueue(t_client *cl, t_track *track);
 int mserv_player_playnext(void);
-void mserv_abortplay(int interactive);
+void mserv_abortplay(void);
 void mserv_recalcratings(void);
 void mserv_recalcrating(t_track *track);
 t_track *mserv_altertrack(t_track *track, const char *author,

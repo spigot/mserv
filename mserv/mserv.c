@@ -2724,7 +2724,7 @@ static const char *mserv_getplayer(char *fname)
 /* If "interactive" is set it means this function should prioritize
  * quick execution before doing a thorough job.
  */
-void mserv_abortplay(int interactive)
+void mserv_abortplay()
 {
   int pid, st, killed;
   int x;
@@ -2784,11 +2784,8 @@ void mserv_abortplay(int interactive)
     mserv_player_playing.track = NULL;
   }
   mserv_player_pid = 0;
-  if (interactive) {
-    mserv_recalcrating(stop_me);
-  } else {
-    mserv_recalcratings(); /* recalc ratings now lastplay has changed */
-  }
+  /* recalc ratings now lastplay has changed */
+  mserv_recalcrating(stop_me);
   mserv_savechanges();
   mserv_checkshutdown();
 }
@@ -3943,10 +3940,13 @@ void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
         if ((rate = mserv_getrate(cl->user, wasplaying->track)) == NULL) {
           if (mserv_ratetrack(cl, &wasplaying->track, 0) == NULL)
             mserv_broadcast("MEMORY", NULL);
+	  
+	  /* The just stopped track has been marked as HEARD.  It needs to
+	   * be moved to the correct location on the top list. */
+	  recalculate = 1; 
         }
       }
     }
-    recalculate = 1; /* recalc ratings due to being marked as heard */
     mserv_checkshutdown();
   }
   if (nowplaying) {
@@ -3991,15 +3991,20 @@ void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
     mserv_addtohistory(nowplaying);
     nowplaying->track->lastplay = time(NULL);
     nowplaying->track->modified = 1;
-    recalculate = 1; /* recalc ratings now lastplay has changed */
+    /* recalc ratings now lastplay has changed */
+    recalculate += 2;
   } else {
     if (mserv_player_playing.track == NULL) {
       /* reached end of input stream, and no more upcoming tracks... */
       mserv_broadcast("FINISH", NULL);
     }
   }
-  if (recalculate) {
-    /* Stuff has changed, recalculate the ratings */
+  
+  if (recalculate == 1) {
+    mserv_recalcrating(wasplaying->track);
+    mserv_savechanges();
+  } else if (recalculate >= 2) {
+    /* Stuff has changed, recalculate all ratings */
     mserv_recalcratings(); 
     mserv_savechanges();
   }

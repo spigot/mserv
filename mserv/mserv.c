@@ -544,10 +544,15 @@ static void mserv_mainloop(void)
   long timestampBeforeSoundIo = 0;
   long timestampBeforeNewConnections = 0;
   
+  // We should attempt to sync the sound and talk to the users
+  // at least this often
+  int cycleTimeGoalMsecs = 150;
+  
   for(;;) {
     long timestampCycleWrap = mserv_getMSecsSinceEpoch();
     int soundBufferMs = channel_getSoundBufferMs();
-
+    int cycleTime;
+    
     if (soundBufferMs > 0) {
       int ioTime = timestampBeforeSleep - timestampBeforeUserIo;
       int sleepTime = timestampBeforeSoundIo - timestampBeforeSleep;
@@ -599,7 +604,26 @@ static void mserv_mainloop(void)
     }
     
     timestampBeforeSleep = mserv_getMSecsSinceEpoch();
-    usleep(100000);
+    
+    // If the sound buffer is small, we need to update things
+    // more often
+    if (soundBufferMs > 0) {
+      cycleTimeGoalMsecs = soundBufferMs / 3;
+      
+      // If we update things less often than this, user
+      // interaction will feel sluggish
+      if (cycleTimeGoalMsecs > 150) {
+	cycleTimeGoalMsecs = 150;
+      }
+    }
+    
+    cycleTime = timestampBeforeSleep - timestampBeforeSoundIo;
+    
+    // If the last cycle was fast enough, we can get some sleep
+    if (cycleTime >= 0 && cycleTime < cycleTimeGoalMsecs) {
+      int sleepMsecs = cycleTimeGoalMsecs - cycleTime;
+      usleep(sleepMsecs * 1000);
+    }
     
     timestampBeforeSoundIo = mserv_getMSecsSinceEpoch();
     /* output any sound that needs to be */

@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.9 2004/06/22 21:06:56 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.10 2004/06/24 18:46:36 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -157,6 +157,13 @@ int ossaudio_output_sync(t_channel *c, t_channel_outputstream *os,
 		  ((char*)buffer) + (buffer_size - os->bytesLeft),
 		  os->bytesLeft);
   if (written == -1) {
+    if (errno == EAGAIN) {
+      // EAGAIN means that we need to wait a bit longer before we can
+      // send more data to the sound card
+      return os->bytesLeft;
+    }
+    
+    // IO error
     snprintf(error, errsize,
 	     "failed to send data to soundcard: %s",
 	     strerror(errno));

@@ -173,6 +173,50 @@ static RETSIGTYPE mserv_sighandler(int signum)
   }
 }
 
+/* General initialisiation to be done after
+   starting mserv and also after a reset */
+static void mserv_init()
+{
+  int i;
+  t_album *album;
+
+  /* load up defaults */
+  mserv_factor = opt_factor;
+  mserv_random = opt_random;
+  mserv_gap = opt_gap;
+
+  /* load albums and tracks */
+  mserv_scandir();
+
+  /* re-number albums */
+  mserv_nextid_album = 1;
+
+  for (album = mserv_albums; album; album = album->next) {
+    for (i = 0; i < TRACKSPERALBUM; i++) {
+      if (album->tracks[i])
+        album->tracks[i]->n_album = mserv_nextid_album;
+    }
+    album->id = mserv_nextid_album++;
+  }
+
+  /* extract author information */
+  mserv_authors = mserv_authorlist();
+
+  /* extract genre information */
+  mserv_genres = mserv_genrelist();
+
+  mserv_savechanges();
+
+  /* setting the filter must be done after all the tracks are loaded, if
+     there is no filter then don't try to set it, the default install won't
+     have any tracks and this will cause it to fail */
+  if (*opt_filter && mserv_setfilter(opt_filter)) {
+    mserv_log("Unable to set default filter, ignoring");
+  } else {
+    mserv_recalcratings();
+  }
+}
+
 int main(int argc, char *argv[])
 {
   int i;
@@ -180,7 +224,6 @@ int main(int argc, char *argv[])
   struct sockaddr_in sin;
   int so_int;
   int flags;
-  t_album *album;
   char *mserv_root = NULL;
   char *mserv_conf = NULL;
   unsigned int mserv_port = 0;
@@ -377,10 +420,6 @@ int main(int argc, char *argv[])
   for (i = 0; i < HISTORYLEN; i++) {
     mserv_history[i] = NULL;
   }
-  /* load up defaults */
-  mserv_factor = opt_factor;
-  mserv_random = opt_random;
-  mserv_gap = opt_gap;
 
   srand(time(NULL));
  
@@ -419,31 +458,8 @@ int main(int argc, char *argv[])
 
   mserv_log("*** Server started!");
 
-  mserv_scandir();
-
-  /* re-number albums */
-
-  mserv_nextid_album = 1;
-
-  for (album = mserv_albums; album; album = album->next) {
-    for (i = 0; i < TRACKSPERALBUM; i++) {
-      if (album->tracks[i])
-	album->tracks[i]->n_album = mserv_nextid_album;
-    }
-    album->id = mserv_nextid_album++;
-  }
-
-  mserv_authors = mserv_authorlist();
-  mserv_genres = mserv_genrelist();
-
-  mserv_savechanges();
-
-  /* setting the filter must be done after all the tracks are loaded, if
-     there is no filter then don't try to set it, the default install won't
-     have any tracks and this will cause it to fail */
-  if (*opt_filter && mserv_setfilter(opt_filter)) {
-    mserv_log("Unable to set default filter, ignoring");
-  }
+  /* do initialization */
+  mserv_init();
 
   mserv_started = 1;
 
@@ -3044,34 +3060,12 @@ void mserv_reset(void)
   mserv_nextid_track = 1;
   mserv_playing.track = NULL;
   mserv_playingpid = 0;
-  mserv_factor = opt_factor;
-  mserv_random = opt_random;
-  mserv_gap = opt_gap;
   mserv_paused = 0;
   mserv_shutdown = 0;
 
   /* ok, lets get everything back */
+  mserv_init();
 
-  /* load albums and tracks */
-  mserv_scandir();
-
-  /* re-number albums */
-  mserv_nextid_album = 1;
-  for (a = mserv_albums; a; a = a->next) {
-    for (i = 0; i < TRACKSPERALBUM; i++) {
-      if (a->tracks[i])
-	a->tracks[i]->n_album = mserv_nextid_album;
-    }
-    a->id = mserv_nextid_album++;
-  }
-
-  /* extract author information */
-  mserv_authors = mserv_authorlist();
-
-  /* extract genre information */
-  mserv_genres = mserv_genrelist();
-
-  mserv_savechanges();
 }
 
 int mserv_setgap(int gap)
@@ -3087,6 +3081,8 @@ int mserv_setfilter(const char *filter)
     return -1;
   if (strlen(filter) > FILTERLEN)
     return -1;
+  /* run the filter on the first track in the mserv_tracks list, filter_check
+     returns true/false or -1 for parse error, so we can check validity */
   if (*filter && filter_check(filter, mserv_tracks) == -1)
     return -1;
   strcpy(mserv_filter, filter);

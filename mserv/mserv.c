@@ -71,7 +71,6 @@ static int mserv_started = 0;
 static char mserv_filter[FILTERLEN+1] = "";
 static double mserv_gap = 0;
 static t_lang *mserv_language;
-static double mserv_satisfaction_goal = 0.75;
 
 /*** externed variables ***/
 
@@ -4319,12 +4318,42 @@ static void mserv_update_lastunrated(const t_trkinfo *most_recent_track)
   time_t now = time(NULL);
   
   for (cl = mserv_clients; cl; cl = cl->next) {
+    if (!cl->authed || cl->state == st_closed ||
+	cl->mode == mode_computer || cl->userlevel == level_guest)
+      continue;
+    
     t_rating *rating = mserv_getrate(cl->user,
 				     most_recent_track->track);
     if (rating == NULL || rating->rating == 0) {
       cl->last_unrated = now;
     }
   }
+}
+
+/* Return 0.75 if many users are logged in, 0.99 otherwise. */
+static double mserv_getsatisfactiongoal(void)
+{
+  char *user = NULL;
+  t_client *cl;
+  
+  for (cl = mserv_clients; cl; cl = cl->next) {
+    if (!cl->authed || cl->state == st_closed ||
+	cl->mode == mode_computer || cl->userlevel == level_guest)
+      continue;
+    
+    if (user == NULL) {
+      user = cl->user;
+    }
+    
+    if (strcmp(user, cl->user) != 0) {
+      /* Many users are logged in, aim for 75% satisfaction */
+      return 0.75;
+    }
+  }
+  
+  /* Less than two different users are logged in, aim for 99%
+   * satisfaction */
+  return 0.99;
 }
 
 /* Used if automatic factor adjustment is in effect.  Adjust the
@@ -4342,9 +4371,14 @@ static void mserv_adjustfactor(void)
   time_t now = time(NULL);
   time_t last_unrated = now;
   const char *bored_user = NULL;
-
+  double satisfaction_goal;
+  
   /* Keep track of when everybody last heard an unrated track */
   for (cl = mserv_clients; cl; cl = cl->next) {
+    if (!cl->authed || cl->state == st_closed ||
+	cl->mode == mode_computer || cl->userlevel == level_guest)
+      continue;
+    
     if (cl->last_unrated < last_unrated) {
       last_unrated = cl->last_unrated;
       bored_user = cl->user;
@@ -4373,8 +4407,9 @@ static void mserv_adjustfactor(void)
      * necessary. */
     return;
   }
-  
-  if (lowestsatisfaction < mserv_satisfaction_goal) {
+
+  satisfaction_goal = mserv_getsatisfactiongoal();
+  if (lowestsatisfaction < satisfaction_goal) {
     mserv_factor += 0.1;
     if (mserv_factor > 0.99) {
       mserv_factor = 0.99;
@@ -4383,8 +4418,8 @@ static void mserv_adjustfactor(void)
 	      mserv_factor,
 	      most_dissatisfied_user,
 	      lowestsatisfaction,
-	      mserv_satisfaction_goal);
-  } else if (lowestsatisfaction > mserv_satisfaction_goal) {
+	      satisfaction_goal);
+  } else if (lowestsatisfaction > satisfaction_goal) {
     mserv_factor -= 0.1;
     if (mserv_factor < 0.51) {
       mserv_factor = 0.51;
@@ -4393,7 +4428,7 @@ static void mserv_adjustfactor(void)
 	      mserv_factor,
 	      most_dissatisfied_user,
 	      lowestsatisfaction,
-	      mserv_satisfaction_goal);
+	      satisfaction_goal);
   }
 }
 

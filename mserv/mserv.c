@@ -738,8 +738,8 @@ static void mserv_checkchild(void)
   mserv_checkshutdown();
   
   if (trouble && mserv_toooften()) {
-    /* FIXME: If we run into trouble more than three times in five
-     * minutes, stop playing. */
+    /* If we run into trouble more than three times in five minutes,
+     * stop playing. */
     mserv_log("Too many player problems, playback stopped");
     mserv_broadcast("NOSPAWN", "");
     return;

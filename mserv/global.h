@@ -56,6 +56,8 @@
 #define MSERV_FAILURE -1
 #define MSERV_SUCCESS 0
 
+#define MSERV_NAN (0.0/0.0)
+
 #define MSERV_STRUCTOFFSET(s,m) ((unsigned int)(&(((s*)(0))->m)))
 
 #define MSERV_MODFLAG_OUTPUT 1

@@ -4285,7 +4285,7 @@ void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
  * satisfaction. */
 static double mserv_getlowestsatisfaction(const char **most_dissatisfied_user)
 {
-  double lowestsatisfaction = 2.0;
+  double lowestsatisfaction = MSERV_NAN;
   t_client *cl;
 
   *most_dissatisfied_user = NULL;
@@ -4373,6 +4373,22 @@ static void mserv_adjustfactor(void)
   const char *bored_user = NULL;
   double satisfaction_goal;
   
+  static double lastsatisfaction = MSERV_NAN;
+  double satisfactiondelta;
+  
+  /* Keep track of in which direction the lowest satisfaction value is
+   * moving.  Delta will be positive on upwards movement and negative
+   * on downwards.*/
+  lowestsatisfaction =
+    mserv_getlowestsatisfaction(&most_dissatisfied_user);
+  satisfactiondelta = lowestsatisfaction - lastsatisfaction;
+  lastsatisfaction = lowestsatisfaction;
+  if (most_dissatisfied_user == NULL) {
+    /* Nobody is logged in / most dissatisfied, no adjustment
+     * necessary. */
+    return;
+  }
+  
   /* Keep track of when everybody last heard an unrated track */
   for (cl = mserv_clients; cl; cl = cl->next) {
     if (!cl->authed || cl->state == st_closed ||
@@ -4400,16 +4416,27 @@ static void mserv_adjustfactor(void)
     return;
   }
   
-  lowestsatisfaction =
-    mserv_getlowestsatisfaction(&most_dissatisfied_user);
-  if (most_dissatisfied_user == NULL) {
-    /* Nobody is logged in / most dissatisfied, no adjustment
-     * necessary. */
-    return;
-  }
-
   satisfaction_goal = mserv_getsatisfactiongoal();
   if (lowestsatisfaction < satisfaction_goal) {
+    if (satisfactiondelta > 0.0) {
+      /*
+       * Don't raise the factor if the lowest satisfaction is moving in
+       * the right direction.  Factor control is intentionally assymetric
+       * in that we will always lower the factor if satisfaction is too high,
+       * but we will only raise the factor if the satisfaction isn't moving
+       * in the right direction.
+       * 
+       * This should hopefully make us converge on a factor value
+       * somewhere near the optimal value.
+       */
+      mserv_log("Autofactor: not raising factor from %.2f since lowest satisfaction (currently %.2f for user %s) is moving towards the goal of %.2f",
+		mserv_factor,
+		lowestsatisfaction,
+		most_dissatisfied_user,
+		satisfaction_goal);
+      return;
+    }
+    
     mserv_factor += 0.1;
     if (mserv_factor > 0.99) {
       mserv_factor = 0.99;

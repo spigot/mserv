@@ -17,7 +17,6 @@ extern unsigned int opt_play;
 extern double opt_factor;
 extern double opt_rate_unheard;
 extern double opt_rate_unrated;
-extern const char *opt_player;
 extern const char *opt_filter;
 
 int opt_read(const char *root);

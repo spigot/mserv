@@ -68,7 +68,6 @@ unsigned int opt_random = 0;
 double opt_factor = 0.6;
 double opt_rate_unheard = 0.55;
 double opt_rate_unrated = 0.50;
-const char *opt_player = NULL;
 const char *opt_filter = NULL;
 
 typedef struct {
@@ -173,19 +172,5 @@ int opt_read(const char *root)
       return -1;
     }
   }
-  /* special case - player variable is an indirection to another variable */
-  if ((val = conf_getvalue("player")) == NULL) {
-    fprintf(stderr, "%s: no 'player' configuration setting found - "
-            "corrupt or invalid configuration file?\n", progname);
-    return -1;
-  } else {
-    if ((opt_player = conf_getvalue(val)) == NULL) {
-      fprintf(stderr, "%s: player setting '%s' not found\n", progname,
-	      val);
-      return -1;
-    }
-  }
-  if (mserv_verbose)
-    printf("opt special player=%s\n", opt_player);
   return 0;
 }

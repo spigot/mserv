@@ -15,6 +15,7 @@ dnl Engine selection
   AC_ARG_WITH(engine-icecast, AC_HELP_STRING([--with-engine-icecast],
               [Use icecast engine]),
               ENGINE="icecast")
+  AC_DEFINE_UNQUOTED(ENGINE, $ENGINE, [Engine type])
 
 dnl Checks for programs.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Written by James Ponder, Jan 2000
+# Written by James Ponder, (c) January 2000
 #
 # mservripcd - Mserv is designed to hold albums, and a very common way of
 # organising these albums is to have them as copies of real CDs.
@@ -13,7 +13,7 @@
 require 'getopt.pl';
 use CDDB;
 
-$mservedit = '/usr/local/bin/mservedit';
+$def_mservedit = '/usr/local/bin/mservedit';
 
 Getopt('');
 
@@ -59,8 +59,20 @@ if (!open(CONFIG, "$home/.mservripcd")) {
     $dir_tracks = ask("Location of mserv tracks", "$dir_home/tracks");
     $dir_trackinfo = ask("Location of mserv trackinfo", "$dir_home/trackinfo");
     print "\n";
-    $path_cdparanoia = ask("Location of cdparanoia",
-			   "/usr/local/bin/cdparanoia");
+    my $which = ask("cdparanoia or tosha ('c' or 't')", 'c');
+    if ($which eq 'c') {
+	$opt_ripper = 'cdparanoia';
+    } elsif ($which eq 't') {
+	$opt_ripper = 'tosha';
+    }
+    if ($opt_ripper eq 'cdparanoia') {
+	$path_cdparanoia = ask("Location of cdparanoia",
+			       "/usr/local/bin/cdparanoia");
+	$path_tosha = '';
+    } else {
+	$path_tosha = ask("Location of tosha", "/usr/local/bin/tosha");
+	$path_cdparanoia = '';
+    }
     $path_bladeenc = ask("Location of bladeenc", "/usr/local/bin/bladeenc");
     print "\nNote -br for bitrate\n";
     $params_bladeenc = ask("Parameters for bladeenc",
@@ -76,19 +88,25 @@ if (!open(CONFIG, "$home/.mservripcd")) {
     print CONFIG "tracks=$dir_tracks\n";
     print CONFIG "trackinfo=$dir_trackinfo\n";
     print CONFIG "cdparanoia=$path_cdparanoia\n";
+    print CONFIG "tosha=$path_tosha\n";
     print CONFIG "bladeenc=$path_bladeenc\n";
     print CONFIG "params=$params_bladeenc\n";
     print CONFIG "defgenre=$def_genre\n";
     print CONFIG "workdir=$path_workdir\n";
+    print CONFIG "ripper=$opt_ripper\n";
+    print CONFIG "mservedit=$def_mservedit\n";
     close(CONFIG) || die "Failed to close configuration file: $!\n";
     $config{home} = $dir_home;
     $config{tracks} = $dir_tracks;
     $config{trackinfo} = $dir_trackinfo;
     $config{defgenre} = $def_genre;
     $config{cdparanoia} = $path_cdparanoia;
+    $config{tosha} = $path_tosha;
     $config{bladeenc} = $path_bladeenc;
     $config{params} = $params_bladeenc;
     $config{workdir} = $path_workdir;
+    $config{ripper} = $opt_ripper;
+    $config{mservedit} = $def_mservedit;
 } else {
     my $a;
     while(<CONFIG>) {
@@ -102,46 +120,83 @@ if (!open(CONFIG, "$home/.mservripcd")) {
     }
     close(CONFIG) || die "Failed to close configuration file: $!\n";
 }
+
+sub msf {
+    my $bytes = $_[0];
+    my $blocks_per_second = 75;
+    my $blocks = int($bytes/2352);
+    my $msf_m = int($blocks/60/$blocks_per_second);
+    my $msf_mblocks = $blocks - $msf_m*60*$blocks_per_second;
+    my $msf_s = int($msf_mblocks / $blocks_per_second);
+    my $msf_f = $msf_mblocks % $blocks_per_second;
+    return ($msf_m, $msf_s, $msf_f);
+}
+
 undef @toc;
 $tracks = 0;
-open(QUERY, $config{cdparanoia}.' -Q 2>&1|')
-    || die "Unable to run cdparanoia: $!\n";
-while(<QUERY>) {
-    chomp;
-    if (/^\s*([0-9]+)\.\s+([0-9]+) \[([0-9][0-9]):([0-9][0-9])\.([0-9][0-9])\]\s+([0-9]+) \[([0-9][0-9]):([0-9][0-9])\.([0-9][0-9])\]\s+/) {
-	($track, $length, $l_min, $l_sec, $l_frames, $begin, $b_min, $b_sec,
-	 $b_frames) = ($1, $2, $3, $4, $5, $6, $7, $8, $9);
-	$tracks = $track if $track > $tracks;
-	push(@toc, "$b_track $b_min $b_sec $b_frames");
+if ($config{ripper} eq 'cdparanoia') {
+    open(QUERY, $config{cdparanoia}.' -Q 2>&1|')
+        || die "Unable to run cdparanoia: $!\n";
+    while(<QUERY>) {
+        chomp;
+        if (/^\s*([0-9]+)\.\s+([0-9]+) \[([0-9][0-9]):([0-9][0-9])\.([0-9][0-9])\]\s+([0-9]+) \[([0-9][0-9]):([0-9][0-9])\.([0-9][0-9])\]\s+/) {
+	    ($track, $length, $l_min, $l_sec, $l_frames, $begin, $b_min,
+	     $b_sec, $b_frames) = ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+	    $tracks = $track if $track > $tracks;
+	    push(@toc, "$b_track $b_min $b_sec $b_frames");
+	}
     }
+    $e_min = $b_min + $l_min;
+    $e_sec = $b_sec + $l_sec;
+    $e_frames = $b_frames + $l_frames;
+    if ($e_frames >= 100) {
+        $e_frames-= 100;
+        $e_sec+= 1;
+    }
+    if ($e_sec >= 60) {
+        $e_min+= 1;
+        $e_sec-= 60;
+    }
+    push(@toc, "999 $e_min $e_sec $e_frames");
+    close(QUERY) || die "Failed to close pipe to cdparanoia: $!\n";
+} elsif ($config{ripper} eq 'tosha') {
+    open(QUERY, $config{tosha}.' -qi 2>&1|')
+        || die "Unable to run tosha: $!\n";
+    $bytes = 0;
+    print "Track information for CDDB:\n" if $verbose;
+    while(<QUERY>) {
+        chomp;
+        if (/^\s*([0-9]+)\s+[0-9:']+\s+[0-9]+\s+[0-9]+\s+([0-9]+)\s+/) {
+	    my ($track, $b) = ($1, $2);
+	    $tracks = $track if $track > $tracks;
+	    my ($msf_m, $msf_s, $msf_f) = msf($bytes);
+	    print "  $track $msf_m $msf_s $msf_f\n" if $verbose;
+	    push(@toc, "$track $msf_m $msf_s $msf_f");
+	    $bytes+= $b;
+	}
+    }
+    my ($msf_m, $msf_s, $msf_f) = msf($bytes);
+    print "  999 $msf_m $msf_s $msf_f\n" if $verbose;
+    push(@toc, "999 $msf_m $msf_s $msf_f");
+    close(QUERY) || die "Failed to close pipe to tosha: $!\n";
+} else {
+    die "ripper $config{ripper} not supported\n";
 }
-$e_min = $b_min + $l_min;
-$e_sec = $b_sec + $l_sec;
-$e_frames = $b_frames + $l_frames;
-if ($e_frames > 100) {
-    $e_frames-= 100;
-    $e_sec+= 1;
-}
-if ($e_sec > 100) {
-    $e_min+= 1;
-    $e_sec-= 100;
-}
-
-push(@toc, "999 $e_min $e_sec $e_frames");
-close(QUERY) || die "Failed to close pipe to cdparanoia: $!\n";
 
 if ($tracks == 0) {
-    die "No tracks on CD (or failed to run cdparanoia in query mode)\n";
+    die "No tracks on CD (or failed to run ripper in query mode)\n";
 }
 
 print "There are $tracks tracks to rip\n\n";
 
-if (!-x $config{cdparanoia}) {
+if ($config{ripper} eq 'cdparanoia' && !-x $config{cdparanoia}) {
     die 'cdparanoia ('.$config{cdparanoia}.') is not found/executable'. "\n";
+} elsif ($config{ripper} eq 'tosha' && !-x $config{tosha}) {
+    die 'tosha ('.$config{tosha}.') is not found/executable'. "\n";
 } elsif (!-x $config{bladeenc}) {
     die 'bladeenc ('.$config{bladeenc}.') is not found/executable'. "\n";
-} elsif (!-x $mservedit) {
-    die 'mservedit ('.$mservedit.') is not found/executable'. "\n";
+} elsif (!-x $config{mservedit}) {
+    die 'mservedit ('.$config{mservedit}.') is not found/executable'. "\n";
 }
 
 if ($verbose) {
@@ -165,7 +220,7 @@ if (-e $config{workdir}.'/'.$cdname) {
     mkdir($config{workdir}.'/'.$cdname, 0700) || die "failed to mkdir: $!\n";
 }
 
-for ($i = 1; $i < $tracks; $i++) {
+for ($i = 1; $i <= $tracks; $i++) {
     my $s = $config{workdir}.'/'.$cdname.'/'.sprintf("%02d", $i);
     if (-e "$s.mp3") {
 	print "Warning: $s.mp3 exists and hence track $i will not ".
@@ -188,10 +243,15 @@ if ($warning) {
 undef $tracknames;
 $genre = $config{defgenre};
 
-$cddb = ask("Would you like to contact CDDB to get names?", "yes");
-if ($cddb eq 'yes' or $cddb eq 'y') {
+my $a = ask("Set track names?", "yes");
+goto NONAMING if ($a ne 'y' and $a ne 'yes');
+
+my $cddb = 0;
+my $cddbask = ask("Would you like to contact CDDB to get names?", "yes");
+
+if ($cddbask eq 'yes' or $cddbask eq 'y') {
     my $disc = 0;
-    my $db = new CDDB(Host => 'www.cddb.com',
+    my $db = new CDDB(Host => 'us.cddb.com',
 		      Port => 8880,
 		      Login => 'james') or die "failed connect to cddb: $!\n";
     my @db_discs = $db->get_discs_by_toc(@toc);
@@ -202,7 +262,7 @@ if ($cddb eq 'yes' or $cddb eq 'y') {
 	$db{$disc} = { id => $cd_id,
 		       genre => $cd_genre,
 		       title => $cd_title };
-	print "  [$disc] $cd_title\n";
+	print "  [$disc] $cd_genre: $cd_title\n";
     }
     my $mdisc = $disc;
     if ($mdisc < 1) {
@@ -210,7 +270,7 @@ if ($cddb eq 'yes' or $cddb eq 'y') {
     } else {
 	for(;;) {
 	    my $disc = ask("CD to view or 'none' (1-$mdisc)", "1");
-	    break if ($disc eq '');
+	    last if ($disc eq '');
 	    my ($cd_id, $cd_genre) = ($db{$disc}{'id'}, $db{$disc}{'genre'});
 	    my $cd_info = $db->get_disc_details($cd_genre, $cd_id);
 	    if (!defined($cd_info)) {
@@ -227,6 +287,7 @@ if ($cddb eq 'yes' or $cddb eq 'y') {
 		if ($go eq 'yes' || $go eq 'y') {
 		    $tracknames = \@cd_titles;
 		    $genre = $cd_genre;
+		    $cddb = 1;
 		    last;
 		}
 	    }
@@ -234,31 +295,50 @@ if ($cddb eq 'yes' or $cddb eq 'y') {
     }
 }    
 
-my $author = ask("What author should I set by default on tracks", "");
+my $author = '';
+my $cddbconv = 0;
+
+if ($cddb) {
+    my $a = ask("Shall I split the CDDB titles into name/author", "yes");
+    $cddbconv = 1 if ($a eq 'y' or $a eq 'yes');
+}
+if (!$cddbconv) {
+    $author = ask("What author should I set by default on tracks", "");
+}
+
 my $year = ask("What year should I set by default on tracks (0=none)", "0");
 my $name = "";
-foreach my $track (@tracks) {
+for (my $track = 1; $track <= $tracks; $track++) {
     my $s = $config{workdir}."/$cdname/".sprintf("%02d",$track).'.mp3.trk';
     open(TRK, ">$s") || die "failed to open $s for writing: $!\n";
-    print TRK '_author='.$author."\n";
-    $name = shift(@$tracknames) if (defined($tracknames));
-    print TRK '_name='.$name."\n";
+    if ($cddbconv) {
+        my $title = defined($tracknames) ? shift(@$tracknames) : '';
+	my ($author, $name) = ($title =~ /^([^\/]+)\s+\/\s+(.*)$/);
+        print TRK '_author='.$author."\n";
+        print TRK '_name='.ucfirst(lc($name))."\n";
+    } else {
+        print TRK '_author='.$author."\n";
+        $name = shift(@$tracknames) if (defined($tracknames));
+        print TRK '_name='.ucfirst(lc($name))."\n";
+    }
     print TRK '_genres='.$genre."\n";
     print TRK '_year='.$year."\n";
     close(TRK) || die "failed to close $s: $!\n";
 }
 
+NONAMING:
+
 $go = ask("Would you like to run mservedit to edit your track names", "yes");
 while($go eq "yes" || $go eq "y") {
-    if (system($mservedit, $config{workdir}."/$cdname")) {
-	print "system failed to run '$mservedit': $?\n";
+    if (system($config{mservedit}, $config{workdir}."/$cdname")) {
+	print "system failed to run '$config{mservedit}': $?\n";
     }
     $go = ask("Run mservedit again?", "yes");
 }
 
 print "\n\n--- Doing my stuff...\n\n";
 
-for ($i = 1; $i < $tracks; $i++) {
+for ($i = 1; $i <= $tracks; $i++) {
     my $s = $config{workdir}.'/'.$cdname.'/'.sprintf("%02d", $i);
     if (-e $s.'.mp3') {
 	print "!!! $s.mp3 exists, skipped.\n\n";
@@ -268,13 +348,19 @@ for ($i = 1; $i < $tracks; $i++) {
 	print "!!! $s.wav exists, skipped.\n\n";
     } else {
 	print "--- Ripping track $i...\n\n";
-	$rc = system($config{cdparanoia}." -z -w $i $s.wav");
+	if ($config{ripper} eq 'cdparanoia') {
+	    $rc = system($config{cdparanoia}." -z -w $i $s.wav");
+	} elsif ($config{ripper} eq 'tosha') {
+	    $rc = system($config{tosha}." -v -t $i -o $s.wav -f wav");
+	} else {
+	    die "unknown ripper\n";
+	}
 	print "Program exited on signal ".($rc&127).".\n" if ($rc & 127);
 	print "Core dumped.\n" if ($rc & 128);
 	print "Program exited with error code ".($rc>>8).".\n";
 	if ($rc) {
 	    unlink "$s.wav"; # no error check
-	    die "cdparanoia failed\n";
+	    die $config{ripper}." failed\n";
 	}
     }
     print "--- Compressing track $i...\n\n";

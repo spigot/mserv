@@ -2025,10 +2025,36 @@ static int mserv_trackcompare_name(const void *a, const void *b)
 		 (*(const t_track * const *)b)->name);
 }
 
+static double mserv_fuzz_rating(double rating)
+{
+  /* A resolution of 1000 really means 1 / 1000 or 0.001. */
+  const int resolution = 1000;
+  
+  /* An amount of 5 means the rating will be modified by +-5
+   * percent. */
+  const int amount = 5;
+  
+  const double nvalues = amount * resolution + 1;
+  
+  /* From the NOTES section of the rand() man page */
+  const int intfuzz =
+    ((int)(nvalues * rand() / (RAND_MAX + 1.0))) - (amount * resolution);
+  
+  double doublefuzz = ((double)intfuzz) / ((double)resolution);
+  
+  /* The doublefuzz is between -amount and +amount.  The rating is
+   * between 0.0 and 1.0.  Thus, the fuzz value has to be scaled down
+   * by a factor 100.0 to fit the rating. */
+  return rating; //FIXME: This line means the fuzzing is disabled
+  return rating + doublefuzz / 100.0;
+}
+
 static int mserv_trackcompare_rating(const void *a, const void *b)
 {
-  const t_track *atrack = (const t_track *)a;
-  const t_track *btrack = (const t_track *)b;
+  const t_track *atrack = *(const t_track **)a;
+  const t_track *btrack = *(const t_track **)b;
+  
+  double fuzzed_arating;
   
   /* sorts in descending order */
   if (atrack == NULL) {
@@ -2044,9 +2070,10 @@ static int mserv_trackcompare_rating(const void *a, const void *b)
   
   /* Invariant: Both tracks have a rating each */
   
-  if (atrack->rating < btrack->rating) {
+  fuzzed_arating = mserv_fuzz_rating(atrack->rating);
+  if (fuzzed_arating < btrack->rating) {
     return 1;
-  } else if (atrack->rating > btrack->rating) {
+  } else if (fuzzed_arating > btrack->rating) {
     return -1;
   }
   

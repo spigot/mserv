@@ -2199,9 +2199,10 @@ static t_track *mserv_loadtrk(const char *filename)
 
 int mserv_addqueue(t_client *cl, t_track *track)
 {
-  t_queue *q, *p;
+  t_queue *q, *p, *last, *newpos_last;
   t_queue *newq;
   int total;
+  int qpos, ppos, newpos;
 
   if (mserv_shutdown)
     return -1;
@@ -2229,19 +2230,44 @@ int mserv_addqueue(t_client *cl, t_track *track)
     free(newq);
     return -1;
   }
-  /* add a track at the first instance of two tracks queued by the same
-     person */
-  for (p = NULL, q = mserv_queue; q; p = q, q = q->next) {
-    if (p && !stricmp(q->supinfo.user, p->supinfo.user) &&
-	stricmp(cl->user, q->supinfo.user))
-      break;
+  /* find our last queued song */
+  last = NULL;
+  for (q = mserv_queue; q; q = q->next) {
+    if (stricmp(q->supinfo.user, cl->user) == 0)
+      last = q;
   }
-  if (p) {
-    if (q)
-      newq->next = q;
-    p->next = newq;
+  /* now we're going to loop around all the tracks in the queue, looking for
+   * users who have two tracks queued.  newpos is going to record the lowest
+   * position we've found where this occurs */
+  q = last ? last->next : mserv_queue;
+  newpos = -1;
+  for (qpos = 0; q && (newpos == -1 || newpos < qpos); q = q->next, qpos++) {
+    /* lets look at this song and see if this user has queued another song */
+    for (ppos = qpos + 1, last = q, p = q->next;
+         p;
+         last = p, p = p->next, ppos++) {
+      if (stricmp(q->supinfo.user, p->supinfo.user) == 0) {
+        /* found second song */
+        if (newpos == -1 || ppos < newpos) {
+          newpos = ppos;
+          newpos_last = last;
+        }
+        break;
+      }
+    }
+  }
+  if (newpos == -1) {
+    /* we didn't find any users who have two songs queued, so stick track
+     * at the end of the queue */
+    for (p = NULL, q = mserv_queue; q; p = q, q = q->next) ;
+    if (p)
+      p->next = newq;
+    else
+      mserv_queue = newq;
   } else {
-    mserv_queue = newq;
+    /* insert at position we just located */
+    newq->next = newpos_last->next;
+    newpos_last->next = newq;
   }
   return 0;
 }

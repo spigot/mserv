@@ -426,7 +426,7 @@ static void mserv_cmd_quit(t_client *cl, const char *ru, const char *line)
 
 static void mserv_cmd_help(t_client *cl, const char *ru, const char *line)
 {
-  t_cmds *cmdsptr;
+  t_cmds *cmdsptr, *c;
   int i = 0;
   char buffer[1024];
 
@@ -482,18 +482,18 @@ static void mserv_cmd_help(t_client *cl, const char *ru, const char *line)
     mserv_responsent(cl, "HELPC", "%s", VERSION);
   if (cl->mode == mode_human) {
     mserv_send(cl, "[] Commands:\r\n[]     ", 0);
-    for (; cmdsptr->name; cmdsptr++) {
-      if (cmdsptr->authed && !cl->authed)
+    for (c = cmdsptr; c->name; c++) {
+      if (c->authed && !cl->authed)
 	continue;
-      if (!mserv_checklevel(cl, cmdsptr->userlevel))
+      if (!mserv_checklevel(cl, c->userlevel))
 	continue;
       if (i > 4) {
 	i = 0;
 	mserv_send(cl, "\r\n[]     ", 0);
       }
-      mserv_send(cl, cmdsptr->name, 0);
-      if (strlen(cmdsptr->name) < 14) {
-	mserv_send(cl, "                ", 14-strlen(cmdsptr->name));
+      mserv_send(cl, c->name, 0);
+      if (strlen(c->name) < 14) {
+	mserv_send(cl, "                ", 14-strlen(c->name));
       } else {
 	mserv_send(cl, " ", 1);
       }
@@ -502,8 +502,7 @@ static void mserv_cmd_help(t_client *cl, const char *ru, const char *line)
     mserv_send(cl, "\r\n", 0);
     if (cmdsptr == mserv_cmds) {
       mserv_send(cl, "[] To report bugs in the implementation please "
-		 "send email to\r\n", 0);
-      mserv_send(cl, "[]    james@squish.net\r\n", 0);
+		 "send email to james@squish.net\r\n", 0);
       mserv_send(cl, "[] Thanks for using this program.\r\n", 0);
     }
   } else {
@@ -1252,7 +1251,7 @@ static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "NAN", NULL);
     return;
   }
-  if (n_track < 1 || n_track >= album->ntracks || !album->tracks[n_track-1]) {
+  if (n_track < 1 || n_track > album->ntracks || !album->tracks[n_track-1]) {
     mserv_response(cl, "NOTRACK", NULL);
     return;
   }
@@ -2172,6 +2171,16 @@ static void mserv_cmd_history(t_client *cl, const char *ru, const char *line)
       }
       start--; /* offset from 0, not 1 */
     }
+  }
+  if (mserv_history[0] == NULL) {
+    /* no entries at all! */
+    mserv_response(cl, "NOHIST", NULL);
+    return;
+  }
+  if (mserv_history[start] == NULL) {
+    /* no entries for given range */
+    mserv_response(cl, "NOHISTR", NULL);
+    return;
   }
   mserv_responsent(cl, "HISTORY", NULL);
   for (i = start;

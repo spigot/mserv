@@ -8,6 +8,10 @@ via CVS the version of the first entry is the forthcoming version number.
 --------------------
 - HISTORY now takes parameters for number of entries to display, and where
   to start from.  Mserv now remembers last 100 played tracks (compile option)
+- QUEUE now is fairer when there are more than 2 users trying to queue songs,
+  interspersing the tracks correctly
+- Fix tagline to HELP to give thanks
+- Fix queuing of last track, bug introduced in 0.39
 
 0.39 - Sep 13th 2003
 --------------------

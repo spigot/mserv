@@ -128,6 +128,8 @@ RESETER	408	Reseting may result in loss of data: type command again within 1 min
 NOUNQ	409	Track is not in the queue
 ARANDOM	410	Random setting unchanged
 GENRERR	411	Invalid genre setting
+NOHIST	412	There are no entries in the history
+NOHISTR	412	There are no entries in the history for range specified
 
 BADCOM	500	Command not understood
 STATE	501	State error

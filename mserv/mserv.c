@@ -4089,10 +4089,6 @@ void mserv_addtohistory(t_trkinfo *sup)
     memcpy(mserv_history[0], sup, sizeof(t_trkinfo));
   }
   mserv_n_songs_started++;
-  if (opt_experimental_fairness) {
-    // Keep user weights up to date
-    mserv_recalcratings();
-  }
 }
 
 const char *mserv_clientmodetext(t_client *cl)

@@ -41,10 +41,19 @@ including:
 
 The documentation below is the standard `configure' shell script stuff.
 
+Problems
+========
+
+The first thing to do if Mserv won't startup or doesn't seem to be finding
+the files you want it to, is to run mserv with verbosity and debugging
+turned on:
+
+  /usr/local/bin/mserv -v -d
+
 Basic Installation
 ==================
 
-   These are generic installation instructions.
+   The following are generic installation instructions.
 
    The `configure' shell script attempts to guess correct values for
 various system-dependent variables used during compilation.  It uses

@@ -469,14 +469,14 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
     }
     mserv_timersub(&now, start, &ago);
     a = channel_paused(channel) ? "STATPAU" : "STATPLA";
-    mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d.%d\t%s"
+    mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d\t%s"
                    "\t%.2f",
 		   mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
 		   playing->track->album->id,
 		   playing->track->n_track,
 		   playing->track->author,
 		   playing->track->name, start->tv_sec,
-		   ago.tv_sec/60, ago.tv_sec % 60, ago.tv_usec / 100000,
+		   ago.tv_sec/60, ago.tv_sec % 60,
 		   mserv_random ? "ON" : "OFF", mserv_factor);
     if (cl->mode == mode_human) {
       for (i = 1; i <= 7; i++) {

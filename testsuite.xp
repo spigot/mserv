@@ -312,6 +312,9 @@ expect -i $humanjohan "Playing:"
 
 send "status\n"
 expect "222 Playing"
+# Verify that the amount of time the current song has been playing is
+# on the format M:SS, which is what MServClient expects.
+expect -re {\t[0-9]+:[0-5][0-9]\t}
 expect "\n.\n"
 
 send "ratings\n"

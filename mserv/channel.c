@@ -743,7 +743,7 @@ int channel_stop(t_channel *c, char *error, int errsize)
 
   (void)error;
   (void)errsize;
-  if (c->stopped)
+  if (c == NULL || c->stopped)
     return MSERV_SUCCESS;
   mserv_setplaying(c, c->playing.track ? &c->playing : NULL, NULL);
   /* call output stream modules stop methods */

@@ -5,7 +5,7 @@
 ; 5xx permanent negative completion reply
 ; 6xx informative messages
 
-USEROK	201	Username ok - now type: PASS <password>
+USEROK	201	Username ok - now type: PASS <password> [<mode>]
 ACLSUCC	202	Successfully authenticated! Welcome %01.
 HELP	203	Help on command '%01'
 HELPC	203	This is Mserv version %01

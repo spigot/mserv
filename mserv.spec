@@ -1,9 +1,9 @@
 Summary: music server
 Name: mserv
-Version: 0.30
+Version: 0.31
 Release: 1
 Group: Networking/Daemons
-Source: http://www.mserv.org/download/mserv-0.30.tar.gz
+Source: http://www.mserv.org/download/mserv-0.31.tar.gz
 Requires: mpg123
 Copyright: GPL
 Buildroot: /tmp

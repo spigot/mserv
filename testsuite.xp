@@ -415,6 +415,23 @@ expect {
 }
 wait
 
+# Benchmark the "queue" command, and make sure it doesn't take more
+# than 100ms per invocation.
+set spawn_id $humanroot
+set t0 [clock clicks -milliseconds]
+for {set x 0} {$x < 10} {incr x} {
+    send "queue\n"
+    expect "There are no tracks in the queue"
+}
+set t1 [clock clicks -milliseconds]
+set timePerCallMs [ expr ($t1 - $t0) / 10.0 ]
+send_user "The queue command takes $timePerCallMs ms per call\n"
+
+if { $timePerCallMs >= 100 } {
+	send_error "*** The queue command is too slow ($timePerCallMs ms per call)\n"
+	exit 1
+}
+
 # Log in as a computerized root
 spawn telnet localhost 4444
 set computerroot $spawn_id

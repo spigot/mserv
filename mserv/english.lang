@@ -204,7 +204,7 @@ NOWPLAY	622	Playing: -----------------------------------------------------------
 STOPPED	623	Play of '%05' stopped by %01
 SAY	624	<%01> %02
 EMOTE	625	* %01 %02
-NOSPAWN	626	Track play stopped - player returned error condition
+NOSPAWN	626	Track play stopped - too many player problems
 UNQ	627	Track '%05' (%02/%03) unqueued by %01
 UNQA	628	Track '%04' (%01/%02) unqueued
 SKIP	629	Track skipped by %01
@@ -220,3 +220,5 @@ NFILTER	638	Random play filter turned off by %01
 MEMORY	639	Out of memory
 RESETGO	640	Server reset initiated by %01...
 VOLUME	641	The volume of %02/%03 has been set by %01
+PLTRBL	626	Player returned error condition
+PLTRBL2	627	Player interrupted by signal

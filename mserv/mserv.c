@@ -652,53 +652,99 @@ static void mserv_mainloop(void)
   }
 }
 
+/* Return true if called more than three times in five minutes */
+static int mserv_toooften(void)
+{
+  static time_t lastTime;
+  static int numberOfTimes;
+
+  time_t now = time(NULL);
+
+  /* Reset the counter after 5 minutes */
+  if (now - lastTime > 5 * 60) {
+    lastTime = now;
+    numberOfTimes = 0;
+  }
+
+  numberOfTimes += 1;
+  
+  return numberOfTimes > 3;
+}
+
 static void mserv_checkchild(void)
 {
-  int st, pid;
+  int status, pid, trouble = 0;
   t_trkinfo *playing = channel_getplaying(mserv_channel);
-
-  pid = waitpid(mserv_player_pid, &st, WNOHANG | WUNTRACED);
-
+  
+  pid = waitpid(mserv_player_pid, &status, WNOHANG | WUNTRACED);
+  
   if (pid == -1) {
     mserv_log("waitpid failure (%d): %s", errno, strerror(errno));
     exit(1);
   }
-
+  
   if (pid == 0) {
     /* Nothing's happened */
     return;
   }
-
+  
   /* Invariant: pid is now mserv_player_pid */
   
-  if (WIFSTOPPED(st)) {
+  if (WIFSTOPPED(status)) {
     mserv_log("Child process stopped");
     return;
   }
-
-  if (WIFEXITED(st) && WEXITSTATUS(st) != 0) {
-    mserv_log("Child process exited (%d)", WEXITSTATUS(st));
+  
+  /* Invariant: player has terminated */
+  mserv_player_pid = 0;
+  mserv_player_playing.track = NULL;
+  
+  if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+    /* Player done, exit code 0. */
+    trouble = 0;
+  } else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+    /* Player done, non-zero exit code. */
+    trouble = 1;
+    
+    mserv_log("Child process exited with status (%d)", WEXITSTATUS(status));
     if (playing) {
-      mserv_broadcast("NOSPAWN", "%d\t%d\t%s\t%s",
+      mserv_broadcast("PLTRBL", "%d\t%d\t%s\t%s",
 		      playing->track->album->id,
 		      playing->track->n_track,
 		      playing->track->author,
 		      playing->track->name);
     } else {
-      mserv_broadcast("NOSPAWN", "");
+      mserv_broadcast("PLTRBL", "");
     }
-    mserv_player_pid = 0;
-    mserv_checkshutdown();
+  } else if (WIFSIGNALED(status)) {
+    /* Player terminated by signal */
+    trouble = 1;
+    
+    mserv_log("Child process received signal %d%s",
+	      WTERMSIG(status), WCOREDUMP(status) ? " (core dumped)" : "");
+    if (playing) {
+      mserv_broadcast("PLTRBL2", "%d\t%d\t%s\t%s",
+		      playing->track->album->id,
+		      playing->track->n_track,
+		      playing->track->author,
+		      playing->track->name);
+    } else {
+      mserv_broadcast("PLTRBL2", "");
+    }
+  }
+
+  /* Invariant: Any information about player trouble has now been
+   * logged */
+  mserv_checkshutdown();
+  
+  if (trouble && mserv_toooften()) {
+    /* FIXME: If we run into trouble more than three times in five
+     * minutes, stop playing. */
+    mserv_log("Too many player problems, playback stopped");
+    mserv_broadcast("NOSPAWN", "");
     return;
   }
   
-  if (WIFSIGNALED(st)) {
-    mserv_log("Child process received signal %d%s",
-	      WTERMSIG(st), WCOREDUMP(st) ? " (core dumped)" : "");
-  }
-
-  mserv_player_pid = 0;
-  mserv_player_playing.track = NULL;
   mserv_player_playnext(); /* may or may not start a new track */
   /* if nothing playing, output stream will run out of input and print
    * the finished message */
@@ -2470,6 +2516,10 @@ int mserv_addqueue(t_client *cl, t_track *track)
 
 /* w = (weight - 0.5)*RFACT, x^(w+1), x^(1/(1-w)) */
 
+/*
+ * May or may not start a new track.  If nothing playing, output
+ * stream will run out of input and print the finished message.
+ */
 int mserv_player_playnext(void)
 {
   char fullpath[MAXFNAME];

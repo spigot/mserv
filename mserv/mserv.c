@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
 	     ps->pw_dir[strlen(ps->pw_dir)-1] == '/' ? "" : "/");
   } else {
     /* copy out of environment */
-    if ((m = malloc(strlen(mserv_root))) == NULL) {
+    if ((m = malloc(strlen(mserv_root) + 1)) == NULL) {
       fprintf(stderr, "%s: out of memory\n", progname);
       exit(1);
     }
@@ -458,6 +458,12 @@ int main(int argc, char *argv[])
     mserv_log("Socket listen error '%s'", strerror(errno));
     mserv_closedown(1);
   }    
+
+  if (conf_getvalue("player")) {
+    mserv_log("You have an old configuration file format, please take a look "
+              "at config.dist and merge in the player configuration lines");
+    mserv_closedown(1);
+  }
 
   mserv_log("*** Server started!");
 

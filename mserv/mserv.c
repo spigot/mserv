@@ -675,9 +675,30 @@ static int mserv_toooften(void)
   return numberOfTimes > 3;
 }
 
+static void mserv_setHistoricalDuration(const t_track *track,
+					int durationmsecs)
+{
+  int i;
+  t_historyentry *entry = NULL;
+  
+  /* Find the most recent history entry matching the track */
+  for (i = 0; i < HISTORYLEN; i++) {
+    if (mserv_history[i] != NULL &&
+	mserv_history[i]->track == track)
+    {
+      entry = mserv_history[i];
+      break;
+    }
+  }
+  
+  if (entry != NULL) {
+    entry->durationMsecs = durationmsecs;
+  }
+}
+
 static void mserv_checkchild(void)
 {
-  int status, pid, trouble = 0;
+  int status, pid, trouble = 0, duration;
   t_trkinfo *playing = channel_getplaying(mserv_channel);
   
   pid = waitpid(mserv_player_pid, &status, WNOHANG | WUNTRACED);
@@ -700,6 +721,10 @@ static void mserv_checkchild(void)
   }
   
   /* Invariant: player has terminated */
+
+  duration = channel_getplaying_msecs(mserv_channel);
+  mserv_setHistoricalDuration(playing->track, duration);
+  
   mserv_player_pid = 0;
   mserv_player_playing.track->lastplay = time(NULL);
   mserv_player_playing.track->modified = 1;
@@ -2823,7 +2848,14 @@ void mserv_abortplay()
 {
   char error[256];
   t_track *stop_me = NULL;
-
+  
+  if (mserv_player_playing.track) {
+    int duration;
+    
+    duration = channel_getplaying_msecs(mserv_channel);
+    mserv_setHistoricalDuration(mserv_player_playing.track, duration);
+  }
+  
   /* channel_stop probably will cause a SIGPIPE in the child */
   if (channel_stop(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
     mserv_log("Failed to stop channel %s: %s\n", mserv_channel->name, error);

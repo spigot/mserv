@@ -3753,11 +3753,12 @@ static int mserv_createdir(const char *path)
   char *p, *r;
   struct stat buf;
   unsigned int len = strlen(path);
-
+  int returnme = 1;
+  
   if (!*path)
-    return 1;
+    goto fail;
   if ((mypath = malloc(len+2)) == NULL)
-    return 1;
+    goto fail;
   strcpy(mypath, path);
   if (!(len && mypath[len-1] == '/')) {
     mypath[len++] = '/';
@@ -3768,17 +3769,24 @@ static int mserv_createdir(const char *path)
     if (stat(mypath, &buf)) {
       if (errno == ENOENT) {
         if (mkdir(mypath, 0755))
-          return 1;
+          goto fail;
       } else {
-        return 1;
+        goto fail;
       }
     } else {
       if (!S_ISDIR(buf.st_mode))
-        return 1;
+        goto fail;
     }
     *p = '/';
   }
-  return 0;
+
+  returnme = 0;
+  
+ fail:
+  if (mypath != NULL) {
+    free(mypath);
+  }
+  return returnme;
 }
 
 void mserv_ensuredisk(void)

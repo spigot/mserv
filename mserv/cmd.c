@@ -2122,51 +2122,60 @@ static void cmd_date(t_client *cl, t_cmdparams *cp)
 		 mktime(&curtm), ct, date, time);
 }
 
-static void cmd_kick(t_client *cl, t_cmdparams *cp)
+static void cmd_kick(t_client *kicker, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
   t_acl *acl;
-  t_client *client;
+  t_client *victim;
   char *end;
-
+  int have_kicked = 0;
+  
   strcpy(linespl, cp->line);
-
+  
   if (mserv_split(str, 2, linespl, " ") < 1) {
-    mserv_response(cl, "BADPARM", NULL);
+    mserv_response(kicker, "BADPARM", NULL);
     return;
   }
+  
+  /* Find the user to kick */
   for (acl = mserv_acl; acl; acl = acl->next) {
     if (!stricmp(acl->user, str[0]))
       break;
   }
   if (!acl) {
-    mserv_response(cl, "NOUSER", NULL);
+    mserv_response(kicker, "NOUSER", NULL);
     return;
   }
+  
+  /* Prevent the victim from logging back in for some time */
   if (str[1]) {
     acl->nexttime = time(NULL) + 60 * strtol(str[1], &end, 10);
     if (!*cp->line || *end) {
-      mserv_response(cl, "NAN", NULL);
+      mserv_response(kicker, "NAN", NULL);
       return;
     }
   } else {
     acl->nexttime = time(NULL) + 60;
   }
-  mserv_log("Kick of %s by %s", str[0], cl->user);
-  for (client = mserv_clients; client; client = client->next) {
-    if (client->authed && !stricmp(client->user, str[0]))
-      break;
+  mserv_log("Kick of %s by %s", str[0], kicker->user);
+
+  /* Kick the user from all his / hers active connections */
+  for (victim = mserv_clients; victim; victim = victim->next) {
+    if (victim->authed && stricmp(victim->user, str[0]) == 0) {
+      if (kicker->mode != mode_human) /* humans will see 'disconnected' message */
+	mserv_response(kicker, "USERCHG", NULL);
+      if (victim->mode == mode_human)
+	mserv_response(victim, "KICKED", NULL);
+      have_kicked = 1;
+      mserv_close(victim);
+    }
   }
-  if (!client) {
-    mserv_response(cl, "USERCHG", NULL);
+  
+  if (!have_kicked) {
+    mserv_response(kicker, "USERCHG", NULL);
     return;
   }
-  if (cl->mode != mode_human) /* humans will see 'disconnected' message */
-    mserv_response(cl, "USERCHG", NULL);
-  if (client->mode == mode_human)
-    mserv_response(client, "KICKED", NULL);
-  mserv_close(client);
 }
 
 static void cmd_reset(t_client *cl, t_cmdparams *cp)

@@ -16,14 +16,29 @@ set timeout -1
 
 # Log in as Johan and mess around
 spawn telnet localhost 4444
+set humanjohan $spawn_id
 expect "USER"
 send "user johan\n"
 expect "PASS"
 send "pass johan\n"
 expect "Welcome johan"
 
+# Log in as a computerized Johan and lurk
+spawn telnet localhost 4444
+set computerjohan $spawn_id
+expect "USER"
+send "user johan\n"
+expect "PASS"
+send "pass johan rtcomputer\n"
+expect "202"
+expect "Welcome johan"
+
+# Default to operating on the human user
+set spawn_id $humanjohan
+
 send "who\n"
 expect "The following people are online"
+expect "johan"
 
 # Test only bogus rating commands, root will test actual re-ratings
 send "rate\n"
@@ -142,7 +157,7 @@ wait
 
 # Log johan back in so he can be kicked off by root
 spawn telnet localhost 4444
-set johanlogin $spawn_id
+set humanjohan $spawn_id
 expect "USER"
 send "user johan\n"
 expect "PASS"
@@ -170,7 +185,7 @@ send "who\n"
 expect "1 connected, 1 total"
 
 # Verify that Johan got notified
-set spawn_id $johanlogin
+set spawn_id $humanjohan
 expect "You have been kicked off"
 wait
 

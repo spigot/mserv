@@ -1,5 +1,5 @@
 /* version string */
-#define VERSION         "0.33"
+#define VERSION         "0.34"
 /* #define VERSION         "0.33-yourname.00" */
 
 /* paths relative to mserv root directory */

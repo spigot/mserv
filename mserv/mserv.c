@@ -1643,7 +1643,7 @@ static void mserv_scandir_recurse(const char *pathname)
       strcat(filename, "/");
       mserv_scandir_recurse(filename);
     } else if (!toomany && S_ISREG(buf.st_mode)) {
-      if (llen > 4 && !strcmp(".mp3", ent->d_name+llen-4)) {
+      if (llen > 4 && !stricmp(".mp3", ent->d_name+llen-4)) {
 	if (tnum >= TRACKSPERALBUM) {
 	  mserv_log("The limit of tracks per album was reached, and some "
 		    "tracks were discarded. To increase this limit "
@@ -2066,7 +2066,7 @@ static t_track *mserv_loadtrk(const char *filename)
   }
   if (duration == 0 && !*miscinfo) {
     len = strlen(fullpath_file);
-    if (len > 4 && !strcmp(".mp3", fullpath_file+len-4)) {
+    if (len > 4 && !stricmp(".mp3", fullpath_file+len-4)) {
       duration = mserv_mp3info_readlen(fullpath_file, &bitrate, &id3tag);
       if (duration == -1) {
 	mserv_log("Unable to determine details of mp3 '%s': %s",

@@ -134,12 +134,16 @@ expect "Track name"
 # Start playing and try some commands again
 send "play\n"
 expect "Playing"
+expect -re {random +([0-9]+)/([0-9]+) }
+set albumnumber $expect_out(1,string)
+set tracknumber $expect_out(2,string)
 
 send "status\n"
 expect "Track name"
 expect -re {Time playing: +([0-9]+):([0-9][0-9])[^0-9]}
-
-if { $expect_out(1,string) > 0 || $expect_out(2,string) >= 2 } then {
+set minutes $expect_out(1,string)
+set seconds $expect_out(2,string)
+if { $minutes > 0 || $seconds >= 2 } then {
 	send_error "*** The status command says the just started song has played too long\n"
 	exit 1
 }
@@ -180,8 +184,42 @@ expect "Playing:"
 expect -i $computerjohan "=629\tjohan"
 expect -i $computerjohan "=622\trandom"
 
+send "info $albumnumber $tracknumber\n"
+# Verify that the last track is reported as having been played very
+# recently
+expect -re {Played: +([0-9]+) ([a-zA-Z]+) ago}
+set amount $expect_out(1,string)
+set unit $expect_out(2,string)
+if { $unit != "seconds" || $amount > 5 } then {
+	send_error "*** The info command says the last song was last played $amount $unit ago, which is too long ago\n"
+	exit 1
+}
+# Verify that the last track received a temporal penalty for having
+# been played recently
+expect -re {temporally adjusted to +([0-9]+\.[0-9])%}
+set percentage $expect_out(1,string)
+if { $percentage > 10.0 } then {
+	send_error "*** The info command says the last song didn't get enough temporal penalty\n"
+	exit 1
+}
+
 send "info\n"
 expect "Track name"
+# Verify that mserv remembers when the current track was last played
+expect -re {Played: +([0-9]+) ([a-zA-Z]+) ago}
+set amount $expect_out(1,string)
+set unit $expect_out(2,string)
+if { $unit == "seconds" && $amount <= 10 } then {
+	send_error "*** The info command says the just started song was last played only $amount seconds ago\n"
+	exit 1
+}
+# Verify that mserv gives a penalty to the currently playing song
+expect -re {temporally adjusted to +([0-9]+\.[0-9])%}
+set percentage $expect_out(1,string)
+if { $percentage > 10.0 } then {
+	send_error "*** The info command says the current song hasn't gotten enough temporal penalty\n"
+	exit 1
+}
 
 send "play\n"
 expect "Already playing"

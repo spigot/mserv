@@ -2710,8 +2710,6 @@ int mserv_player_playnext(void)
     mserv_setplaying(mserv_channel,
 		     mserv_channel->playing.track ? &mserv_channel->playing : NULL,
 		     &mserv_channel->input->trkinfo);
-    mserv_channel->playing = mserv_channel->input->trkinfo;
-    mserv_channel->input->announced = 1;
   }
   
   return 0;
@@ -4059,10 +4057,10 @@ void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
         mserv_send(cl, buffer, 0);
       }
     }
+    c->input->announced = 1;
     mserv_addtohistory(nowplaying);
-    nowplaying->track->lastplay = time(NULL);
-    nowplaying->track->modified = 1;
-    /* recalc ratings now lastplay has changed */
+    c->playing = *nowplaying;
+    /* recalc ratings now that the new track has started playing */
     recalculate += 2;
   } else {
     if (mserv_player_playing.track == NULL) {

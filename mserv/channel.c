@@ -462,8 +462,6 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
       /* announce this song to users in channel, if we haven't already */
       mserv_setplaying(c, c->playing.track ? &c->playing : NULL,
 		       &c->input->trkinfo);
-      c->playing = c->input->trkinfo;
-      c->input->announced = 1;
     }
     if (!c->input->timer_started) {
       gettimeofday(&c->playing_start, NULL);

@@ -1,0 +1,210 @@
+#!/usr/bin/expect
+#-*-sh-*-
+
+# This expect script performs performance measurements on mserv.  It
+# requires a user account to with username "root" with password
+# "root".  It also requires at least one song in one album and an
+# otherwise working configuration.
+#
+# If you want to add tests, do that below the "Tests start here"
+# marker (below).
+
+# Hang if something unexpected happens
+set timeout -1
+
+# Run benchmarkee a couple of times and store the min, max and
+# average run time in the global benchmark_results list.
+set benchmark_results []
+proc benchmark { description benchmarkee } {
+    global benchmark_results
+    global computerroot
+    global humanroot
+
+    send_error "\n\n***\n*** $description:\n***\n\n"
+
+    # Setting precision_percent to 10.0 should mean that the average
+    # result returned by this function should be within 10% of the
+    # true average
+    set precision_percent 10.0
+    set precision_max_factor [expr (100.0 + $precision_percent) / 100.0]
+    set precision_min_factor [expr (100.0 - $precision_percent) / 100.0]
+    
+    set min_runtime 0
+    set max_runtime 0
+    set average_runtime 0
+    
+    set i 1
+    set total_runtime 0
+    
+    while { 1 } {
+	set t0 [clock clicks -milliseconds]
+	eval $benchmarkee
+	set t1 [clock clicks -milliseconds]
+	set runtime [expr $t1 - $t0]
+
+	set total_runtime [expr $total_runtime + $runtime]
+	set average_runtime [expr 1.0 * $total_runtime / $i]
+	
+	if { $i == 0 } {
+		set max_runtime $runtime
+		set min_runtime $runtime
+	}
+
+	if { $runtime > $max_runtime } {
+		set max_runtime $runtime
+	}
+
+	if { $runtime < $min_runtime } {
+		set min_runtime $runtime
+	}
+	
+        # Break if we have enough precision
+	if { $i > 10 } {
+		set max_allowed [expr $average_runtime * $precision_max_factor]
+		set min_allowed [expr $average_runtime * $precision_min_factor]
+		
+		set max_possible [expr ($total_runtime + $max_runtime) / ($i + 1.0)]
+		set min_possible [expr ($total_runtime + $min_runtime) / ($i + 1.0)]
+		
+		# send_error "Johan: Measured: $min_runtime-$average_runtime-$max_runtime Allowed: $min_allowed-$max_allowed Possible: $min_possible-$max_possible\n"
+		
+		if { $min_possible >= $min_allowed &&
+		     $max_possible <= $max_allowed} {
+		     break
+		}
+	}
+	
+	set i [expr $i + 1]
+    }
+    
+    set result(description) $description
+    set result(max_runtime) $max_runtime
+    set result(min_runtime) $min_runtime
+    set result(average_runtime) $average_runtime
+
+    lappend benchmark_results [array get result]
+}
+
+# Log two roots for benchmarking
+spawn telnet localhost 4444
+set humanroot $spawn_id
+expect "USER"
+send "user root\n"
+expect "PASS"
+send "pass root\n"
+expect "Welcome root"
+
+spawn telnet localhost 4444
+set computerroot $spawn_id
+expect "USER"
+expect "\n.\n"
+send "user root\n"
+expect "PASS"
+expect "\n.\n"
+send "pass root rtcomputer\n"
+expect "202"
+expect "Welcome root"
+expect "\n.\n"
+expect -i $humanroot "root has connected"
+
+# Back to the human root
+set spawn_id $humanroot
+
+
+#
+# Tests start here
+#
+
+# Benchmark the "queue" command
+benchmark {Running "queue" over and over} {
+    send "queue\n"
+    expect "There are no tracks in the queue"
+}
+
+# Benchmark the "queue" command while a song is playing
+send "play\n"
+expect "Playing"
+expect -i $computerroot "=622\trandom"
+
+benchmark {Running "queue" over and over while a song is playing} {
+    send "queue\n"
+    expect "There are no tracks in the queue"
+}
+
+send "stop\n"
+expect "stopped"
+expect -i $computerroot "=623\troot"
+
+# Benchmark "play" + "stop"
+benchmark {Running "play" + "stop" over and over} {
+    send "play\n"
+    expect "Playing"
+    expect -i $computerroot "=622\trandom"
+
+    send "stop\n"
+    expect "stopped"
+    expect -i $computerroot "=623\troot"
+}
+
+# Benchmark "play"+"pause"+"play"+"next"+"stop"
+benchmark {The "play"-"pause"-"play"-"next"-"stop" cycle} {
+    send "play\n"
+    expect "Playing"
+    expect -i $computerroot "=622\trandom"
+    send "status\n"
+    expect "Playing"
+    send "queue\n"
+    expect "no tracks in the queue"
+    
+    send "pause\n"
+    expect "paused"
+    expect -i $computerroot "=606\troot"
+    send "status\n"
+    expect "Paused"
+    send "queue\n"
+    expect "no tracks in the queue"
+    
+    send "play\n"
+    expect "resumed by root"
+    expect -i $computerroot "=605\troot"
+    send "status\n"
+    expect "Playing"
+    send "queue\n"
+    expect "no tracks in the queue"
+    
+    send "next\n"
+    expect "Track skipped"
+    expect "Playing:"
+    expect -i $computerroot "=629\troot"
+    expect -i $computerroot "=622\trandom"
+    send "status\n"
+    expect "Playing"
+    send "queue\n"
+    expect "no tracks in the queue"
+    
+    send "stop\n"
+    expect "stopped"
+    expect -i $computerroot "=623\troot"
+    send "status\n"
+    expect "Nothing currently playing"
+    send "queue\n"
+    expect "no tracks in the queue"
+}
+
+#
+# Tests end here
+#
+
+
+# Present the results
+send_error "\n\n****** Results: ******\n"
+foreach list_result $benchmark_results {
+    array set result $list_result
+    send_error [format \
+	"\n%s took %dms-%dms, average time was %.1fms\n" \
+	$result(description) \
+	$result(min_runtime) \
+	$result(max_runtime) \
+	$result(average_runtime)]
+}
+send_error "\n"

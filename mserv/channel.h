@@ -28,4 +28,5 @@ int channel_paused(t_channel *c);
 t_channel *channel_find(const char *name);
 t_trkinfo *channel_getplaying(t_channel *c);
 long channel_getplaying_msecs(t_channel *c);
+int channel_getSoundBufferMs(void);
 #endif

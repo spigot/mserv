@@ -872,3 +872,37 @@ long channel_getplaying_msecs(t_channel *c)
   
   return 0;
 }
+
+/* How many milliseconds of sound does the channel with the smallest
+ * buffer buffer? */
+int channel_getSoundBufferMs(void)
+{
+  t_channel_list *iterator;
+  int returnMe = 0;
+  
+  for (iterator = channel_list;
+       iterator != NULL;
+       iterator = iterator->next)
+  {
+    t_channel_outputstream *os;
+    for (os = iterator->channel->output; os != NULL; os = os->next) {
+      if (os->modinfo->get_buffer_ms != NULL) {
+	int thisGuysBufferSize = os->modinfo->get_buffer_ms(os->private);
+	if (returnMe == 0 ||
+	    (thisGuysBufferSize > 0 && thisGuysBufferSize < returnMe))
+	{
+	  returnMe = thisGuysBufferSize;
+	}
+      }
+    }
+  }
+
+  if (returnMe == 0) {
+    // 0 means "don't know", which makes us assume all output channels
+    // can actually swallow the whole second that we keep feeding
+    // them.
+    returnMe = 1000;
+  }
+
+  return returnMe;
+}

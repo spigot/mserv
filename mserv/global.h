@@ -307,6 +307,7 @@ typedef int (*t_module_output_start)(t_channel *c, t_channel_outputstream *os,
 typedef int (*t_module_output_stop)(t_channel *c, t_channel_outputstream *os,
                                     void *private,
                                     char *error, int errsize);
+typedef int (*t_module_get_buffer_ms)(void *private);
 
 struct _t_modinfo {
   struct _t_modinfo *next;
@@ -322,6 +323,7 @@ struct _t_modinfo {
   t_module_output_volume output_volume;
   t_module_output_start output_start;
   t_module_output_stop output_stop;
+  t_module_get_buffer_ms get_buffer_ms;
 };
 
 struct _t_channel {

@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.11 2004/06/26 12:08:17 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.12 2004/07/12 05:54:09 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -42,6 +42,7 @@ typedef struct _t_ossaudio {
   char *mixer_name;
   int  playing;
   int  output_fd;
+  int  buffer_ms;
 } t_ossaudio;
 
 /* initialise module */
@@ -114,6 +115,7 @@ int ossaudio_output_sync(t_channel *c, t_channel_outputstream *os,
   t_ossaudio *ossaudio = (t_ossaudio *)private;
   (void)c;
   int written;
+  int msecsWritten;
   static int buffer_size;
   static signed short *buffer;
   
@@ -168,6 +170,11 @@ int ossaudio_output_sync(t_channel *c, t_channel_outputstream *os,
 	     "failed to send data to soundcard: %s",
 	     strerror(errno));
     return MSERV_FAILURE;
+  }
+
+  msecsWritten = (written * 1000) / buffer_size; // buffer_size = one second
+  if (msecsWritten > ossaudio->buffer_ms) {
+    ossaudio->buffer_ms = msecsWritten;
   }
   
   os->bytesLeft -= written;
@@ -389,4 +396,12 @@ int ossaudio_output_destroy(t_channel *c, t_channel_outputstream *os,
   free(ossaudio);
   
   return MSERV_SUCCESS;
+}
+
+/* How much sound is buffered by the sound driver / card? */
+int ossaudio_get_buffer_ms(void *private)
+{
+  t_ossaudio *ossaudio = (t_ossaudio *)private;
+  
+  return ossaudio->buffer_ms;
 }

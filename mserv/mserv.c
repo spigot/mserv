@@ -3058,6 +3058,11 @@ void mserv_recalcratings(void)
   int ntracks;
   t_track **sbuf;
   t_trkinfo *playing = channel_getplaying(mserv_channel);
+  long time_functionEntry;
+  long time_afterScoring;
+  long time_afterSorting;
+  
+  time_functionEntry = mserv_getMSecsSinceEpoch();
   
   if (mserv_debug)
     mserv_log("Calculating ratings of tracks...");
@@ -3093,6 +3098,8 @@ void mserv_recalcratings(void)
     exit(1);
   }
 
+  time_afterScoring = mserv_getMSecsSinceEpoch();
+  
   if (mserv_debug)
     mserv_log("Sorting tracks for top listing");
   
@@ -3126,7 +3133,16 @@ void mserv_recalcratings(void)
 
   if (mserv_debug)
     mserv_log("Finished recalculation");
+  time_afterSorting = mserv_getMSecsSinceEpoch();
 
+  if (time_afterSorting - time_functionEntry > channel_getSoundBufferMs()) {
+    mserv_log("Warning: mserv_recalcratings() took %ldms (scoring) + %ldms (sorting) = %ldms, which is > %dms (sound buffer).  Expect sound skips.",
+	      time_afterScoring - time_functionEntry,
+	      time_afterSorting - time_afterScoring,
+	      time_afterSorting - time_functionEntry,
+	      channel_getSoundBufferMs());
+  }
+  
   return;
 }
 

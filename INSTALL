@@ -9,7 +9,7 @@ This package includes:
 
 You should be able to:
 
-  ./configure --with-engine-icecast
+  ./configure --enable-engine-icecast --disable-engine-local
   make
   make install
 
@@ -18,8 +18,8 @@ by default.
 
 You need to specify which engine to use (this release only supports icecast)
 
-  --with-engine-local     Use the local output engine (default)
-  --with-engine-icecast   Use the icecast output engine
+  --enable-engine-local    Compile the local output engine (default)
+  --enable-engine-icecast  Compile the icecast output engine
 
 Once you have installed Mserv with icecast support, run mserv once to
 generate the ~/.mserv directory with the configuration file ~/.mserv/config.
@@ -28,18 +28,18 @@ details.
 
 Other switches:
 
-  --with-warnings         Turn on compiler warnings
-  --with-debug            Turn on compiler debugging
-  --disable-server        Do not compile/install the server
-  --disable-client        Do not compile/install the client library/utils
+  --with-warnings          Turn on compiler warnings
+  --with-debug             Turn on compiler debugging
+  --disable-server         Do not compile/install the server
+  --disable-client         Do not compile/install the client library/utils
 
 Once you have installed Mserv, read docs/quick-start.txt to get yourself
 started.  Additional scripts are present in the support directory,
 including:
 
-  mservedit               Perl script for editing track information off-line
-  mservplay.c             setuid wrapper to increase nice level for player
-  mservripcd              Perl script for ripping tracks, interfaces with CDDB
+  mservedit                Perl script for editing track information off-line
+  mservplay.c              setuid wrapper to increase nice level for player
+  mservripcd               Perl script for ripping tracks, interfaces with CDDB
 
 The documentation below is the standard `configure' shell script stuff.
 

@@ -545,6 +545,7 @@ static void mserv_mainloop(void)
   long timestampBeforeNewConnections = 0;
   long timestampAfterSleep = 0;
   int atLeastOneLapDone = 0;
+  int nLaps = 0;
   
   // We should attempt to sync the sound and talk to the users
   // at least this often
@@ -554,6 +555,10 @@ static void mserv_mainloop(void)
     long timestampCycleWrap = mserv_getMSecsSinceEpoch();
     int soundBufferMs = channel_getSoundBufferMs();
     int cycleTime;
+    
+    if (nLaps++ > 0) {
+      atLeastOneLapDone = 1;
+    }
     
     timestampBeforeUserIo = mserv_getMSecsSinceEpoch();
     
@@ -633,6 +638,7 @@ static void mserv_mainloop(void)
     channel_sync(mserv_channel, error, sizeof(error));
     
     timestampBeforeNewConnections = mserv_getMSecsSinceEpoch();
+
     /* check for incoming connections */
     client_socket = accept(mserv_socket, (struct sockaddr *)&sin_client,
 			   &sin_client_len);
@@ -692,8 +698,6 @@ static void mserv_mainloop(void)
     mserv_send(cl, "200 Mserv " VERSION " (c) James Ponder 1999-2003 - "
 	       "Type: USER <username>\r\n", 0);
     mserv_send(cl, ".\r\n", 0);
-    
-    atLeastOneLapDone = 1;
   }
 }
 

@@ -103,7 +103,9 @@ int opt_read(const char *root)
 	  fprintf(stderr, "%s: out of memory building path\n", progname);
 	  return -1;
 	}
-	sprintf(m, "%s/%s", root, val);
+        strncpy(m, root, rl);
+        m[rl] = '\0';
+        strcat(m, val);
       } else {
 	/* value is absolute path */
 	if ((m = malloc(strlen(val))) == NULL) {

@@ -448,6 +448,16 @@ static void cmd_pass(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "ACLSUCC", "%s", cl->user);
   if (cl->userlevel != level_guest && cl->mode != mode_computer)
     mserv_recalcratings();
+
+  if (mserv_autofactor) {
+    if (cl->mode != mode_computer && cl->userlevel != level_guest) {
+      mserv_factor = 0.99;
+      mserv_log("Autofactor: %s logged in, factor set to %.2f",
+		cl->user,
+		mserv_factor);
+    }
+  }
+  
   return;
 }
 

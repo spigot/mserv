@@ -71,6 +71,7 @@ static int mserv_started = 0;
 static char mserv_filter[FILTERLEN+1] = "";
 static double mserv_gap = 0;
 static t_lang *mserv_language;
+static double mserv_satisfaction_goal = 0.75;
 
 /*** externed variables ***/
 
@@ -4279,6 +4280,76 @@ void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
   mserv_send(cl, "\r\n", 0);
 }
 
+/* Scan through all logged in users and find the one with the lowest
+ * satisfaction value.  Return the lowest satisfaction value.  Point
+ * most_dissatisfied_user to the name of the user with the lowest
+ * satisfaction. */
+static double mserv_getlowestsatisfaction(const char **most_dissatisfied_user)
+{
+  double lowestsatisfaction = 2.0;
+  t_client *cl;
+
+  *most_dissatisfied_user = NULL;
+  for (cl = mserv_clients; cl; cl = cl->next) {
+    double satisfaction;
+    if (!cl->authed || cl->state == st_closed ||
+	cl->mode == mode_computer || cl->userlevel == level_guest)
+      continue;
+
+    if (!mserv_getsatisfaction(cl, &satisfaction)) {
+      /* This user isn't in the game (yet) */
+      continue;
+    }
+
+    if (*most_dissatisfied_user == NULL
+	|| satisfaction < lowestsatisfaction)
+    {
+      *most_dissatisfied_user = cl->user;
+      lowestsatisfaction = satisfaction;
+    }
+  }
+  
+  return lowestsatisfaction;
+}
+
+/* Used if automatic factor adjustment is in effect.  Adjust the
+ * factor up or down depending on the satisfaction of the most
+ * dissatisfied user. */
+static void mserv_adjustfactor(void)
+{
+  const char *most_dissatisfied_user;
+  double lowestsatisfaction =
+    mserv_getlowestsatisfaction(&most_dissatisfied_user);
+  
+  if (most_dissatisfied_user == NULL) {
+    /* Nobody is logged in / most dissatisfied, no adjustment
+     * necessary. */
+    return;
+  }
+  
+  if (lowestsatisfaction < mserv_satisfaction_goal) {
+    mserv_factor += 0.1;
+    if (mserv_factor > 0.99) {
+      mserv_factor = 0.99;
+    }
+    mserv_log("Autofactor: factor raised to %.2f because user %s is only %.2f satisfied, goal is %.2f",
+	      mserv_factor,
+	      most_dissatisfied_user,
+	      lowestsatisfaction,
+	      mserv_satisfaction_goal);
+  } else if (lowestsatisfaction > mserv_satisfaction_goal) {
+    mserv_factor -= 0.1;
+    if (mserv_factor < 0.51) {
+      mserv_factor = 0.51;
+    }
+    mserv_log("Autofactor: factor lowered to %.2f because user %s is %.2f satisfied, which is above the goal of %.2f",
+	      mserv_factor,
+	      most_dissatisfied_user,
+	      lowestsatisfaction,
+	      mserv_satisfaction_goal);
+  }
+}
+
 void mserv_addtohistory(const t_trkinfo *addme)
 {
   t_historyentry *newentry;
@@ -4306,6 +4377,10 @@ void mserv_addtohistory(const t_trkinfo *addme)
     mserv_history[0] = newentry;
   }
   mserv_n_songs_started++;
+
+  if (mserv_autofactor) {
+    mserv_adjustfactor();
+  }
 }
 
 const char *mserv_clientmodetext(t_client *cl)

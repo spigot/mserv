@@ -32,6 +32,7 @@ const char defconf_file[] = "# Mserv configuration file for " VERSION "\n\
 # path_playout=player.out\n\
 # path_startout=startup.out\n\
 # path_idea=idea\n\
+# path_libdir=" PKGLIBDIR "\n\
 # path_language=" DATADIR "/english.lang\n\
 \n\
 #############################################################################\n\

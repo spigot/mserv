@@ -489,11 +489,14 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
       
       if (ret == -1) {
         if (errno != EAGAIN && errno != EINTR) {
-          mserv_log("channel %s: failure reading on input socket for %d/%d: %s",
+          mserv_log("channel %s: failure reading audio from player for %d/%d: %s",
                     c->name, c->input->trkinfo.track->album->id,
                     c->input->trkinfo.track->n_track, strerror(errno));
+	  break;
         }
-        break;
+	
+	/* Wait 5ms, then try again */
+	usleep(5000);
       } else if (ret == 0) {
         /* end of song */
         channel_align(c);

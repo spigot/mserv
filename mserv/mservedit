@@ -37,7 +37,7 @@ if ($opt_x) {
 }
 
 opendir(DIR, $dir) || die "Could not opendir '$dir': $!\n";
-@files = grep(/$pattern/, readdir(DIR));
+@files = grep(/$pattern/i, readdir(DIR));
 closedir(DIR);
 for (@files) { s/\.trk$//; }
 @files = sort {$a cmp $b } @files;

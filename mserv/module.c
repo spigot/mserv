@@ -48,6 +48,8 @@ struct _t_module_funcs {
   MODULE_FUNC(output_poll),
   MODULE_FUNC(output_sync),
   MODULE_FUNC(output_volume),
+  MODULE_FUNC(output_stop),
+  MODULE_FUNC(output_start),
   { NULL, 0 }
 };
 

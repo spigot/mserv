@@ -260,6 +260,10 @@ typedef int (*t_module_output_sync)(t_channel *c, void *private,
                                     char *error, int errsize);
 typedef int (*t_module_output_volume)(t_channel *c, void *private, int *volume,
                                       char *error, int errsize);
+typedef int (*t_module_output_start)(t_channel *c, void *private,
+                                      char *error, int errsize);
+typedef int (*t_module_output_stop)(t_channel *c, void *private,
+                                    char *error, int errsize);
 
 typedef struct _t_modinfo {
   struct _t_modinfo *next;
@@ -273,6 +277,8 @@ typedef struct _t_modinfo {
   t_module_output_poll output_poll;
   t_module_output_sync output_sync;
   t_module_output_volume output_volume;
+  t_module_output_start output_start;
+  t_module_output_stop output_stop;
 } t_modinfo;
 
 /* output stream structure */

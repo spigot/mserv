@@ -479,7 +479,7 @@ int main(int argc, char *argv[])
   cl.state = st_wait;
   cl.mode = mode_human;
   strcpy(cl.user, "root");
-  cl.socket = fileno(mserv_logfile);
+  cl.socket = fileno(mserv_logfile); /* TODO: startup.out */
   fflush(mserv_logfile);
 
   /* execute commands in options file */
@@ -501,6 +501,8 @@ int main(int argc, char *argv[])
   }
   mserv_pollwrite(&cl);
 
+  /* TODO: write startup.out to stdout (log?) if verbose (debug?) on */
+
   signal(SIGINT, mserv_sighandler);
   signal(SIGPIPE, SIG_IGN);
   signal(SIGCHLD, mserv_sighandler);
@@ -515,7 +517,7 @@ int main(int argc, char *argv[])
   mserv_mainloop();
 
   if (channel_final(error, sizeof(error)) != MSERV_SUCCESS)
-    mserv_log("Failed to finalise channel channel: %s", error);
+    mserv_log("Failed to finalise channel sub-system: %s", error);
   if (module_final(error, sizeof(error)) != MSERV_SUCCESS)
     mserv_log("Failed to finalise module sub-system: %s", error);
 

@@ -34,6 +34,7 @@ const char *opt_path_logfile = NULL;
 const char *opt_path_tracks = NULL;
 const char *opt_path_trackinfo = NULL;
 const char *opt_path_playout = NULL;
+const char *opt_path_startout = NULL;
 const char *opt_path_idea = NULL;
 const char *opt_path_language = NULL;
 const char *opt_path_libdir = NULL;
@@ -61,6 +62,7 @@ t_opts opt_opts[] = {
   { "path_tracks",    "path",    &opt_path_tracks,    "tracks" },
   { "path_trackinfo", "path",    &opt_path_trackinfo, "trackinfo" },
   { "path_playout",   "path",    &opt_path_playout,   "player.out" },
+  { "path_startout",  "path",    &opt_path_startout,  "startup.out" },
   { "path_idea",      "path",    &opt_path_idea,      "idea" },
   { "path_language",  "path",    &opt_path_language,  DATADIR "/english.lang"},
   { "path_libdir",    "path",    &opt_path_libdir,    PKGLIBDIR },

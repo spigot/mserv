@@ -5,6 +5,7 @@ extern const char *opt_path_logfile;
 extern const char *opt_path_tracks;
 extern const char *opt_path_trackinfo;
 extern const char *opt_path_playout;
+extern const char *opt_path_startout;
 extern const char *opt_path_idea;
 extern const char *opt_path_language;
 extern const char *opt_path_libdir;

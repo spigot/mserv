@@ -30,6 +30,7 @@ const char defconf_file[] = "# Mserv configuration file for " VERSION "\n\
 # path_tracks=tracks\n\
 # path_trackinfo=trackinfo\n\
 # path_playout=player.out\n\
+# path_startout=startup.out\n\
 # path_idea=idea\n\
 # path_language=" DATADIR "/english.lang\n\
 \n\

@@ -506,12 +506,18 @@ void channel_replacetrack(t_channel *c, t_track *track, t_track *newtrack)
 int channel_stop(t_channel *c, char *error, int errsize)
 {
   t_output_inputstream *i, *next;
+  t_output_list *ol;
 
   (void)error;
   (void)errsize;
   if (c->stopped)
     return MSERV_SUCCESS;
-  mserv_log("channel '%s' stopped playing", c->name);
+  /* call output stream modules stop methods */
+  for (ol = c->output; ol; ol = ol->next) {
+    if (ol->modinfo->output_stop)
+      ol->modinfo->output_stop(c, ol->private, error, errsize);
+  }
+  mserv_log("channel %s: stopped playing", c->name);
   for (i = c->input; i; i = next) {
     next = i->next;
     close(i->fd);
@@ -528,12 +534,18 @@ int channel_stop(t_channel *c, char *error, int errsize)
 
 int channel_start(t_channel *c, char *error, int errsize)
 {
+  t_output_list *ol;
+
   (void)error;
   (void)errsize;
-
   if (!c->stopped)
     return MSERV_SUCCESS;
-  mserv_log("channel '%s' started playing", c->name);
+  /* call output stream modules start methods */
+  for (ol = c->output; ol; ol = ol->next) {
+    if (ol->modinfo->output_start)
+      ol->modinfo->output_start(c, ol->private, error, errsize);
+  }
+  mserv_log("channel %s: started playing", c->name);
   c->stopped = 0;
   return MSERV_SUCCESS;
 }
@@ -547,7 +559,7 @@ int channel_pause(t_channel *c, char *error, int errsize)
 
   if (c->paused)
     return MSERV_SUCCESS;
-  mserv_log("channel '%s' paused", c->name);
+  mserv_log("channel %s: paused", c->name);
   c->paused = 1;
   return MSERV_SUCCESS;
 }
@@ -560,7 +572,7 @@ int channel_unpause(t_channel *c, char *error, int errsize)
   (void)errsize;
   if (!c->paused)
     return MSERV_SUCCESS;
-  mserv_log("channel '%s' resumed", c->name);
+  mserv_log("channel %s: resumed", c->name);
   c->paused = 0;
   return MSERV_SUCCESS;
 }

@@ -17,11 +17,29 @@
 #include "global.h"
 #include "channel.h"
 
-void mserv_log(const char *text, ...);
-void mserv_response(t_client *cl, const char *token, const char *fmt, ...);
-void mserv_responsent(t_client *cl, const char *token, const char *fmt, ...);
-void mserv_informnt(t_client *cl, const char *token, const char *fmt, ...);
-void mserv_broadcast(const char *token, const char *fmt, ...);
+/* Enable gcc's printf()-like functions parameter checking.  The
+ * argument passed to PRINTF_SYNTAX() is the number of the format
+ * string argument. */
+/* Disabled until something's done about gcc's "zero-length format
+ * argument" warning.  We should probably tell configure to ask the
+ * compiler about whether it supports "-Wno-format-zero-length". */
+#if 0 && defined (__GNUC__)
+#define PRINTF_SYNTAX(FORMAT_ARG) \
+   __attribute__ ((format (printf, FORMAT_ARG, (FORMAT_ARG + 1))))
+#else
+#define PRINTF_SYNTAX(FORMAT_ARG)
+#endif
+
+void mserv_log(const char *text, ...)
+   PRINTF_SYNTAX(1);
+void mserv_response(t_client *cl, const char *token, const char *fmt, ...)
+   PRINTF_SYNTAX(3);
+void mserv_responsent(t_client *cl, const char *token, const char *fmt, ...)
+   PRINTF_SYNTAX(3);
+void mserv_informnt(t_client *cl, const char *token, const char *fmt, ...)
+   PRINTF_SYNTAX(3);
+void mserv_broadcast(const char *token, const char *fmt, ...)
+   PRINTF_SYNTAX(2);
 void mserv_send(t_client *cl, const char *data, unsigned int len);
 t_lang *mserv_gettoken(const char *token);
 int mserv_split(char *str[], int nelements, char *line, const char *sep);

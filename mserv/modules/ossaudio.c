@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.12 2004/07/12 05:54:09 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.13 2004/09/04 15:33:08 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -113,11 +113,11 @@ int ossaudio_output_sync(t_channel *c, t_channel_outputstream *os,
                         void *private, char *error, int errsize)
 {
   t_ossaudio *ossaudio = (t_ossaudio *)private;
-  (void)c;
   int written;
   int msecsWritten;
   static int buffer_size;
   static signed short *buffer;
+  (void)c;
   
   if (buffer == NULL) {
     buffer_size = sizeof(signed short) * os->channels * os->samplerate;
@@ -189,13 +189,14 @@ int ossaudio_output_volume(t_channel *c, t_channel_outputstream *os,
                           char *error, int errsize)
 {
   t_ossaudio *ossaudio = (t_ossaudio *)private;
+
+  int mixer_fd;
+  int is_getter = (*volume == -1);
+
   (void)ossaudio;
   (void)c;
   (void)os;
   (void)volume;
-
-  int mixer_fd;
-  int is_getter = (*volume == -1);
   
   if ((mixer_fd = open(ossaudio->mixer_name,
 		       O_NONBLOCK | is_getter ? O_RDONLY : O_WRONLY,

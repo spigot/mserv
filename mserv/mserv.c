@@ -4062,8 +4062,8 @@ void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
   t_client *cl;
   t_rating *rate;
   char buffer[USERNAMELEN+AUTHORLEN+NAMELEN+64];
-  (void)c;
   int recalculate = 0;
+  (void)c;
 
   if (wasplaying) {
     mserv_checkdisk_track(wasplaying->track);

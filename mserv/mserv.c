@@ -2871,25 +2871,16 @@ const char *mserv_levelstr(t_userlevel userlevel)
 
 const char *mserv_ratestr(t_rating *rate)
 {
-  int rating;
-
   if (!rate)
     return "UNHEARD";
-
-  rating = rate->rating;
-
-  if (rating == 0)
-    return "HEARD";
-  if (rating == 1)
-    return "AWFUL";
-  if (rating == 2)
-    return "BAD";
-  if (rating == 3)
-    return "NEUTRAL";
-  if (rating == 4)
-    return "GOOD";
-  if (rating == 5)
-    return "SUPERB";
+  switch(rate->rating) {
+  case 0: return "HEARD";
+  case 1: return "AWFUL";
+  case 2: return "BAD";
+  case 3: return "NEUTRAL";
+  case 4: return "GOOD";
+  case 5: return "SUPERB";
+  }
   return NULL;
 }
 

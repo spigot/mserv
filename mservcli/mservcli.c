@@ -195,11 +195,11 @@ int mservcli_getdata(struct mservcli_id *id, struct mservcli_data *data)
   i = 0;
   if (*p) {
     data->param[i++] = p;
-    while(i < data->maxparams && (p = strchr(p, '\t'))) {
+    while(i < data->maxparams-1 && (p = strchr(p, '\t'))) {
       *p++ = '\0';
       data->param[i++] = p;
     }
-    if (i >= data->maxparams) {
+    if (i >= data->maxparams-1) {
       errno = EMLINK;
       return -1;
     }
@@ -224,11 +224,11 @@ static int mservcli_processrt(struct mservcli_id *id)
   if (*end) {
     p = end+1;
     id->rt_data->param[i++] = p;
-    while(i < id->rt_data->maxparams && (p = strchr(p, '\t'))) {
+    while(i < id->rt_data->maxparams-1 && (p = strchr(p, '\t'))) {
       *p++ = '\0';
       id->rt_data->param[i++] = p;
     }
-    if (i >= id->rt_data->maxparams) {
+    if (i >= id->rt_data->maxparams-1) {
       errno = EMLINK;
       return -1;
     }

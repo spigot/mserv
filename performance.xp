@@ -135,6 +135,22 @@ send "stop\n"
 expect "stopped"
 expect -i $computerroot "=623\troot"
 
+# Benchmark the "rate" command while a song is playing
+send "play\n"
+expect "Playing"
+expect -i $computerroot "=622\trandom"
+
+benchmark {Rating a song over and over while it is playing} {
+    send "rate neutral\n"
+    expect "has been rated NEUTRAL by root"
+    expect -i $computerroot "=615"
+    expect -i $computerroot "NEUTRAL"
+}
+
+send "stop\n"
+expect "stopped"
+expect -i $computerroot "=623\troot"
+
 # Benchmark "play" + "stop"
 benchmark {Running "play" + "stop" over and over} {
     send "play\n"

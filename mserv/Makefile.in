@@ -30,14 +30,11 @@ install:	default
 		@INSTALL@ -d -m 0755 ${IBINDIR}
 		@INSTALL@ -d -m 0755 ${IMANDIR}/man1
 		@INSTALL@ -d -m 0755 ${ISHAREDIR}
-		@INSTALL@ -s -m 0755 mservplay ${IBINDIR}/mservplay
 		@INSTALL@ -s -m 0711 mserv ${IBINDIR}/mserv
 		@INSTALL@ -m 0755 mservedit ${IBINDIR}/mservedit
 		@INSTALL@ -m 0644 mserv.1 ${IMANDIR}/man1/mserv.1
 		@INSTALL@ -m 0644 english.lang ${ISHAREDIR}/english.lang
 		@echo "### All installed."
-#		@echo ""
-#		@echo "Type 'chmod a+s /usr/local/bin/mservplay' if appropriate"
 
 mservplay:	${OBJS2}
 		@echo "### Linking mservplay..."
@@ -52,6 +49,7 @@ depend:
 
 clean:		
 		rm -f *.o *~ \#* mserv mservplay config.cache config.log Makefile config.h config.status core
+		rm -rf autom4te.cache
 
 cleaner:	clean
 		rm -f configure

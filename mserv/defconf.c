@@ -23,6 +23,7 @@ const char defconf_file[] = "# Mserv configuration file for 0.35 and later\n\
 # prog_mservplay=mservplay 0 mpg123 -s -b 1024\n\
 prog_mpg123=mpg123 --stereo --rate 44100 -s -b 1024\n\
 prog_ogg123=ogg123 --device=raw -f-\n\
+prog_xmp=xmp --stdout --bits 16 --stereo --frequency 44100\n\
 \n\
 # Set streaming players for each file extension we want to support, unknown\n\
 # extensions are ignored by mserv\n\
@@ -30,6 +31,7 @@ prog_ogg123=ogg123 --device=raw -f-\n\
 # player_au=prog_sox\n\
 player_mp3=prog_mpg123\n\
 player_ogg=prog_ogg\n\
+player_mod=prog_xmp\n\
 \n\
 # Set default random mode, either on or off.  You must still tell mserv to\n\
 # start playing (PLAY).\n\

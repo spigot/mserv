@@ -233,8 +233,8 @@ t_cmds mserv_cmds[] = {
     "Display or set the treble level (+/- for relative)",
     "[[+|-][<0-100>]]" },
   { 1, level_guest, "HISTORY", mserv_cmd_history,
-    "View last 20 tracks",
-    "" },
+    "View list of last tracks played (default shows last 20)",
+    "[<entries> [<from entry>]]" },
   { 1, level_user, "RATE", mserv_cmd_rate,
     "Rate the current track, a specified track or all tracks in an album",
     "[<album> [<track>]] <AWFUL|BAD|NEUTRAL|GOOD|SUPERB>" },
@@ -2141,14 +2141,42 @@ static void mserv_cmd_set_albumname(t_client *cl, const char *ru,
 
 static void mserv_cmd_history(t_client *cl, const char *ru, const char *line)
 {
+  char linespl[LINEBUFLEN];
   char buffer[AUTHORLEN+NAMELEN+64];
   char bit[32];
+  char *str[3];
   int i;
   t_rating *rate;
+  int start = 0;
+  int entries = 20;
+  char *end;
 
-  (void)line;
+  /* [<entries> [<from entry>]] */
+
+  if (*line) {
+    strcpy(linespl, line);
+    if (mserv_split(str, 2, linespl, " ") < 1) {
+      mserv_response(cl, "BADPARM", NULL);
+      return;
+    }
+    entries = strtol(str[0], &end, 10);
+    if (!*str[0] || *end || entries <= 0) {
+      mserv_response(cl, "NAN", NULL);
+      return;
+    }
+    if (str[1]) {
+      start = strtol(str[1], &end, 10);
+      if (!*str[1] || *end || start <= 0) {
+        mserv_response(cl, "NAN", NULL);
+        return;
+      }
+      start--; /* offset from 0, not 1 */
+    }
+  }
   mserv_responsent(cl, "HISTORY", NULL);
-  for (i = 0; mserv_history[i] && i < HISTORYLEN; i++) {
+  for (i = start;
+       mserv_history[i] && i < HISTORYLEN && i < (start + entries);
+       i++) {
     rate = mserv_getrate(ru, mserv_history[i]->track);
     if (cl->mode == mode_human) {
       sprintf(bit, "%d/%d", mserv_history[i]->track->n_album,

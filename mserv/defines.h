@@ -42,7 +42,7 @@
 #define LANGLINELEN 1024
 
 /* number of entries to keep in history */
-#define HISTORYLEN 20
+#define HISTORYLEN 100
 
 /* maximum number of passed parameters to setuid player */
 #define PLAYER_MAXPARAMS 10

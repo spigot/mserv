@@ -2694,12 +2694,19 @@ int mserv_player_playnext(void)
               error);
     /* continue anyway? */
   }
-  
-  mserv_setplaying(mserv_channel,
-		   mserv_channel->playing.track ? &mserv_channel->playing : NULL,
-		   &mserv_channel->input->trkinfo);
-  mserv_channel->playing = mserv_channel->input->trkinfo;
-  mserv_channel->input->announced = 1;
+
+  /* If the input we just added was adapted right away, we announce it
+   * at once.  Otherwise it will be announced by channel_sync() when
+   * the new input is reached. */
+  if (mserv_channel->input->trkinfo.track ==
+      mserv_player_playing.track)
+  {
+    mserv_setplaying(mserv_channel,
+		     mserv_channel->playing.track ? &mserv_channel->playing : NULL,
+		     &mserv_channel->input->trkinfo);
+    mserv_channel->playing = mserv_channel->input->trkinfo;
+    mserv_channel->input->announced = 1;
+  }
   
   return 0;
 }

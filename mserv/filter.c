@@ -2,7 +2,7 @@
 All of the documentation and software included in the Mserv releases is
 copyrighted by James Ponder <james@squish.net>.
 
-Copyright 1999, 2000 James Ponder.  All rights reserved.
+Copyright 1999-2003 James Ponder.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -47,7 +47,7 @@ met:
 #include "misc.h"
 #include "filter.h"
 
-#undef PARSERDEBUG
+#define PARSERDEBUG 0
 
 /*** externed variables ***/
 
@@ -65,7 +65,7 @@ static int filter_parseradd(const t_stack item)
   int i;
 
 #ifdef PARSERDEBUG
-  mserv_log("parser add %d", item);
+  mserv_log("filter_parseradd: %d", item);
 #endif
   if (stack_n >= MAXNSTACK)
     goto error;
@@ -97,7 +97,6 @@ static int filter_parseradd(const t_stack item)
 	break;
       }
     }
-    mserv_log("--");
 #endif
     switch(stack[stack_n-1]) {
     case stack_and:
@@ -155,8 +154,14 @@ static int filter_parseradd(const t_stack item)
     }
   }
  done:
+#ifdef PARSERDEBUG
+    mserv_log("filter_parseradd: returning success");
+#endif
   return 0;
- error:
+error:
+#ifdef PARSERDEBUG
+    mserv_log("filter_parseradd: returning error");
+#endif
   return -1;
 }
 
@@ -174,7 +179,6 @@ int filter_check(const char *filter, t_track *track)
   char c;
   int i;
   unsigned int ui;
-  t_genre *gen;
   char *end, *p;
   char user[USERNAMELEN+1];
   unsigned int type, eq;
@@ -182,7 +186,7 @@ int filter_check(const char *filter, t_track *track)
   stack_n = 0;
 
 #ifdef PARSERDEBUG
-  mserv_log("checking %d/%d", track->n_album, track->n_track);
+  mserv_log("filter_check: checking %d/%d", track->n_album, track->n_track);
 #endif
 
   if (!*filter)
@@ -237,13 +241,6 @@ int filter_check(const char *filter, t_track *track)
 	    ok = 1;
 	} else if (!strnicmp(token, "genre=", 6)) {
 	  p = token+6;
-	  for (gen = mserv_genres; gen; gen = gen->next) {
-	    if (!stricmp(gen->name, p))
-	      break;
-	  }
-	  if (!gen)
-	    /* this token isn't a genre */
-	    goto error;
 	  if (!track->genres[0]) {
 	    /* no genre in track, no match */
 	  } else {
@@ -355,10 +352,16 @@ int filter_check(const char *filter, t_track *track)
 	  goto error;
 	}
       decided:
+#ifdef PARSERDEBUG
+        mserv_log("decided %d", (ok ? stack_true : stack_false));
+#endif
 	if (filter_parseradd(ok ? stack_true : stack_false) == -1)
 	  goto error;
 	token_n = 0;
       }
+#ifdef PARSERDEBUG
+      mserv_log("filter_check: end char is 0x%02x", c);
+#endif
       switch(c) {
       case '&':
 	if (filter_parseradd(stack_and) == -1)
@@ -386,10 +389,13 @@ int filter_check(const char *filter, t_track *track)
  done:
   if (stack_n != 1)
     goto error;
+#ifdef PARSERDEBUG
+  mserv_log("filter_check: ok! %d", (stack[0] == stack_true ? 1 : 0));
+#endif
   return stack[0] == stack_true ? 1 : 0;
  error:
-#ifdef DEBUGPARSER
-  mserv_log("Parser error - backtrace:");
+#ifdef PARSERDEBUG
+  mserv_log("filter_check: Parser error - backtrace:");
   for (ui = 0; ui < stack_n; ui++) {
     switch(stack[ui]) {
     case stack_false:
@@ -415,7 +421,7 @@ int filter_check(const char *filter, t_track *track)
       break;
     }
   }
-  mserv_log("end bt");
+  mserv_log("end bt - returning failure");
 #endif
   return -1;
 }

@@ -220,5 +220,5 @@ NFILTER	638	Random play filter turned off by %01
 MEMORY	639	Out of memory
 RESETGO	640	Server reset initiated by %01...
 VOLUME	641	The volume of %02/%03 has been set by %01
-PLTRBL	626	Player returned error condition
-PLTRBL2	627	Player interrupted by signal
+PLTRBL	642	Player returned error condition, code %05
+PLTRBL2	643	Player interrupted by signal: %05

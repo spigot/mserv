@@ -21,8 +21,10 @@ You need to specify which engine to use (this release only supports icecast)
   --with-engine-local     Use the local output engine (default)
   --with-engine-icecast   Use the icecast output engine
 
-Once you have installed Mserv with icecast support, set default_icecast_output
-in the Mserv configuration file to the location of your Icecast server.
+Once you have installed Mserv with icecast support, run mserv once to
+generate the ~/.mserv directory with the configuration file ~/.mserv/config.
+Then modify this configuration file to reflect your Icecast 2 server
+details.
 
 Other switches:
 

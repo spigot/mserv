@@ -404,30 +404,18 @@ int channel_inputfinished(t_channel *c)
 
 /* sync things */
 
-int channel_sync(t_channel *c, char *error, int errsize)
+static int channel_input_sync(t_channel *c, char *error, int errsize)
 {
-  char ierror[256];
-  struct timeval now, ago;
-  t_channel_outputstream *os;
   int ret;
   unsigned int ui;
   short int *sp;
   float *fp;
   unsigned int words;
-#ifdef HAVE_LIBSAMPLERATE
-  SRC_DATA src_data;
-#endif
+  t_channel_outputstream *os;
 
-  /* poll modules */
-  for (os = c->output; os; os = os->next) {
-    if (os->modinfo->output_poll) {
-      if (os->modinfo->output_poll(c, os, os->private, 
-                                   ierror, sizeof(ierror)) != MSERV_SUCCESS)
-        mserv_log("channel %s: %s output poll: %s", c->name,
-                  os->modinfo->module->name, ierror);
-    }
-  }
-
+  (void)error;
+  (void)errsize;
+  
   /* if we haven't got a full buffer, read in more from the player */
   while (c->buffer_bytes < (c->buffer_samples * 2)) {
     /* try and read more from the input stream */
@@ -486,7 +474,7 @@ int channel_sync(t_channel *c, char *error, int errsize)
       ret = read(c->input->fd, c->buffer_char + c->buffer_bytes,
                  (c->buffer_samples * 2) - c->buffer_bytes);
       if (ret == -1) {
-        if (errno != EAGAIN || errno != EINTR) {
+        if (errno != EAGAIN && errno != EINTR) {
           mserv_log("channel %s: failure reading on input socket for %d/%d: %s",
                     c->name, c->input->trkinfo.track->album->id,
                     c->input->trkinfo.track->n_track, strerror(errno));
@@ -539,39 +527,18 @@ int channel_sync(t_channel *c, char *error, int errsize)
       }
     }
   }
-  if (gettimeofday(&now, NULL) == -1) {
-    snprintf(error, errsize, "failed gettimeofday: %s", strerror(errno));
-    return MSERV_FAILURE;
-  }
-
-  if (c->lasttime.tv_sec != 0) {
-    mserv_timersub(&now, &c->lasttime, &ago);
-    if (ago.tv_sec == 0) /* a second hasn't passed */
-      return MSERV_SUCCESS;
-  }
-  if (mserv_debug)
-    mserv_log("channel %s: next interval", c->name);
-
-  if (c->lasttime.tv_sec == 0) {
-    /* this is the first buffer we've had - set lasttime to be half a second
-     * in the past - this keeps us half a second ahead of the data required */
-    c->lasttime.tv_sec = now.tv_sec;
-    if ((c->lasttime.tv_usec = now.tv_usec - 500000) < 0) {
-      c->lasttime.tv_sec-= 1;
-      c->lasttime.tv_usec+= 1000000;
-    }
-  } else {
-    c->lasttime.tv_sec+= 1;
-  }
 
   /* although the data was written to c->buffer_char, we converted to floats
    * and modified according to track volume in to c->buffer */
-
+  
+  /* Prepare the output */
   for (os = c->output; os; os = os->next) {
     if (os->modinfo->output_sync) {
 #ifdef HAVE_LIBSAMPLERATE
       if (os->samplerate != c->samplerate) {
         /* resample from channel buffer to output stream */
+	SRC_DATA src_data;
+	
         src_data.data_in = c->buffer;
         src_data.data_out = os->output;
         src_data.input_frames = c->samplerate;
@@ -622,18 +589,115 @@ int channel_sync(t_channel *c, char *error, int errsize)
                             os->output[ui * 2 + 1]) / 2.0;
         }
       }
+
+      // Signal the output plugin that new data has been written to
+      // the output buffer
+      os->bytesLeft = -1;
+    }
+  }
+  
+  return MSERV_SUCCESS;
+}
+
+int channel_sync(t_channel *c, char *error, int errsize)
+{
+  char ierror[256];
+  struct timeval now, ago;
+  int moreInputWanted = 1;
+  int synchronizedOutputWanted = 1;
+  t_channel_outputstream *os;
+  
+  /* poll modules */
+  for (os = c->output; os; os = os->next) {
+    if (os->modinfo->output_poll) {
+      if (os->modinfo->output_poll(c, os, os->private, 
+                                   ierror, sizeof(ierror)) != MSERV_SUCCESS)
+        mserv_log("channel %s: %s output poll: %s", c->name,
+                  os->modinfo->module->name, ierror);
+    }
+  }
+  
+  /* Are all output channels ready for more data? */
+  for (os = c->output; os; os = os->next) {
+    if (os->bytesLeft != 0) {
+      moreInputWanted = 0;
+    }
+  }
+  
+  if (moreInputWanted) {
+    int ret;
+    c->buffer_bytes = 0;
+
+    ret = channel_input_sync(c, error, errsize);
+    if (ret == MSERV_FAILURE) {
+      // We failed to read input
+      return ret;
+    }
+    
+    /* All output channels have received new data */
+    for (os = c->output; os; os = os->next) {
+      os->bytesLeft = -1;
+    }
+  }
+
+  /* Have all output channels recently received fresh data? */
+  for (os = c->output; os; os = os->next) {
+    if (os->bytesLeft != -1) {
+      // Nope
+      synchronizedOutputWanted = 0;
+    }
+  }
+  
+  if (synchronizedOutputWanted) {
+    if (gettimeofday(&now, NULL) == -1) {
+      snprintf(error, errsize, "failed gettimeofday: %s", strerror(errno));
+      return MSERV_FAILURE;
+    }
+  
+    if (c->lasttime.tv_sec != 0) {
+      mserv_timersub(&now, &c->lasttime, &ago);
+      if (ago.tv_sec == 0) /* a second hasn't passed */
+	return MSERV_SUCCESS;
+    }
+    if (mserv_debug)
+      mserv_log("channel %s: next interval", c->name);
+
+    if (c->lasttime.tv_sec == 0) {
+      /* this is the first buffer we've had - set lasttime to be half
+       * a second in the past - this keeps us half a second ahead of
+       * the data required */
+      c->lasttime.tv_sec = now.tv_sec;
+      if ((c->lasttime.tv_usec = now.tv_usec - 500000) < 0) {
+	c->lasttime.tv_sec-= 1;
+	c->lasttime.tv_usec+= 1000000;
+      }
+    } else {
+      c->lasttime.tv_sec+= 1;
+    }
+  }
+  
+  for (os = c->output; os; os = os->next) {
+    if (os->modinfo->output_sync) {
+      int result;
+      
       if (mserv_debug)
         mserv_log("calling module '%s' output_sync function",
                   os->modinfo->module->name);
-      if (os->modinfo->output_sync(c, os, os->private, 
-                                   ierror, sizeof(ierror)) != MSERV_SUCCESS)
+      result = os->modinfo->output_sync(c, os, os->private, 
+					ierror, sizeof(ierror));
+      if (result >= 0) {
+	os->bytesLeft = result;
+
+	if (mserv_debug) {
+	  mserv_log("output_sync function returned success");
+	}
+      } else {
         mserv_log("channel %s: %s output sync: %s", c->name,
                   os->modinfo->module->name, ierror);
-      if (mserv_debug)
-        mserv_log("output_sync function returned success");
+      }
     }
   }
-  c->buffer_bytes = 0;
+  
   return MSERV_SUCCESS;
 }
 

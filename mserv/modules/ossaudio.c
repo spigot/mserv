@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.8 2004/04/12 13:42:02 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.9 2004/06/22 21:06:56 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -113,52 +113,59 @@ int ossaudio_output_sync(t_channel *c, t_channel_outputstream *os,
 {
   t_ossaudio *ossaudio = (t_ossaudio *)private;
   (void)c;
-  unsigned int sample_number;
-  unsigned int channel;
-  int i;
   int written;
-  int buffer_size = sizeof(signed short) * os->channels * os->samplerate;
-  signed short *buffer = alloca(buffer_size);
+  static int buffer_size;
+  static signed short *buffer;
+  
+  if (buffer == NULL) {
+    buffer_size = sizeof(signed short) * os->channels * os->samplerate;
+    buffer = (signed short *)malloc(buffer_size);
+  }
   
   if (!ossaudio->playing) {
     // Nothing's playing, we don't need to do anything to be
     // MSERV_SUCCESSful
     return MSERV_SUCCESS;
   }
-
-  // Create a one second sample for the sound card
-  i = 0;
-  for (sample_number = 0;
-       sample_number < os->samplerate;
-       sample_number++)
-  {
-    for (channel = 0; channel < os->channels; channel++) {
-      float sample = os->output[sample_number * os->channels + channel];
-
-      // The output contains floats in the range -1.0 - 1.0
-      buffer[i++] = (signed short)(sample * 32767.0f);
-    }
-  }
-
-  if ((written = write(ossaudio->output_fd,
-		       buffer,
-		       buffer_size)) != buffer_size)
-  {
-    if (written == -1) {
-      snprintf(error, errsize,
-	       "failed to send data to soundcard: %s",
-	       strerror(errno));
-    } else {
-      snprintf(error, errsize,
-	       "attempted to send %d bytes to soundcard, but only %d bytes were written",
-	       buffer_size,
-	       written);
+  
+  if (os->bytesLeft == -1) {
+    // New data is available.  Create a one second sample for the
+    // sound card.
+    int i = 0;
+    unsigned int sample_number;
+    for (sample_number = 0;
+	 sample_number < os->samplerate;
+	 sample_number++)
+    {
+      unsigned int channel;
+      for (channel = 0; channel < os->channels; channel++) {
+	float sample = os->output[sample_number * os->channels + channel];
+	
+	// The output contains floats in the range -1.0 - 1.0
+	buffer[i++] = (signed short)(sample * 32767.0f);
+      }
     }
     
+    os->bytesLeft = buffer_size;
+  }
+
+  if (os->bytesLeft == 0) {
+    return MSERV_SUCCESS;
+  }
+
+  written = write(ossaudio->output_fd,
+		  ((char*)buffer) + (buffer_size - os->bytesLeft),
+		  os->bytesLeft);
+  if (written == -1) {
+    snprintf(error, errsize,
+	     "failed to send data to soundcard: %s",
+	     strerror(errno));
     return MSERV_FAILURE;
   }
   
-  return MSERV_SUCCESS;
+  os->bytesLeft -= written;
+  
+  return os->bytesLeft;
 }
 
 /* read/set volume */
@@ -267,16 +274,6 @@ int ossaudio_output_start(t_channel *c, t_channel_outputstream *os,
 	     ossaudio->device_name,
 	     strerror(errno));
     return MSERV_FAILURE;
-  }
-
-  // We used the O_NONBLOCK flag to get notified if the audio device
-  // was busy.  We now know it wasn't, and from now on O_NONBLOCK will
-  // only mess up our output.  Turn it off.
-  if (fcntl(output_fd, F_SETFL, 0) != 0) {
-    snprintf(error, errsize,
-	     "failed switching to blocking audio output: %s",
-	     strerror(errno));
-    goto failed;
   }
   
   // Set the sample format to 16 bits signed data.  We support nothing

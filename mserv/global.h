@@ -275,6 +275,7 @@ typedef struct _t_channel_outputstream {
   unsigned int samplerate;      /* output stream sample rate */
   void *resampler;              /* resampler state (SRC_STATE) */
   float *output;                /* output for resampler / output for module */
+  int bytesLeft;                /* how many bytes haven't yet been output */
 } t_channel_outputstream;
 
 struct _t_channel;
@@ -292,6 +293,8 @@ typedef int (*t_module_output_destroy)(t_channel *c, t_channel_outputstream *os,
 typedef int (*t_module_output_poll)(t_channel *c, t_channel_outputstream *os,
                                     void *private,
                                     char *error, int errsize);
+/* This function returns the number of bytes yet to be written or
+   MSERV_FAILURE on failure. */
 typedef int (*t_module_output_sync)(t_channel *c, t_channel_outputstream *os,
                                     void *private,
                                     char *error, int errsize);

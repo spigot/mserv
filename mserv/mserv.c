@@ -149,10 +149,6 @@ static void mserv_sendwrap(t_client *cl, const char *string, int wrapwidth,
 			   const char *indentstr, int nextwidth);
 static void mserv_strtoprintable(char *string);
 static const char *mserv_getplayer(char *fname);
-#ifdef SOUNDCARD
-static int mserv_setvolume(int vol);
-static int mserv_readvolume(void);
-#endif
 
 /*** functions ***/
 
@@ -3385,36 +3381,6 @@ int mserv_outputvolume(t_client *cl, const char *line)
 }
 
 #ifdef SOUNDCARD
-
-static int mserv_readvolume(void)
-{
-  int mixer_fd;
-  int vol;
-
-  if (!(mixer_fd = open(opt_path_mixer, O_RDWR, 0)))
-    return -1;
-  if (ioctl(mixer_fd, MIXER_READ(SOUND_MIXER_PCM), &vol) == -1) {
-    close(mixer_fd); /* ignore errors */
-    return -1;
-  }
-  close(mixer_fd);
-  return vol;
-}
-
-static int mserv_setvolume(int vol)
-{
-  int mixer_fd;
-  int newval = vol;
-
-  if (!(mixer_fd = open(opt_path_mixer, O_RDWR, 0)))
-    return -1;
-  if (ioctl(mixer_fd, MIXER_WRITE(SOUND_MIXER_PCM), &newval) == -1) {
-    close(mixer_fd); /* ignore errors */
-    return -1;
-  }
-  close(mixer_fd); /* ignore errors */
-  return newval;
-}
 
 int mserv_setmixer(t_client *cl, int what, const char *line)
 {

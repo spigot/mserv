@@ -2,7 +2,7 @@
 All of the documentation and software included in the Mserv releases is
 copyrighted by James Ponder <james@squish.net>.
 
-Copyright 1999, 2000 James Ponder.  All rights reserved.
+Copyright 1999-2003 James Ponder.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -60,6 +60,7 @@ met:
 #include <dirent.h>
 #include <math.h>
 #include <sys/ioctl.h>
+#include <time.h>
 
 #include "mserv.h"
 #include "misc.h"
@@ -276,7 +277,7 @@ int main(int argc, char *argv[])
   }    
 
   if (mserv_verbose)
-    printf("Mserv version " VERSION " (c) James Ponder 1999-2000\n");
+    printf("Mserv version " VERSION " (c) James Ponder 1999-2003\n");
 
   if (!mserv_root) {
     if ((ps = getpwuid(getuid())) == NULL || ps->pw_dir[0] == '\0') {
@@ -604,7 +605,7 @@ static void mserv_mainloop(void)
     cl->authed = 0;
     cl->mode = mode_computer;
     cl->user[0] = '\0';
-    mserv_send(cl, "200 Mserv " VERSION " (c) James Ponder 2000 - "
+    mserv_send(cl, "200 Mserv " VERSION " (c) James Ponder 1999-2003 - "
 	       "Type: USER <username>\r\n", 0);
     mserv_send(cl, ".\r\n", 0);
   }
@@ -2356,7 +2357,7 @@ int mserv_playnext(void)
     execv(str[0], str);
     fprintf(stderr, "%s: Unable to execv '%s': '%s'", progname,
 	    player, strerror(errno));
-    exit(0);
+    exit(1);
   } else if (pid == -1) {
     perror("fork");
     mserv_log("Unable to fork: '%s'", strerror(errno));
@@ -2441,7 +2442,7 @@ void mserv_abortplay(void)
 	  if ((pid = waitpid(mserv_playingpid, &st,
 			     WNOHANG)) == -1) {
 	    mserv_log("waitpid failure (%d): %s", errno, strerror(errno));
-	  } else if (pid) {
+          } else if (pid) {
 	    goto STOPPED;
 	  }
 	}
@@ -3313,7 +3314,7 @@ static int mserv_readvolume(void)
 
   if (!(mixer_fd = open(opt_path_mixer, O_RDWR, 0)))
     return -1;
-  if (ioctl(mixer_fd, MIXER_READ(SOUND_MIXER_VOLUME), &vol) == -1) {
+  if (ioctl(mixer_fd, MIXER_READ(SOUND_MIXER_PCM), &vol) == -1) {
     close(mixer_fd); /* ignore errors */
     return -1;
   }
@@ -3328,7 +3329,7 @@ static int mserv_setvolume(int vol)
 
   if (!(mixer_fd = open(opt_path_mixer, O_RDWR, 0)))
     return -1;
-  if (ioctl(mixer_fd, MIXER_WRITE(SOUND_MIXER_VOLUME), &newval) == -1) {
+  if (ioctl(mixer_fd, MIXER_WRITE(SOUND_MIXER_PCM), &newval) == -1) {
     close(mixer_fd); /* ignore errors */
     return -1;
   }
@@ -3400,7 +3401,13 @@ int mserv_setmixer(t_client *cl, int what, const char *line)
 	mserv_response(cl, "IOCTLWR", NULL);
 	return -1;
       }
-      newval = newval & 0xFF;
+      if (ioctl(mixer_fd, MIXER_READ(what), &newval) == -1) {
+        close(mixer_fd);
+        perror("iotcl read");
+        mserv_response(cl, "IOCTLRD", 0);
+        return -1;
+      }
+      newval = newval & 0xff;
       if (type == 0 || newval != curval)
 	break;
       param++;

@@ -2751,7 +2751,7 @@ static double mserv_getcookedrate(const char *user, t_track *track)
   double mean;
   
   /* Threshold value for the True Bayesian Estimate (see below) */
-  const int THRESHOLD = 3;
+  int threshold;
   
   rate = mserv_getrate(user, track);
   
@@ -2781,10 +2781,15 @@ static double mserv_getcookedrate(const char *user, t_track *track)
   }
   
   mean = ratings_sum / n_ratings;
+
+  threshold = track->album->ntracks / 2;
+  if (threshold < 1) {
+    threshold = 1;
+  }
   
-  /* Require at least THRESHOLD ratings before allowing lowering the
+  /* Require at least THRESHOLD / 2 ratings before allowing lowering the
    * default track scores */
-  if (n_ratings < THRESHOLD && mean < fallback) {
+  if (n_ratings < threshold / 2 && mean < fallback) {
     return fallback;
   }
   
@@ -2806,8 +2811,8 @@ static double mserv_getcookedrate(const char *user, t_track *track)
    * but the formula is more readable this way.  I'll leave that to
    * the C compiler's optimizer if it's interested. */
   return
-    ((THRESHOLD * fallback) + (n_ratings * mean)) /
-    (THRESHOLD + n_ratings) ;
+    ((threshold * fallback) + (n_ratings * mean)) /
+    (threshold + n_ratings);
 }
 
 void mserv_recalcratings(void)

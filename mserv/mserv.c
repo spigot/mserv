@@ -3440,20 +3440,7 @@ int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
   }
   
   for (i = 0; mserv_history[i] && i < maxsongs; i++) {
-    t_rating *rate;
-    int useThisRating;
-    
-    rate = mserv_getrate(cl->user, mserv_history[i]->track);
-    
-    // Count UNHEARD (rate == NULL) as HEARD (rating == 0)
-    useThisRating = rate ? rate->rating : 0;
-    
-    if (useThisRating == 0 /*0=HEARD*/) {
-      sum += opt_rate_unrated;
-    } else {
-      // Change scale from 1-5 to 0.0-1.0
-      sum += (useThisRating - 1.0) / 4.0;
-    }
+    sum += mserv_getcookedrate(cl->user, mserv_history[i]->track);
     n_songs++;
   }
   

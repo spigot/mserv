@@ -320,9 +320,17 @@ expect -i $humanjohan "Playing:"
 
 send "status\n"
 expect "222 Playing"
+# Verify that the "play commenced" timestamp is recent
+expect -re {[^\t]*\t[0-9]+\t[0-9]+\t[0-9]+\t[0-9]+\t[^\t]*\t[^\t]*\t([0-9]+)\t}
+if { [expr abs([clock seconds] - $expect_out(1,string))] > 1 } then {
+	send_error "*** The status command says the just started song commenced playing $expect_out(1,string)\n"
+	send_error "    but the current time is [clock seconds]\n"
+	exit 1
+}
+
 # Verify that the amount of time the current song has been playing is
 # on the format M:SS, which is what MServClient expects.
-expect -re {\t[0-9]+:[0-5][0-9]\t}
+expect -re {[0-9]+:[0-5][0-9]\t}
 expect "\n.\n"
 
 send "ratings\n"

@@ -482,7 +482,8 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
 		   playing->track->album->id,
 		   playing->track->n_track,
 		   playing->track->author,
-		   playing->track->name, ago.tv_sec,
+		   playing->track->name,
+		   start == NULL ? time(NULL) : start->tv_sec,
 		   ago.tv_sec/60, ago.tv_sec % 60,
 		   mserv_random ? "ON" : "OFF", mserv_factor);
     if (cl->mode == mode_human) {
@@ -493,7 +494,7 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
 		       mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
 		       playing->track->album->id, playing->track->n_track,
                        playing->track->author, playing->track->name, 
-                       ago.tv_sec,
+		       start == NULL ? time(NULL) : start->tv_sec,
                        ago.tv_sec/60, ago.tv_sec % 60, ago.tv_usec / 100000,
 		       mserv_random ? "ON" : "OFF", mserv_factor);
       }

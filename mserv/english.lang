@@ -201,8 +201,8 @@ RESET	630	Server has been cleared and reset by %01
 CLEAR	631	Queue cleared by %01
 SHUTEND	632	*** Shutdown initiated by %01 and will occur at end of song! ***
 SHUTNOW	633	*** System shutdown by %01! ***
-ALBAUTH	634	The author of %02 has been set by %01
-ALBNAME	635	The name of %02 has been set by %01
+ALBAUTH	634	The author of album %02 has been set by %01
+ALBNAME	635	The name of album %02 has been set by %01
 DELAY	636	The delay between tracks has been changed to %02 seconds by %01
 FILTER	637	Random play filter set to '%02' by %01 (%03 incl, %04 excl)
 NFILTER	638	Random play filter turned off by %01

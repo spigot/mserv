@@ -26,6 +26,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #include "mserv.h"
 #include "misc.h"
@@ -418,20 +419,20 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
   (void)error;
   (void)errsize;
   
+  /* Zero the float buffer so that no old data gets left behind and
+   * played again. */
+  memset(c->buffer, 0, c->buffer_samples * sizeof(float));
+
   if (mserv_debug) {
-    /* Fill the sound buffer with marker data.  Before we return from
-     * this function, we'll warn the user if any marker data is still
-     * left in the buffer.  The point is to avoid leaving part of the
-     * buffer un-touched, which this function's callers doesn't
-     * expect. */
-    unsigned int i;
-    for (i = 0; i < c->buffer_samples; i++) {
-      c->buffer[i] = 4711.f;
-    }
+    /* Clear the byte buffer as well.  This shouldn't be needed, but
+     * if there's some problem with reading data from the player it
+     * should be made obvious (by having audible sound skips) by doing
+     * this.*/
+    memset(c->buffer_char, 0, c->buffer_samples * sizeof(short));
   }
   
   /* if we haven't got a full buffer, read in more from the player */
-  while (c->buffer_bytes < (c->buffer_samples * 2)) {
+  while (c->buffer_bytes < (c->buffer_samples * sizeof(short))) {
     /* try and read more from the input stream */
     if (c->paused || c->stopped) {
       if (mserv_debug) {
@@ -442,7 +443,7 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
       /* we're paused, use some zeros for silence */
       memset((char *)c->buffer + c->buffer_bytes, 0,
              (c->buffer_samples * sizeof(float)) - c->buffer_bytes);
-      c->buffer_bytes = c->buffer_samples * sizeof(float);
+      c->buffer_bytes = c->buffer_samples * sizeof(short);
       break;
     }
     if (c->input == NULL) {
@@ -561,6 +562,9 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
       }
     }
   }
+  /* If this assertion failes, we may have written outside of our char
+   * buffer, and possibly outside of our float buffer as well. */
+  assert(c->buffer_bytes <= (c->buffer_samples * sizeof(short)));
 
   /* although the data was written to c->buffer_char, we converted to floats
    * and modified according to track volume in to c->buffer */
@@ -627,40 +631,6 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
       // Signal the output plugin that new data has been written to
       // the output buffer
       os->bytesLeft = -1;
-    }
-  }
-  
-  if (mserv_debug) {
-    /* Verify that no marker data is still in the buffer. */
-    int i;
-    int firstForgottenPos = -1;
-    int troubleAnnounced = 0;
-    
-    for (i = 0; (unsigned)i <= c->buffer_samples; i++) {
-      if (((unsigned)i < c->buffer_samples) && (c->buffer[i] > 42.f)) {
-	if (firstForgottenPos == -1) {
-	  firstForgottenPos = i;
-	}
-      } else {
-	if (firstForgottenPos != -1) {
-	  if (!troubleAnnounced) {
-	    mserv_log("Warning: Sound buffer not entirely updated by %s()",
-		      __FUNCTION__);
-	    troubleAnnounced = 1;
-	  }
-	  if (firstForgottenPos == i - 1) {
-	    mserv_log("         Position %d/%d was missed",
-		      firstForgottenPos,
-		      c->buffer_samples);
-	  } else {
-	    mserv_log("         Positions %d-%d of %d were missed",
-		      firstForgottenPos,
-		      i - 1,
-		      c->buffer_samples);
-	  }
-	  firstForgottenPos = -1;
-	}
-      }
     }
   }
   

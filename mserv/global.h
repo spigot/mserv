@@ -111,7 +111,8 @@ typedef struct _t_client {
   t_mode mode;
   double weight;
   int loggedinatsong;
-  time_t last_unrated;          /* When the user last heard an unrated song*/
+  time_t last_unrated;          /* When the user last heard an unrated song */
+  int bored;                    /* True if the user hasn't heard anything new in an hour */
   char channel[CHANNELNAMELEN+1]; /* current channel */
   unsigned int authed:1;
   unsigned int quitme:1;

@@ -3130,7 +3130,7 @@ static double mserv_recalcweights(void)
  *
  * If a song is filtered out, it gets a rating of 0.0.
  */
-static inline double mserv_recalcprating(t_track *track)
+static double mserv_recalcprating(t_track *track)
 {
   double total_weight = 0.0;
   double rating = 0.0;
@@ -3138,16 +3138,25 @@ static inline double mserv_recalcprating(t_track *track)
   
   for (cl = mserv_clients; cl; cl = cl->next) {
     int artificial;
+    double cookedRate;
     
     if (!cl->authed || cl->state == st_closed ||
 	cl->mode == mode_computer || cl->userlevel == level_guest)
       continue;
     
+    cookedRate = mserv_getcookedrate(cl->user, track, &artificial);
+    if (opt_experimental_fairness && cl->bored) {
+      /* The user is bored and we want to play something new.  Count
+       * all rated songs as 0-0.5.  Unrated songs count as 0-1 as
+       * usual.  This way, the user is quite likely to get to hear
+       * something new. */
+      if (!artificial) {
+	cookedRate *= 0.5;
+      }
+    }
     /* Note that if the experimental fairness is disabled,
      * cl->weight will always be 1.0. */
-    rating += cl->weight * mserv_getcookedrate(cl->user,
-					       track,
-					       &artificial);
+    rating += cl->weight * cookedRate;
     total_weight += cl->weight;
   }
   
@@ -4361,6 +4370,10 @@ static void mserv_update_lastunrated(const t_trkinfo *most_recent_track)
     if (rating == NULL || rating->rating == 0) {
       cl->last_unrated = now;
     }
+    
+    /* Users who haven't heard anything new in an hour are considered
+     * bored. */
+    cl->bored = ((now - cl->last_unrated) > 3600);
   }
 }
 
@@ -4393,18 +4406,11 @@ double mserv_getsatisfactiongoal(void)
 /* Used if automatic factor adjustment is in effect.  Adjust the
  * factor up or down depending on the satisfaction of the most
  * dissatisfied user.
- *
- * Also, if any user hasn't heard anything new for the last hour, set
- * the factor to 0.51 to prevent boredom.
  */
 static void mserv_adjustfactor(void)
 {
   const char *most_dissatisfied_user;
   double lowestsatisfaction;
-  t_client *cl;
-  time_t now = time(NULL);
-  time_t last_unrated = now;
-  const char *bored_user = NULL;
   double satisfaction_goal;
   
   static double lastsatisfaction = MSERV_NAN;
@@ -4420,33 +4426,6 @@ static void mserv_adjustfactor(void)
   if (most_dissatisfied_user == NULL) {
     /* Nobody is logged in / most dissatisfied, no adjustment
      * necessary. */
-    return;
-  }
-  
-  /* Keep track of when everybody last heard an unrated track */
-  for (cl = mserv_clients; cl; cl = cl->next) {
-    if (!cl->authed || cl->state == st_closed ||
-	cl->mode == mode_computer || cl->userlevel == level_guest)
-      continue;
-    
-    if (cl->last_unrated < last_unrated) {
-      last_unrated = cl->last_unrated;
-      bored_user = cl->user;
-    }
-  }
-  if (now - last_unrated > 3600) {
-    /* At least one user hasn't heard an unrated song for the last
-     * hour */
-    mserv_factor = 0.51;
-    mserv_log("Autofactor: %s hasn't heard anything new in an hour, factor set to %.2f to fend off boredom",
-	      bored_user,
-	      mserv_factor);
-
-    /* We only try once per hour, if we fail then so be it */
-    for (cl = mserv_clients; cl; cl = cl->next) {
-      cl->last_unrated = now;
-    }
-    
     return;
   }
   

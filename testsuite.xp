@@ -173,7 +173,10 @@ expect "stopped"
 expect -i $computerjohan "=623\tjohan"
 
 send "quit\n"
-expect "Goodbye"
+expect {
+	eof { send_error "*** Human logged out without a goodbye!!\n" ; exit 1 }
+	"Goodbye"
+}
 expect -i $computerjohan "=601\tjohan"
 wait
 
@@ -325,7 +328,10 @@ expect "\n.\n"
 expect -i $humanjohan "stopped by johan"
 
 send "quit\n"
-expect "220 Goodbye"
+expect {
+	eof { send_error "*** Root logged out without a goodbye!!\n" ; exit 1 }
+	"220 Goodbye"
+}
 wait
 expect -i $humanjohan "johan has disconnected"
 
@@ -507,6 +513,19 @@ expect "231 Play stopped"
 expect "\n.\n"
 expect -i $humanroot "stopped by root"
 
+# Let the human client shut down
+set spawn_id $humanroot
+
 send "shutdown\n"
-expect "shutdown by root"
+expect {
+	eof { send_error "*** MServ shutdown without saying anything!!\n" ; exit 1 }
+	"shutdown by root"
+}
+wait
+
+set spawn_id $computerroot
+expect {
+	eof { send_error "*** MServ shutdown without notifying computer users!!\n" ; exit 1 }
+	"=633\troot"
+}
 wait

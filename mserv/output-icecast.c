@@ -120,9 +120,11 @@ t_output *output_create(const char *destination, const char *parameters,
     free(o);
     return NULL;
   }
+  o->buffer_bytes = 0;
   o->volume = 0;
   o->buffer_ready = NULL;
-  o->buffer_bytes = 0;
+  o->buffer_ready_bytes = 0;
+  o->buffer_ready_size = 0;
   if (!(o->shout = shout_new())) {
     mserv_log("Failed to allocate shout object");
     *error = "Failed to allocate shout object";

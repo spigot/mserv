@@ -2805,7 +2805,7 @@ t_track *mserv_gettrack(unsigned int n_album, unsigned int n_track)
   t_album *album;
   t_track *track;
 
-  if (n_track >= TRACKSPERALBUM)
+  if (n_track == 0 || n_track > TRACKSPERALBUM)
     return NULL;
   track = NULL;
   for (album = mserv_albums; album; album = album->next) {

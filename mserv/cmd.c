@@ -1231,7 +1231,7 @@ static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "NAN", NULL);
     return;
   }
-  if (n_track < 1 || !album->tracks[n_track-1]) {
+  if (n_track < 1 || n_track >= TRACKSPERALBUM || !album->tracks[n_track-1]) {
     mserv_response(cl, "NOTRACK", NULL);
     return;
   }

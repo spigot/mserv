@@ -462,7 +462,7 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
   struct timeval *start = channel_getplaying_start(channel);
 
   (void)cp;
-  if (playing->track) {
+  if (playing && playing->track) {
     if (gettimeofday(&now, NULL) != 0) {
       mserv_response(cl, "SERROR", "%s", "Failed to gettimeofday()");
       return;
@@ -870,7 +870,7 @@ static void cmd_ratings(t_client *cl, t_cmdparams *cp)
   strcpy(linespl, cp->line);
 
   if (!*cp->line) {
-    if ((track = playing->track) == NULL) {
+    if (playing == NULL || (track = playing->track) == NULL) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
@@ -1248,7 +1248,7 @@ static void cmd_pause(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, "APAUSED", NULL);
     return;
   }
-  if (playing->track) {
+  if (playing && playing->track) {
     if (channel_pause(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS) {
       mserv_log("Failed to pause %s: %s", mserv_channel->name, error);
       mserv_response(cl, "SERROR", "Failed to pause: %s", error);
@@ -1274,9 +1274,9 @@ static void cmd_next(t_client *cl, t_cmdparams *cp)
   char error[256];
 
   (void)cp;
-  if (playing->track)
+  if (playing && playing->track)
     mserv_broadcast("SKIP", "%s", cl->user);
-  if (playing->track == mserv_player_playing.track) {
+  if (playing && playing->track == mserv_player_playing.track) {
     /* we haven't moved to the next track yet */
     mserv_abortplay();
     if (mserv_player_playnext()) {
@@ -1289,7 +1289,7 @@ static void cmd_next(t_client *cl, t_cmdparams *cp)
   if (channel_start(channel, error, sizeof(error)) != MSERV_SUCCESS)
     mserv_log("Failed to commence play on channel %s: %s", channel->name,
               error);
-  if (cl->mode != mode_human) {
+  if (playing && cl->mode != mode_human) {
     /* humans will already have seen broadcast */
     mserv_response(cl, "NEXT", "%d\t%d\t%s\t%s",
                    playing->track->n_album, /* TODO: mserv_player_playing */
@@ -1324,7 +1324,7 @@ static void cmd_repeat(t_client *cl, t_cmdparams *cp)
   t_trkinfo *playing = channel_getplaying(channel);
 
   (void)cp;
-  if (!playing->track) {
+  if (!playing || !playing->track) {
     mserv_response(cl, "NOTHING", NULL);
     return;
   }
@@ -1651,7 +1651,7 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
     return;
   }
   if (n == 1) {
-    if (!playing->track) {
+    if (!playing || !playing->track) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
@@ -1684,7 +1684,7 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
 	mserv_response(cl, "MEMORYR", NULL);
       return;
     }
-    if (playing->track && n_album == playing->track->n_album &&
+    if (playing && playing->track && n_album == playing->track->n_album &&
 	n_track == playing->track->n_track) {
       mserv_broadcast("RATECUR", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
 		      playing->track->n_album,
@@ -1990,7 +1990,7 @@ static void cmd_info(t_client *cl, t_cmdparams *cp)
   unsigned int ttime;
   
   if (!*cp->line) {
-    if ((track = playing->track) == NULL) {
+    if (playing == NULL || (track = playing->track) == NULL) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
@@ -2207,7 +2207,7 @@ static void cmd_shutdown(t_client *cl, t_cmdparams *cp)
   }
   mserv_log("Shutdown initiated by %s", cl->user);
   mserv_shutdown = 1;
-  if (playing->track) {
+  if (playing && playing->track) {
     mserv_broadcast("SHUTEND", cl->user);
   } else {
     mserv_broadcast("SHUTNOW", cl->user);
@@ -2215,7 +2215,7 @@ static void cmd_shutdown(t_client *cl, t_cmdparams *cp)
   if (cl->mode != mode_human)
     mserv_response(cl, "SHUTYES", NULL);
 
-  if (!playing->track) {
+  if (!playing || !playing->track) {
     mserv_flush();
     mserv_closedown(0);
   }

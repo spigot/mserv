@@ -27,6 +27,7 @@ int mserv_split(char *str[], int nelements, char *line, const char *sep);
 t_track *mserv_gettrack(unsigned int n_album, unsigned int n_track);
 t_album *mserv_getalbum(unsigned int n_album);
 t_rating *mserv_getrate(const char *user, t_track *track);
+int mserv_getsatisfaction(const t_client *cl, double *satisfaction);
 int mserv_addqueue(t_client *cl, t_track *track);
 int mserv_player_playnext(void);
 void mserv_abortplay(void);
@@ -66,6 +67,7 @@ t_track *mserv_checkdisk_track(t_track *track);
 t_album *mserv_checkdisk_album(t_album *album);
 void mserv_ensuredisk(void);
 int mserv_checklevel(t_client *cl, t_userlevel level);
+t_client *mserv_user2client(const char *user);
 void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
                       t_trkinfo *nowplaying);
 t_trkinfo *mserv_getplaying(void);
@@ -94,6 +96,7 @@ extern unsigned int mserv_filter_notok;
 
 extern t_channel *mserv_channel;
 
+extern int mserv_n_songs_started;
 extern char *mserv_path_acl;
 extern char *mserv_path_webacl;
 extern char *mserv_path_conf;

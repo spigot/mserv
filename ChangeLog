@@ -6,13 +6,16 @@ via CVS the version of the first entry is the forthcoming version number.
 
 0.39
 --------------------
-- Default configuration is now written to config.dist on load
+- Default configuration is now written to config.dist on load (if it can)
 - Album and author lists are now dynamically allocated in the same way as
   genre lists, so no more compiled limit on tracks per album
 - Fix off-by-one error in -r command line option
 - Report an error on start-up if an old configuration file is used
 - Most debugging is now on -d command line option rather than compile-time
+- Better debugging messages in Icecast output engine
 - Log people connecting to Mserv
+- No player setting in configuration file is now a failure situation
+- Fix ogg player line in configuration file
 
 0.38a - Aug 31st 2003
 ---------------------

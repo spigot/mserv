@@ -858,7 +858,11 @@ t_trkinfo *channel_getplaying(t_channel *c)
 /* How many milliseconds has the current track been playing? */
 long channel_getplaying_msecs(t_channel *c)
 {
-  if (c && c->input && c->input->timer_started) {
+  if (c
+      && c->input
+      && c->input->trkinfo.track == mserv_player_playing.track
+      && c->input->timer_started)
+  {
     if (c->stopped) {
       return 0;
     } else if (c->paused) {

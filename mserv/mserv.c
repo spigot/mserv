@@ -726,7 +726,7 @@ static void mserv_checkchild(void)
   mserv_setHistoricalDuration(playing->track, duration);
   
   mserv_player_pid = 0;
-  if (abs(mserv_player_playing.track->duration - duration / 10) > 2500) {
+  if (abs(mserv_player_playing.track->duration - duration / 10) > 250) {
     /* The recorded duration is more than 2.5 seconds off.  Update it
      * with how long it really took to play the track. */
     mserv_player_playing.track->duration = duration / 10;

@@ -152,7 +152,6 @@ typedef struct _t_track {
   struct _t_album *album;
   unsigned int n_track;
   unsigned int year;
-  unsigned int random;
   unsigned int modified:1;
   unsigned int norandom:1;
   unsigned int filterok:1;

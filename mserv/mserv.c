@@ -2105,12 +2105,6 @@ static int mserv_trackcompare_rating(const void *a, const void *b)
   
   /* Invariant: Both tracks were last played at the same time (!) */
   
-  if (atrack->random < btrack->random) {
-    return 1;
-  } else if (atrack->random > btrack->random) {
-    return -1;
-  }
-  
   /* I really can't order these two tracks */
   return 0;
 }
@@ -2484,7 +2478,6 @@ static t_track *mserv_loadtrk(const char *filename)
   track->lastplay = lastplay;
   track->year = year;
   track->duration = duration;
-  track->random = rand();
   track->mtime = mtime;
   track->volume = volume;
   return track;

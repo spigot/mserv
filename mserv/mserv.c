@@ -2391,11 +2391,13 @@ void mserv_abortplay(void)
       perror("kill");
       mserv_log("Unable to kill currently playing song: %s", strerror(errno));
     } else {
-      for (x = 0; kill(mserv_playingpid, 0) == 0 && x < 10; x++) {
+      for (x = 0; x < 50; x++) {
 	usleep(100*1000);
 	if ((pid = waitpid(mserv_playingpid, &st,
 			   WNOHANG)) == -1) {
 	  mserv_log("waitpid failure (%d): %s", errno, strerror(errno));
+	} else if (pid) {
+	  goto STOPPED;
 	}
       }
     }
@@ -2406,16 +2408,21 @@ void mserv_abortplay(void)
 	mserv_log("Unable to kill currently playing song: %s",
 		  strerror(errno));
       } else {
-	for (x = 0; kill(mserv_playingpid, 0) == 0 && x < 10; x++) {
+	for (x = 0; x < 10; x++) {
 	  usleep(100*1000);
 	  if ((pid = waitpid(mserv_playingpid, &st,
 			     WNOHANG)) == -1) {
 	    mserv_log("waitpid failure (%d): %s", errno, strerror(errno));
+	  } else if (pid) {
+	    goto STOPPED;
 	  }
 	}
       }
     }
+    /* process still there... now what? */
+    mserv_log("could not kill player process %d! Help.", mserv_playingpid);
   }
+ STOPPED:
 #ifdef SOUNDCARD
   if (vol != -1)
     mserv_setvolume(vol);

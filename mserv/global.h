@@ -218,11 +218,11 @@ typedef struct _t_queue {
 
 typedef struct _t_channel_inputstream {
   struct _t_channel_inputstream *next; /* next input in stream */
-  int fd;                   /* input file descriptor */
-  t_supinfo supinfo;        /* track sup. info. */
-  unsigned int zeros_start; /* number of zero bytes left for delay */
-  unsigned int zeros_end;   /* number of zero bytes left for delay */
-  unsigned int announced;   /* have we announced the play of this track? */
+  int fd;                     /* input file descriptor */
+  t_supinfo supinfo;          /* track sup. info. */
+  unsigned int silence_start; /* number of zero samples (all chans) left */
+  unsigned int silence_end;   /* number of zero samples (all chans) left */
+  unsigned int announced;     /* have we announced the play of this track? */
 } t_channel_inputstream;
 
 typedef struct _t_module {

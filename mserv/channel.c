@@ -368,8 +368,8 @@ int channel_addinput(t_channel *c, int fd, t_supinfo *track_supinfo,
   }
   i->next = NULL;
   i->fd = fd;
-  i->zeros_start = delay_start * c->samplerate * c->channels * 2;
-  i->zeros_end = delay_end * c->samplerate * c->channels * 2;
+  i->silence_start = delay_start * c->samplerate;
+  i->silence_end = delay_end * c->samplerate;
   i->announced = 0;
   i->supinfo = *track_supinfo;
   if (c->input == NULL)
@@ -448,17 +448,22 @@ int channel_sync(t_channel *c, char *error, int errsize)
        * new player hasn't been spawned yet */
       break;
     }
-    if (c->input->zeros_start > 0) {
+    if (c->input->silence_start > 0) {
+      /* we need to create some silence (GAP) to start with */
       if (mserv_debug) {
-        mserv_log("in silence - %d bytes to go", c->input->zeros_start);
+        mserv_log("in silence - %d samples (start)", c->input->silence_start);
         mserv_log("buffer_bytes = %d (pre)", c->buffer_bytes);
         mserv_log("buf left = %d", (c->buffer_samples * 2) - c->buffer_bytes);
       }
-      /* we need to channel some silence (GAP) to start with */
-      ui = mserv_MIN(c->buffer_size - c->buffer_bytes, c->input->zeros_start);
-      memset((char *)c->buffer + c->buffer_bytes, 0, ui);
-      c->input->zeros_start-= ui;
-      c->buffer_bytes+= ui;
+      channel_align(c);
+      /* this is somewhat confusing because buffer_size/buffer_bytes refers
+       * to our 16-bit raw buffer, but we're filling our float buffer */
+      ui = mserv_MIN((c->buffer_size - c->buffer_bytes) / (2 * c->channels),
+                     c->input->silence_start);
+      memset((char *)c->buffer + c->buffer_bytes, 0,
+             ui * sizeof(float) * c->channels);
+      c->input->silence_start-= ui;
+      c->buffer_bytes+= ui * 2 * c->channels;
       if (mserv_debug)
         mserv_log("buffer_bytes = %d (post)", c->buffer_bytes);
       /* we may have only had a bit of silence and can fill with some data */
@@ -503,23 +508,25 @@ int channel_sync(t_channel *c, char *error, int errsize)
       }
     } else {
       /* we must be in the silence at the end part */
-      if (c->input->zeros_end <= 0) {
+      if (c->input->silence_end <= 0) {
         channel_align(c);
         channel_inputfinished(c);
       } else {
+        /* we need to create some silence (GAP) to end with */
         if (mserv_debug) {
-          mserv_log("in silence - %d bytes to go", c->input->zeros_end);
-          mserv_log("buf left = %d", c->buffer_size - c->buffer_bytes);
+          mserv_log("in silence - %d samples (end)", c->input->silence_end);
           mserv_log("buffer_bytes = %d (pre)", c->buffer_bytes);
+          mserv_log("buf left = %d", c->buffer_size - c->buffer_bytes);
         }
-        /* XXX: TODO: zeros_end should be samples, not meaningless bytes */
-        /* we need to channel some silence (GAP) to end with */
-        ui = mserv_MIN(c->buffer_size - c->buffer_bytes, c->input->zeros_end);
-        /* ui is number of 16-bit samples, but we're clearing floats */
+        channel_align(c);
+        /* this is somewhat confusing because buffer_size/buffer_bytes refers
+         * to our 16-bit raw buffer, but we're filling our float buffer */
+        ui = mserv_MIN((c->buffer_size - c->buffer_bytes) / (2 * c->channels),
+                       c->input->silence_end);
         memset((char *)c->buffer + c->buffer_bytes, 0,
-               (ui / 2) * sizeof(float));
-        c->input->zeros_end-= ui;
-        c->buffer_bytes+= ui;
+               ui * sizeof(float) * c->channels);
+        c->input->silence_end-= ui;
+        c->buffer_bytes+= ui * 2 * c->channels;
         if (mserv_debug)
           mserv_log("buffer_bytes = %d (post)", c->buffer_bytes);
       }

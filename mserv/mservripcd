@@ -1,0 +1,291 @@
+#!/usr/bin/perl
+#
+# Written by James Ponder, Jan 2000
+#
+# mservripcd - Mserv is designed to hold albums, and a very common way of
+# organising these albums is to have them as copies of real CDs.
+#
+# This program uses cdparanoia to rip the tracks, followed by bladenc to
+# compress them.  It interfaces with the cddb using xyz and follows this up
+# with mservedit for you to input the remaining details and change anything
+# cddb got wrong.
+
+require 'getopt.pl';
+use CDDB;
+
+$mservedit = '/usr/local/bin/mservedit';
+
+Getopt('');
+
+if ($#ARGV != -1 ) {
+  die "Syntax: mservripcd [-v]\n";
+}
+
+$verbose = $opt_v;
+
+if ($ENV{'HOME'} && -d $ENV{'HOME'}) {
+    $home = $ENV{'HOME'};
+} elsif ($ENV{'USER'} && -d '/home/'.$ENV{'USER'}) {
+    $home = '/home/'.$ENV{'USER'};
+} elsif ($ENV{'LOGNAME'} && -d '/home/'.$ENV{'LOGNAME'}) {
+    $home = '/home/'.$ENV{'LOGNAME'};
+} else {
+    die "Could not determine your home directory\n";
+}
+
+sub ask {
+    my ($q, $def) = @_;
+    print $q.' ['.$def.'] ';
+    $_ = <STDIN>;
+    chomp;
+    $_ = $def if !$_;
+    return '' if $_ eq 'none';
+    return $_;
+}
+
+undef %config;
+if (!open(CONFIG, "$home/.mservripcd")) {
+    print "\nWelcome to mservripcd.\n\n";
+    print "I did not find a configuration file so let's find out who you ".
+	"are.\nThe answers to the questions asked will be stored in ".
+	"$home/.mservripcd\n\n";
+    print "Since this is your first time, I have turned on VERBOSE mode\n";
+    print "(-v) for you - this provides more help at prompts.\n\n";
+    $verbose = 1;
+    $dir_home = ask("Location of mserv home", "$home/.mserv");
+    open(CONFIG, ">$home/.mservripcd") || die "Failed to open config file ".
+	"for writing: $!\n";
+    print "\n";
+    $dir_tracks = ask("Location of mserv tracks", "$dir_home/tracks");
+    $dir_trackinfo = ask("Location of mserv trackinfo", "$dir_home/trackinfo");
+    print "\n";
+    $path_cdparanoia = ask("Location of cdparanoia",
+			   "/usr/local/bin/cdparanoia");
+    $path_bladeenc = ask("Location of bladeenc", "/usr/local/bin/bladeenc");
+    print "\nNote -br for bitrate\n";
+    $params_bladeenc = ask("Parameters for bladeenc",
+			   "-br 256 -delete -quit -progress=2");
+    $def_genre = ask("Default genre ('none' for blank)", "pop");
+    print "\n";
+    $path_workdir = ask("Work directory (will be created for you)",
+			"$home/tmp");
+    if (!-e $path_workdir) {
+	mkdir($path_workdir, 0700) || die "Failed to make work dir: $!\n";
+    }
+    print CONFIG "home=$dir_home\n";
+    print CONFIG "tracks=$dir_tracks\n";
+    print CONFIG "trackinfo=$dir_trackinfo\n";
+    print CONFIG "cdparanoia=$path_cdparanoia\n";
+    print CONFIG "bladeenc=$path_bladeenc\n";
+    print CONFIG "params=$params_bladeenc\n";
+    print CONFIG "defgenre=$def_genre\n";
+    print CONFIG "workdir=$path_workdir\n";
+    close(CONFIG) || die "Failed to close configuration file: $!\n";
+    $config{home} = $dir_home;
+    $config{tracks} = $dir_tracks;
+    $config{trackinfo} = $dir_trackinfo;
+    $config{defgenre} = $def_genre;
+    $config{cdparanoia} = $path_cdparanoia;
+    $config{bladeenc} = $path_bladeenc;
+    $config{params} = $params_bladeenc;
+    $config{workdir} = $path_workdir;
+} else {
+    my $a;
+    while(<CONFIG>) {
+	chomp;
+	if (($a = index($_, '=', 0)) == -1) {
+	    die "Failed to understand configuration line: $_\n";
+	}
+	$key = substr($_, 0, $a);
+	$value = substr($_, $a+1);
+	$config{$key} = $value;
+    }
+    close(CONFIG) || die "Failed to close configuration file: $!\n";
+}
+undef @toc;
+$tracks = 0;
+open(QUERY, $config{cdparanoia}.' -Q 2>&1|')
+    || die "Unable to run cdparanoia: $!\n";
+while(<QUERY>) {
+    chomp;
+    if (/^\s*([0-9]+)\.\s+([0-9]+) \[([0-9][0-9]):([0-9][0-9])\.([0-9][0-9])\]\s+([0-9]+) \[([0-9][0-9]):([0-9][0-9])\.([0-9][0-9])\]\s+/) {
+	($track, $length, $l_min, $l_sec, $l_frames, $begin, $b_min, $b_sec,
+	 $b_frames) = ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+	$tracks = $track if $track > $tracks;
+	push(@toc, "$b_track $b_min $b_sec $b_frames");
+    }
+}
+$e_min = $b_min + $l_min;
+$e_sec = $b_sec + $l_sec;
+$e_frames = $b_frames + $l_frames;
+if ($e_frames > 100) {
+    $e_frames-= 100;
+    $e_sec+= 1;
+}
+if ($e_sec > 100) {
+    $e_min+= 1;
+    $e_sec-= 100;
+}
+
+push(@toc, "999 $e_min $e_sec $e_frames");
+close(QUERY) || die "Failed to close pipe to cdparanoia: $!\n";
+
+if ($tracks == 0) {
+    die "No tracks on CD (or failed to run cdparanoia in query mode)\n";
+}
+
+print "There are $tracks tracks to rip\n\n";
+
+if (!-x $config{cdparanoia}) {
+    die 'cdparanoia ('.$config{cdparanoia}.') is not found/executable'. "\n";
+} elsif (!-x $config{bladeenc}) {
+    die 'bladeenc ('.$config{bladeenc}.') is not found/executable'. "\n";
+} elsif (!-x $mservedit) {
+    die 'mservedit ('.$mservedit.') is not found/executable'. "\n";
+}
+
+if ($verbose) {
+    print "The following question asks for a temporary name to use, this\n";
+    print "name is only temporary during the use of this program.  However,\n";
+    print "if this program died, for whatever reason, you could enter the\n";
+    print "same name when you reload and mservripcd will notice there are\n";
+    print "files already in there, and skip them.\n\n";
+}
+
+for ($cdname = ""; !$cdname; print "Required.\n" if (!$cdname)) {
+    $cdname = ask("Name of CD to use in temporary work directory", "cd");
+}
+
+$warning = 0;
+
+if (-e $config{workdir}.'/'.$cdname) {
+    print "Warning: directory $cdname exists already\n";
+    $warning = 1;
+} else {
+    mkdir($config{workdir}.'/'.$cdname, 0700) || die "failed to mkdir: $!\n";
+}
+
+for ($i = 1; $i < $tracks; $i++) {
+    my $s = $config{workdir}.'/'.$cdname.'/'.sprintf("%02d", $i);
+    if (-e "$s.mp3") {
+	print "Warning: $s.mp3 exists and hence track $i will not ".
+            "be ripped or compressed\n";
+	$warning = 1;
+    } elsif (-e "$s.wav") {
+	print "Warning: $s.wav exists and hence track $i will not ".
+            "be ripped\n";
+	$warning = 1;
+    }
+}
+
+if ($warning) {
+    for ($ready = "no"; $ready ne "yes";
+	 print "Required.\n" if ($ready ne "yes")) {
+	$ready = ask("There were warnings, continue?", "no");
+    }
+}
+
+undef $tracknames;
+$genre = $config{defgenre};
+
+$cddb = ask("Would you like to contact CDDB to get names?", "yes");
+if ($cddb eq 'yes' or $cddb eq 'y') {
+    my $disc = 0;
+    my $db = new CDDB(Host => 'www.cddb.com',
+		      Port => 8880,
+		      Login => 'james') or die "failed connect to cddb: $!\n";
+    my @db_discs = $db->get_discs_by_toc(@toc);
+    print "Please select from the CDs below:\n";
+    foreach my $db_disc (@db_discs) {
+	$disc++;
+	my ($cd_genre, $cd_id, $cd_title) = @$db_disc;
+	$db{$disc} = { id => $cd_id,
+		       genre => $cd_genre,
+		       title => $cd_title };
+	print "  [$disc] $cd_title\n";
+    }
+    my $mdisc = $disc;
+    if ($mdisc < 1) {
+	print "No CDs found in CDDB\n";
+    } else {
+	for(;;) {
+	    my $disc = ask("CD to view or 'none' (1-$mdisc)", "1");
+	    break if ($disc eq '');
+	    my ($cd_id, $cd_genre) = ($db{$disc}{'id'}, $db{$disc}{'genre'});
+	    my $cd_info = $db->get_disc_details($cd_genre, $cd_id);
+	    if (!defined($cd_info)) {
+		print "Failed to get track information\n";
+	    } else {
+		my @cd_titles = @{$cd_info->{'ttitles'}};
+		my $track = 1;
+		print "\n";
+		foreach my $title (@cd_titles) {
+		    print "  $track. $title\n";
+		    $track++;
+		}
+		my $go = ask("Use these names", "yes");
+		if ($go eq 'yes' || $go eq 'y') {
+		    $tracknames = \@cd_titles;
+		    $genre = $cd_genre;
+		    last;
+		}
+	    }
+	}
+    }
+}    
+
+my $author = ask("What author should I set by default on tracks", "");
+my $year = ask("What year should I set by default on tracks (0=none)", "0");
+my $name = "";
+foreach my $track (@tracks) {
+    my $s = $config{workdir}."/$cdname/".sprintf("%02d",$track).'.mp3.trk';
+    open(TRK, ">$s") || die "failed to open $s for writing: $!\n";
+    print TRK '_author='.$author."\n";
+    $name = shift(@$tracknames) if (defined($tracknames));
+    print TRK '_name='.$name."\n";
+    print TRK '_genres='.$genre."\n";
+    print TRK '_year='.$year."\n";
+    close(TRK) || die "failed to close $s: $!\n";
+}
+
+$go = ask("Would you like to run mservedit to edit your track names", "yes");
+while($go eq "yes" || $go eq "y") {
+    if (system($mservedit, $config{workdir}."/$cdname")) {
+	print "system failed to run '$mservedit': $?\n";
+    }
+    $go = ask("Run mservedit again?", "yes");
+}
+
+print "\n\n--- Doing my stuff...\n\n";
+
+for ($i = 1; $i < $tracks; $i++) {
+    my $s = $config{workdir}.'/'.$cdname.'/'.sprintf("%02d", $i);
+    if (-e $s.'.mp3') {
+	print "!!! $s.mp3 exists, skipped.\n\n";
+	next;
+    }
+    if (-e $s.'.wav') {
+	print "!!! $s.wav exists, skipped.\n\n";
+    } else {
+	print "--- Ripping track $i...\n\n";
+	$rc = system($config{cdparanoia}." -z -w $i $s.wav");
+	print "Program exited on signal ".($rc&127).".\n" if ($rc & 127);
+	print "Core dumped.\n" if ($rc & 128);
+	print "Program exited with error code ".($rc>>8).".\n";
+	if ($rc) {
+	    unlink "$s.wav"; # no error check
+	    die "cdparanoia failed\n";
+	}
+    }
+    print "--- Compressing track $i...\n\n";
+    $rc = system($config{bladeenc}.' '.$config{params}." $s.wav");
+    print "Program exited on signal ".($rc&127).".\n" if ($rc & 127);
+    print "Core dumped.\n" if ($rc & 128);
+    print "Program exited with error code ".($rc>>8).".\n";
+    if ($rc) {
+	unlink "$s.mp3"; # no error check
+	die "bladeenc failed\n";
+    }
+}
+
+print "--- Finished.\n";

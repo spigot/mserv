@@ -1360,9 +1360,13 @@ void mserv_closedown(int exitcode)
 {
   signal(SIGINT, SIG_IGN); /* ignore bad signals */
   mserv_shutdown = 2; /* 2 = shutdown in progress */
+
+  /* As mserv_abortplay() will log that a song has been stopped, it
+   * must be called before closing the log file (below). */
+  mserv_abortplay();
+
   if (mserv_logfile)
     fclose(mserv_logfile);
-  mserv_abortplay();
   exit(exitcode);
 }
 

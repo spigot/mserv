@@ -23,14 +23,16 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
 
 #include "mserv.h"
+#include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.2 2004/03/28 16:06:24 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.3 2004/03/28 17:24:26 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -162,10 +164,13 @@ int ossaudio_output_start(t_channel *c, t_channel_outputstream *os,
 {
   t_ossaudio *ossaudio = (t_ossaudio *)private;
   int output_fd;
+  int format;
+  int stereo;
+  int samplerate;
   
   (void)c;
   (void)os;
-
+  
   if (ossaudio->playing) {
     return MSERV_SUCCESS;
   }
@@ -180,14 +185,60 @@ int ossaudio_output_start(t_channel *c, t_channel_outputstream *os,
 	     strerror(errno));
     return MSERV_FAILURE;
   }
+
+  // Set the sample format
   
-  // FIXME: OSS devices default to 8kHz sample rate.  We need to ask
-  // for something better than that.
+  // FIXME: What should we set it to?  Until I have a good answer to
+  // that question I'll be using eight bits unsigned data.
+  format = AFMT_U8;
+  if (ioctl(output_fd, SNDCTL_DSP_SETFMT, &format) == -1) {
+    snprintf(error, errsize,
+	     "failed setting audio format to AFMT_U8");
+    goto failed;
+  }
+  if (format != AFMT_U8) {
+    snprintf(error, errsize,
+	     "audio format AFMT_U8 not supported by sound card (got %d when trying)",
+	     format);
+    goto failed;
+  } 
+  
+  // Set stereo output
+  stereo = 1;
+  if (ioctl(output_fd, SNDCTL_DSP_STEREO, &stereo) == -1) {
+    snprintf(error, errsize,
+	     "failed asking soundcard for stereo output");
+    goto failed;
+  }
+  if (stereo != 1) {
+    snprintf(error, errsize,
+	     "sound card doesn't support stereo");
+    goto failed;
+  }
+  
+  // Set the sample rate to whatever we get in os->samplerate.
+  samplerate = os->samplerate;
+  if (ioctl(output_fd, SNDCTL_DSP_SPEED, &samplerate) == -1) {
+    snprintf(error, errsize,
+	     "failed asking soundcard for %dHz output", samplerate);
+    goto failed;
+  } 
+  if (samplerate != (signed)os->samplerate) {
+    snprintf(error, errsize,
+	     "setting output sample rate to %dHz failed, got %dHz",
+	     os->samplerate,
+	     samplerate);
+    goto failed;
+  }
   
   ossaudio->output_fd = output_fd;
   ossaudio->playing = 1;
   
   return MSERV_SUCCESS;
+
+ failed:
+  close(output_fd);
+  return MSERV_FAILURE;
 }
 
 /* stop output stream */
@@ -203,13 +254,14 @@ int ossaudio_output_stop(t_channel *c, t_channel_outputstream *os,
     return MSERV_SUCCESS;
   }
 
-  if (close(ossaudio->output_fd) == 0) {
-    return MSERV_SUCCESS;
-  } else {
+  if (close(ossaudio->output_fd) != 0) {
     snprintf(error, errsize,
 	     "failed closing audio device '%s': %s",
 	     ossaudio->device_name,
 	     strerror(errno));
     return MSERV_FAILURE;
   }
+  
+  ossaudio->playing = 0;
+  return MSERV_SUCCESS;
 }

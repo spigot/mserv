@@ -95,6 +95,7 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line);
 static void mserv_cmd_check(t_client *cl, const char *ru, const char *line);
 static void mserv_cmd_search(t_client *cl, const char *ru, const char *line);
 static void mserv_cmd_searchf(t_client *cl, const char *ru, const char *line);
+static void mserv_cmd_asearch(t_client *cl, const char *ru, const char *line);
 static void mserv_cmd_idea(t_client *cl, const char *ru, const char *line);
 static void mserv_cmd_info(t_client *cl, const char *ru, const char *line);
 static void mserv_cmd_date(t_client *cl, const char *ru, const char *line);
@@ -243,6 +244,9 @@ t_cmds mserv_cmds[] = {
   { 1, level_guest, "SEARCHF", mserv_cmd_searchf,
     "Search for a track based on filter",
     "<filter>" },
+  { 1, level_guest, "ASEARCH", mserv_cmd_asearch,
+    "Search for a album based on string",
+    "<string>" },
   { 1, level_guest, "INFO", mserv_cmd_info,
     "Display information on the current track, a specified track or an album",
     "[<album> [<track>]]" },
@@ -2225,10 +2229,6 @@ static void mserv_cmd_check(t_client *cl, const char *ru, const char *line)
       if ((track1 = author->tracks[i]) && (track2 = author->tracks[i+1])) {
 	if (!stricmp(track1->author, track2->author) &&
 	    !stricmp(track1->name, track2->name)) {
-	  if (!f) {
-	    f = 1;
-	    mserv_responsent(cl, "CHECKR", NULL);
-	  }
 	  rate1 = mserv_getrate(ru, track1);
 	  rate2 = mserv_getrate(ru, track2);
 	  if ((rate1 == NULL && rate2 == NULL) ||
@@ -2236,6 +2236,10 @@ static void mserv_cmd_check(t_client *cl, const char *ru, const char *line)
 	      (rate1 && !rate2 && rate1->rating == 0) ||
 	      (!rate1 && rate2 && rate2->rating == 0))
 	    continue;
+	  if (!f) {
+	    f = 1;
+	    mserv_responsent(cl, "CHECKR", NULL);
+	  }
 	  if (cl->mode == mode_human) {
 	    sprintf(bit, "%d/%d", track1->n_album, track1->n_track);
 	    sprintf(buffer, "[]            %6.6s %-1.1s %-20.20s "
@@ -2331,6 +2335,43 @@ static void mserv_cmd_search(t_client *cl, const char *ru, const char *line)
       mserv_send(cl, ".\r\n", 0);
   } else {
     mserv_response(cl, "SEARCHB", NULL);
+  }
+}
+
+static void mserv_cmd_asearch(t_client *cl, const char *ru, const char *line)
+{
+  char buffer[AUTHORLEN+NAMELEN+64];
+  t_album *album;
+  int f = 0;
+
+  (void)ru;
+  if (!*line) {
+    mserv_response(cl, "BADPARM", NULL);
+    return;
+  }
+  for (album = mserv_albums; album; album = album->next) {
+    if ((stristr(album->author, line)) ||
+	(stristr(album->name, line))) {
+      if (!f) {
+	f = 1;
+	mserv_responsent(cl, "ASRCHA", NULL);
+      }
+      if (cl->mode == mode_human) {
+	sprintf(buffer, "[] %3d %-20.20s %-51.51s\r\n",
+		album->id, album->author, album->name);
+	mserv_send(cl, buffer, 0);
+      } else {
+	sprintf(buffer, "%d\t%s\t%s\r\n", album->id,
+		album->author, album->name);
+	mserv_send(cl, buffer, 0);
+      }
+    }
+  }
+  if (f) {
+    if (cl->mode != mode_human)
+      mserv_send(cl, ".\r\n", 0);
+  } else {
+    mserv_response(cl, "ASRCHB", NULL);
   }
 }
 

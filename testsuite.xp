@@ -30,11 +30,14 @@ expect "Welcome johan"
 spawn telnet localhost 4444
 set computerjohan $spawn_id
 expect "USER"
+expect "\n.\n"
 send "user johan\n"
 expect "PASS"
+expect "\n.\n"
 send "pass johan rtcomputer\n"
 expect "202"
 expect "Welcome johan"
+expect "\n.\n"
 expect -i $humanjohan "johan has connected"
 
 send "history\n"
@@ -229,6 +232,7 @@ expect "\n.\n"
 
 send "status\n"
 expect "224 Nothing currently playing"
+expect "\n.\n"
 
 send "history\n"
 expect "241 The following tracks were recently played"
@@ -359,11 +363,14 @@ expect -i $humanjohan "johan has disconnected"
 spawn telnet localhost 4444
 set computerjohan $spawn_id
 expect "USER"
+expect "\n.\n"
 send "user johan\n"
 expect "PASS"
+expect "\n.\n"
 send "pass johan rtcomputer\n"
 expect "202"
 expect "Welcome johan"
+expect "\n.\n"
 expect -i $humanjohan "johan has connected"
 
 # Log in as root for testing root-only commands
@@ -409,11 +416,14 @@ wait
 spawn telnet localhost 4444
 set computerroot $spawn_id
 expect "USER"
+expect "\n.\n"
 send "user root\n"
 expect "PASS"
+expect "\n.\n"
 send "pass root rtcomputer\n"
 expect "202"
 expect "Welcome root"
+expect "\n.\n"
 expect -i $humanroot "root has connected"
 
 # Back to the human root

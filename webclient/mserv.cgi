@@ -89,7 +89,7 @@ if ($page eq 'status') {
 } elsif ($page eq 'stop') {
     stop();
 } elsif ($page eq 'next') {
-    next();
+    mynext();
 } else {
     print <<EOF;
     <h1>Unknown request</h1>
@@ -770,7 +770,7 @@ sub stop {
     &status();
 }
 
-sub next {
+sub mynext {
     @data = data("$cmd 'next'");
     $response = shift(@data);
     ($code, $responsestr) = split(/\t/, $response);

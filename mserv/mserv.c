@@ -45,7 +45,7 @@
 #include "cmd.h"
 #include "acl.h"
 #include "mp3info.h"
-#include "soundcard.h"
+#include "mserv-soundcard.h"
 #include "defconf.h"
 #include "conf.h"
 #include "opt.h"

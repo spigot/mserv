@@ -30,7 +30,7 @@
 #include <math.h>
 #include "mserv.h"
 #include "misc.h"
-#include "soundcard.h"
+#include "mserv-soundcard.h"
 #include "acl.h"
 #include "filter.h"
 #include "cmd.h"

@@ -444,6 +444,7 @@ static void cmd_pass(t_client *cl, t_cmdparams *cp)
             cl->user);
   cl->authed = 1;
   cl->userlevel = acl->userlevel;
+  cl->loggedinatsong = mserv_n_songs_started;
   mserv_response(cl, "ACLSUCC", "%s", cl->user);
   if (cl->userlevel != level_guest && cl->mode != mode_computer)
     mserv_recalcratings();
@@ -515,7 +516,9 @@ static void cmd_userinfo(t_client *cl, t_cmdparams *cp)
   char token[16];
   unsigned int diffs = 0, indexnum = 0;
   double index;
+  double satisfaction;
   int i;
+  t_client *rcl;
   const char *line = cp->line;
 
   if (!*line)
@@ -555,27 +558,37 @@ static void cmd_userinfo(t_client *cl, t_cmdparams *cp)
     index = 1.0 - diffs/(double)(4*indexnum);
   else
     index = 0;
+
+  rcl = mserv_user2client(line);
+  if (rcl == NULL ||
+      !mserv_getsatisfaction(rcl, &satisfaction))
+  {
+    /* If the satisfaction value doesn't exist, 0.5 should be
+     * neutral... */
+    satisfaction = 0.5;
+  }
+  
   mserv_response(cl, "INFU", "%s\t%s\t"
 		 "%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t"
-		 "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.1f",
+		 "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.1f\t%.1f",
 		 acl->user, cp->ru, 100*superb/(double)total,
 		 100*good/(double)total, 100*neutral/(double)total,
 		 100*bad/(double)total, 100*awful/(double)total,
 		 100*heard/(double)total, 100*unheard/(double)total,
 		 superb, good, neutral, bad, awful, heard, unheard,
-		 100*index);
+		 100*index, 100*satisfaction);
   if (cl->mode == mode_human) {
-    for (i = 1; i <= 8; i++) {
+    for (i = 1; i <= 9; i++) {
       sprintf(token, "INFU%d", i);
       mserv_response(cl, token, "%s\t%s\t"
 		     "%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t"
-		     "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.1f",
+		     "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.1f\t%.1f",
 		     acl->user, cp->ru, 100*superb/(double)total,
 		     100*good/(double)total, 100*neutral/(double)total,
 		     100*bad/(double)total, 100*awful/(double)total,
 		     100*heard/(double)total, 100*unheard/(double)total,
 		     superb, good, neutral, bad, awful, heard, unheard,
-		     100*index);
+		     100*index, 100*satisfaction);
     }
   }
 }

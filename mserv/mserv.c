@@ -92,6 +92,7 @@ unsigned int mserv_filter_ok = 0;
 unsigned int mserv_filter_notok = 0;
 t_channel *mserv_channel = NULL;
 t_trkinfo mserv_player_playing = { NULL, "" };
+int mserv_n_songs_started = 0;
 
 /*** file-scope (static) function declarations ***/
 
@@ -2829,6 +2830,73 @@ t_rating *mserv_getrate(const char *user, t_track *track)
   return NULL;
 }
 
+/* Retrieves the user's average rating of the last 15 tracks (which is
+ * supposed to be a bit less than an hour) heard by the user.  UNHEARD
+ * tracks count as HEARD.  The average is stored in *satisfaction.
+ * Returns the number of tracks included in the average.
+ *
+ * If no heard songs have been played yet, 0 is returned and the value
+ * stored in *satisfaction is undefined. */
+int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
+{
+  int i;
+  int n_songs = 0;
+  double sum = 0.0;
+  int maxsongs;
+  
+  maxsongs = mserv_n_songs_started - cl->loggedinatsong;
+  if (maxsongs > HISTORYLEN) {
+    maxsongs = HISTORYLEN;
+  }
+  if (maxsongs > 15) {
+    maxsongs = 15;
+  }
+  
+  for (i = 0; mserv_history[i] && i < maxsongs; i++) {
+    t_rating *rate;
+    int useThisRating;
+    
+    rate = mserv_getrate(cl->user, mserv_history[i]->track);
+    
+    // Count UNHEARD (rate == NULL) as HEARD (rating == 0)
+    useThisRating = rate ? rate->rating : 0;
+    
+    if (useThisRating == 0 /*0=HEARD*/) {
+      sum += opt_rate_unrated;
+    } else {
+      // Change scale from 1-5 to 0.0-1.0
+      sum += (useThisRating - 1.0) / 4.0;
+    }
+    n_songs++;
+  }
+  
+  if (n_songs > 0) {
+    *satisfaction = sum / n_songs;
+  }
+  
+  return n_songs;
+}
+
+/* If a user by that name is logged in, return a corresponding
+ * t_client*.  If the user isn't logged in, return NULL.  */
+t_client *mserv_user2client(const char *username)
+{
+  t_client *cl;
+  
+  for (cl = mserv_clients; cl; cl = cl->next) {
+    if (cl->authed &&
+	cl->state != st_closed &&
+	cl->mode != mode_computer &&
+	cl->userlevel != level_guest &&
+	strncmp(cl->user, username, USERNAMELEN) == 0)
+    {
+      return cl;
+    }
+  }
+  
+  return NULL;
+}
+
 t_track *mserv_gettrack(unsigned int n_album, unsigned int n_track)
 {
   t_album *album;
@@ -3492,6 +3560,7 @@ void mserv_addtohistory(t_trkinfo *sup)
     mserv_history[0] = history;
     memcpy(mserv_history[0], sup, sizeof(t_trkinfo));
   }
+  mserv_n_songs_started++;
 }
 
 const char *mserv_clientmodetext(t_client *cl)

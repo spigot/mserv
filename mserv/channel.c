@@ -464,7 +464,8 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
 		       &c->input->trkinfo);
     }
     if (!c->input->timer_started) {
-      gettimeofday(&c->playing_start, NULL);
+      c->lastStartTime = mserv_getMSecsSinceEpoch();
+      c->timeUntilLastStop = 0;
       c->input->timer_started = 1;
     }
     if (c->input->fd != -1) {
@@ -799,6 +800,8 @@ int channel_pause(t_channel *c, char *error, int errsize)
     return MSERV_SUCCESS;
   mserv_log("channel %s: paused", c->name);
   c->paused = 1;
+  // Remember for how long we played before pausing
+  c->timeUntilLastStop += mserv_getMSecsSinceEpoch() - c->lastStartTime;
   return MSERV_SUCCESS;
 }
 
@@ -812,6 +815,7 @@ int channel_unpause(t_channel *c, char *error, int errsize)
     return MSERV_SUCCESS;
   mserv_log("channel %s: resumed", c->name);
   c->paused = 0;
+  c->lastStartTime = mserv_getMSecsSinceEpoch();
   return MSERV_SUCCESS;
 }
 
@@ -851,14 +855,20 @@ t_trkinfo *channel_getplaying(t_channel *c)
   return NULL;
 }
 
-/* channel_playing_start - get currently playing track start time,
- * or NULL if the current track hasn't started playing yet. */
-
-struct timeval *channel_getplaying_start(t_channel *c)
+/* How many milliseconds has the current track been playing? */
+long channel_getplaying_msecs(t_channel *c)
 {
   if (c && c->input && c->input->timer_started) {
-    return &c->playing_start;
-  } else {
-    return NULL;
+    if (c->stopped) {
+      return 0;
+    } else if (c->paused) {
+      return c->timeUntilLastStop;
+    } else /* playing */ {
+      return
+	c->timeUntilLastStop +
+	(mserv_getMSecsSinceEpoch() - c->lastStartTime);
+    }
   }
+  
+  return 0;
 }

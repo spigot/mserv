@@ -456,25 +456,14 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
   char token[16];
   char *a;
   int i;
-  struct timeval now, ago;
   t_channel *channel = channel_find(cl->channel);
   t_trkinfo *playing = channel_getplaying(channel);
-  struct timeval *start = channel_getplaying_start(channel);
-
+  long playTimeMs = channel_getplaying_msecs(channel);
+  long playTimeSeconds = playTimeMs / 1000;
+  time_t now = time(NULL);
+  
   (void)cp;
   if (playing && playing->track) {
-    // Has the song started playing?
-    if (start != NULL) {
-      // Yes, how long ago was it?
-      if (gettimeofday(&now, NULL) != 0) {
-	mserv_response(cl, "SERROR", "%s", "Failed to gettimeofday()");
-	return;
-      }
-      mserv_timersub(&now, start, &ago);
-    } else {
-      // No, not yet.
-      memset(&ago, 0, sizeof(ago));
-    }
     a = channel_paused(channel) ? "STATPAU" : "STATPLA";
     mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d\t%s"
                    "\t%.2f",
@@ -483,8 +472,8 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
 		   playing->track->n_track,
 		   playing->track->author,
 		   playing->track->name,
-		   start == NULL ? time(NULL) : start->tv_sec,
-		   ago.tv_sec/60, ago.tv_sec % 60,
+		   now - playTimeSeconds,
+		   playTimeSeconds / 60, playTimeSeconds % 60,
 		   mserv_random ? "ON" : "OFF", mserv_factor);
     if (cl->mode == mode_human) {
       for (i = 1; i <= 7; i++) {
@@ -494,8 +483,9 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
 		       mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
 		       playing->track->album->id, playing->track->n_track,
                        playing->track->author, playing->track->name, 
-		       start == NULL ? time(NULL) : start->tv_sec,
-                       ago.tv_sec/60, ago.tv_sec % 60, ago.tv_usec / 100000,
+		       now - playTimeSeconds,
+                       playTimeSeconds / 60, playTimeSeconds % 60,
+		       (playTimeMs % 1000) / 100,
 		       mserv_random ? "ON" : "OFF", mserv_factor);
       }
     }

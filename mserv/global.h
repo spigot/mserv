@@ -330,7 +330,11 @@ struct _t_channel {
   unsigned int paused;            /* are we currently paused? */
   unsigned int stopped;           /* are we currently stopped? */
   t_trkinfo playing;              /* currently playing track */
-  struct timeval playing_start;   /* currently playing track start time */
+  long timeUntilLastStop;         /* msecs of play until current song
+				   * was first paused*/
+  long lastStartTime;             /* when this song last resumed
+				   * playing in msecs since the
+				   * epoch */
   t_channel_inputstream *input;    /* stream of inputs */
   t_channel_outputstream *output; /* outputs (simultaneous) */
   unsigned int channels;          /* 1 for mono, 2 for stereo, etc. */

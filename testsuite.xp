@@ -410,11 +410,42 @@ expect -i $humanjohan "stopped by johan"
 
 send "quit\n"
 expect {
-	eof { send_error "*** Root logged out without a goodbye!!\n" ; exit 1 }
+	eof { send_error "*** Computer logged out without a goodbye!!\n" ; exit 1 }
 	"220 Goodbye"
 }
 wait
 expect -i $humanjohan "johan has disconnected"
+
+# Verify that the song timing doesn't get messed up by pausing a song
+set spawn_id $humanjohan
+send "play\n"
+expect "Playing:"
+send_user "Waiting for music to start...\n"
+sleep 3
+send "pause\n"
+expect "paused"
+send "status\n"
+expect -re {Time playing: +[0-9]+:([0-9][0-9])\.([0-9])}
+set seconds $expect_out(1,string)
+set tenths $expect_out(2,string)
+set t0 [expr 10 * $seconds + $tenths]
+if { $t0 == 0 } then {
+	send_error "*** Internal error in test script, music didn't start in three seconds\n"
+	exit 1
+}
+send_user "Giving mserv a chance to mess up the timing...\n"
+sleep 1
+send "status\n"
+expect -re {Time playing: +[0-9]+:([0-9][0-9])\.([0-9])}
+set seconds $expect_out(1,string)
+set tenths $expect_out(2,string)
+set t1 [expr 10 * $seconds + $tenths]
+send "stop\n"
+expect "stopped"
+if { $t1 != $t0 } then {
+	send_error "*** Song playing time keeps ticking according to \"status\" during pause\n"
+	exit 1
+}
 
 # Log the computer johan back in so he can be kicked off by root
 spawn telnet localhost 4444

@@ -4235,3 +4235,16 @@ int mserv_channelvolume(t_client *cl, const char *line)
   mserv_response(cl, "NAN", NULL);
   return -1;
 }
+
+/* How many milliseconds have passed since the epoch? */
+long mserv_getMSecsSinceEpoch(void)
+{
+  struct timeval now;
+
+  if (gettimeofday(&now, NULL) == -1) {
+    mserv_log("Couldn't get time of day, closing down.");
+    mserv_closedown(1);
+  }
+
+  return now.tv_sec * 1000 + now.tv_usec / 1000;
+}

@@ -2053,7 +2053,7 @@ static int mserv_trackcompare_name(const void *a, const void *b)
  * This function accepts a value in the range 0.0-0.1 and returns the
  * same value +-0.05.
  */
-static double mserv_fuzz_rating(double rating)
+static inline double mserv_fuzz_rating(double rating)
 {
   static double diff = -0.05;
   
@@ -2877,24 +2877,14 @@ static double mserv_getcookedrate(const char *user, t_track *track)
     (threshold + n_ratings);
 }
 
-void mserv_recalcratings(void)
+/* Recalculate the weights of all logged in users.  Returns the sum of
+ * all weights. */
+static double mserv_recalcweights(void)
 {
-  t_track *track;
-  double rating;
   t_client *cl;
-  time_t off;
-  int totalusers = 0;
-  int ntracks;
-  t_track **sbuf;
-  int i;
-  t_trkinfo *playing = channel_getplaying(mserv_channel);
   double total_weight = 0.0;
+  int totalusers = 0;
   
-  if (mserv_debug)
-    mserv_log("Calculating ratings of tracks...");
-
-  mserv_filter_ok = 0;
-  mserv_filter_notok = 0;
   for (cl = mserv_clients; cl; cl = cl->next) {
     if (cl->authed && cl->state != st_closed && cl->mode != mode_computer
 	&& cl->userlevel != level_guest)
@@ -2925,7 +2915,82 @@ void mserv_recalcratings(void)
       total_weight += cl->weight;
     }
   }
+  
+  return total_weight;
+}
+
+/* Compute a common rating for a song that takes everything except
+ * when the song was last played into account.
+ *
+ * If a song is filtered out, it gets a rating of 0.0.
+ */
+static inline double mserv_recalcprating(t_track *track)
+{
+  double total_weight = 0.0;
+  double rating = 0.0;
+  t_client *cl;
+  
+  for (cl = mserv_clients; cl; cl = cl->next) {
+    if (!cl->authed || cl->state == st_closed ||
+	cl->mode == mode_computer || cl->userlevel == level_guest)
+      continue;
+    
+    /* Note that if the experimental fairness is disabled,
+     * cl->weight will always be 1.0. */
+    rating += cl->weight * mserv_getcookedrate(cl->user, track);
+    total_weight += cl->weight;
+  }
+  
+  /* If the experimental fairness is disabled, total_weight will
+   * be equal to totalusers. */
+  if (total_weight > 0.0) {
+    return rating / total_weight;
+  } else {
+    /* A total weight of 0.0 should mean nobody is listening, and the
+     * ratings should really be 0.0 as well. */
+    return 0.0;
+  }
+}
+
+/* Return a score penalty for a song that was last played seconds_ago
+ * seconds ago. */
+static double mserv_timepenalty(time_t seconds_ago)
+{
+  if (seconds_ago < 60*10) /* within ten minutes */
+    return 0.1;
+  else if (seconds_ago < 60*60) /* within an hour */
+    return 0.2;
+  else if (seconds_ago < 60*60*24) /* within a day */
+    return 0.4;
+  else if (seconds_ago < 60*60*24*3) /* within three days */
+    return 0.6;
+  else if (seconds_ago < 60*60*24*7) /* within a week */
+    return 0.7;
+  else if (seconds_ago < 60*60*24*7*2) /* within two weeks */
+    return 0.8;
+  else if (seconds_ago < 60*60*24*7*4*6) /* within half a year */
+    return 0.95;
+  else /* more than half a year ago */
+    return 1.0;
+}
+
+void mserv_recalcratings(void)
+{
+  t_track *track;
+  time_t now;
+  int ntracks;
+  t_track **sbuf;
+  t_trkinfo *playing = channel_getplaying(mserv_channel);
+  
+  if (mserv_debug)
+    mserv_log("Calculating ratings of tracks...");
+
+  mserv_recalcweights();
+  
+  mserv_filter_ok = 0;
+  mserv_filter_notok = 0;
   ntracks = 0;
+  now = time(NULL);
   for (track = mserv_tracks; track; track = track->next) {
     ntracks++;
     track->filterok = (filter_check(mserv_filter, track) == 1) ? 1 : 0;
@@ -2933,55 +2998,34 @@ void mserv_recalcratings(void)
       mserv_filter_ok++;
     else
       mserv_filter_notok++;
-    if (totalusers == 0) {
-      track->prating = 0;
+    
+    track->prating = mserv_recalcprating(track);
+    
+    if (playing && track == playing->track) {
+      /* currently playing */
+      track->rating = 0;
     } else {
-      rating = 0;
-      for (cl = mserv_clients; cl; cl = cl->next) {
-	if (!cl->authed || cl->state == st_closed ||
-	    cl->mode == mode_computer || cl->userlevel == level_guest)
-	  continue;
-	
-	/* Note that if the experimental fairness is disabled,
-	 * cl->weight will always be 1.0. */
-	rating += cl->weight * mserv_getcookedrate(cl->user, track);
-      }
-      /* If the experimental fairness is disabled, total_weight will
-       * be equal to totalusers. */
-      track->prating = rating / total_weight;
+      track->rating =
+	mserv_timepenalty(now - track->lastplay) *
+	track->prating;
     }
-    track->rating = track->prating;
-    off = time(NULL) - track->lastplay;
-    if (off < 60*10) /* within ten minutes */
-      track->rating = track->rating*0.1;
-    else if (off < 60*60) /* within an hour */
-      track->rating = track->rating*0.2;
-    else if (off < 60*60*24) /* within a day */
-      track->rating = track->rating*0.4;
-    else if (off < 60*60*24*3) /* within three days */
-      track->rating = track->rating*0.6;
-    else if (off < 60*60*24*7) /* within a week */
-      track->rating = track->rating*0.7;
-    else if (off < 60*60*24*7*2) /* within two week */
-      track->rating = track->rating*0.8;
-    else if (track->lastplay != 0) /* played */
-      track->rating = track->rating*0.95;
-    if (playing && track == playing->track)
-      track->rating = 0; /* currently playing */
-    if (!track->filterok)
-      track->rating = 0; /* filtered out */
   }
+  
   if (ntracks != mserv_nextid_track-1) {
     mserv_log("Track list has become incorrect (ntracks!=nextid-1)");
     exit(1);
   }
+
   if (mserv_debug)
     mserv_log("Sorting tracks for top listing");
+  
   if (ntracks) {
     if ((sbuf = malloc(sizeof(t_track *) * ntracks)) == NULL) {
       mserv_log("Out of memory creating sort buffer");
       mserv_broadcast("MEMORY", NULL);
     } else {
+      int i;
+      
       for (i = 0, track = mserv_tracks; track; track = track->next, i++) {
 	if (i >= ntracks) {
 	  mserv_log("Internal error in sort buffer");
@@ -3002,8 +3046,10 @@ void mserv_recalcratings(void)
       free(sbuf);
     }
   }
+
   if (mserv_debug)
     mserv_log("Finished recalculation");
+
   return;
 }
 

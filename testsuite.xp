@@ -1,0 +1,163 @@
+#!/usr/bin/expect
+#-*-sh-*-
+
+# This expect script performs some basic testing of mserv.  It
+# requires two user accounts to exist; "johan" with password "johan"
+# and "root" with password "root".  "johan" should be a normal user
+# and "root" a superuser.  It also requires at least one song in one
+# album and an otherwise working configuration.
+#
+# This script must be run when mserv has just started, as it expects
+# no history entries and nobody logged in to start with.  A successful
+# run ends with mserv being shut down.
+
+# Hang if something unexpected happens
+set timeout -1
+
+# Log in as Johan and mess around
+spawn telnet localhost 4444
+expect "USER"
+send "user johan\n"
+expect "PASS"
+send "pass johan\n"
+expect "Welcome johan"
+
+send "who\n"
+expect "The following people are online"
+
+send "ratings\n"
+expect "Nothing playing"
+send "ratings 1 1\n"
+expect "Ratings of track"
+
+send "history\n"
+expect "no entries"
+
+send "userinfo\n"
+expect "Satisfaction:"
+send "userinfo root\n"
+expect "Satisfaction:"
+
+send "tracks\n"
+expect "Nothing playing"
+send "tracks 1\n"
+expect "Tracks in album"
+
+send "asearch root\n"
+expect "Search results"
+
+send "status\n"
+expect "Nothing currently playing"
+
+send "stop\n"
+expect "Nothing playing"
+
+send "pause\n"
+expect "Nothing playing"
+
+send "top\n"
+expect "Most likely to be played tracks"
+
+send "albums\n"
+expect "Albums available"
+
+send "queue\n"
+expect "no tracks in the queue"
+send "queue 1 1\n"
+expect "The following tracks have been added to the queue"
+send "queue\n"
+expect "The following tracks are in the queue"
+send "unqueue 1 1\n"
+expect "unqueued by johan"
+
+send "next\n"
+expect "Nothing playing"
+
+send "volume\n"
+expect "Volume is currently"
+
+send "info\n"
+expect "Nothing playing"
+send "info 1\n"
+expect "Album name"
+send "info 1 1\n"
+expect "Track name"
+
+# Start playing and try some commands again
+send "play\n"
+expect "Playing"
+
+send "ratings\n"
+expect "Ratings of track"
+
+send "history\n"
+expect "The following tracks were recently played"
+
+send "tracks\n"
+expect "Tracks in album"
+
+send "status\n"
+expect "Track name"
+
+send "pause\n"
+expect "paused"
+
+send "play\n"
+expect "resumed by johan"
+
+send "next\n"
+expect "Track skipped"
+expect "Playing:"
+
+send "info\n"
+expect "Track name"
+
+send "play\n"
+expect "Already playing"
+
+send "stop\n"
+expect "stopped"
+
+send "quit\n"
+expect "Goodbye"
+wait
+
+# Log johan back in so he can be kicked off by root
+spawn telnet localhost 4444
+set johanlogin $spawn_id
+expect "USER"
+send "user johan\n"
+expect "PASS"
+send "pass johan\n"
+expect "Welcome johan"
+
+# Log in as root and shut down
+spawn telnet localhost 4444
+set rootlogin $spawn_id
+expect "USER"
+send "user root\n"
+expect "PASS"
+send "pass root\n"
+expect "Welcome root"
+
+# Verify that Johan is still logged in
+send "who\n"
+expect "johan"
+
+send "kick johan\n"
+expect "User johan has disconnected"
+
+# Verify that Johan actually disappeared
+send "who\n"
+expect "1 connected, 1 total"
+
+# Verify that Johan got notified
+set spawn_id $johanlogin
+expect "You have been kicked off"
+wait
+
+# Back to root, shut down mserv
+set spawn_id $rootlogin
+send "shutdown\n"
+expect "shutdown by root"
+wait

@@ -2734,7 +2734,7 @@ static const char *mserv_getplayer(char *fname)
 static int mserv_killplayer(pid_t pid)
 {
   /* Give processes 5us to die nicely */
-  static int deathTimeout = 5;
+  static int deathTimeout = 1;
   int status;
   int waitedFor;
   int killHasFailed = 0;
@@ -2826,11 +2826,15 @@ void mserv_abortplay()
   if (mserv_player_playing.track) {
     stop_me = mserv_player_playing.track;
     
-    if (!mserv_killplayer(-mserv_player_pid) &&
-	!mserv_killplayer(mserv_player_pid))
+    if (!mserv_killplayer(mserv_player_pid))
     {
       mserv_log("could not kill player process %d! Help.", mserv_player_pid);
     }
+
+    /* If any processes remain in the player's process group, kill
+     * them as well.  If no such processes exist, that's fine.  Thus,
+     * we ignore the return code from this operation. */
+    mserv_killplayer(-mserv_player_pid);
   }
   mserv_player_pid = 0;
   

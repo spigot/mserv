@@ -139,6 +139,8 @@ expect -i $computerroot "=623\troot"
 send "play\n"
 expect "Playing"
 expect -i $computerroot "=622\trandom"
+send_user "Waiting for music to get started..."
+sleep 5
 
 benchmark {Rating a song over and over while it is playing} {
     send "rate neutral\n"

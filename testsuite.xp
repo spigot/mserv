@@ -648,6 +648,7 @@ expect "Playing:"
 expect -re { ([0-9]+)/([0-9]+) }
 set currentAlbum $expect_out(1,string)
 set currentTrack $expect_out(2,string)
+set t0 [clock clicks -milliseconds]
 
 # Verify that root got the same song the human did
 expect -i $computerroot -re {=622\trandom\t([0-9]+)\t([0-9]+)\t}
@@ -661,7 +662,14 @@ send_user "Waiting for song to finish...\n"
 send_user "\n"
 send_user "Most tests have passed, so unless you are about to check in changes, you can break here.\n"
 
+# Wait for the track to finish playing by itself
 expect "Playing:"
+
+# Remember how long it took to play the song
+set t1 [clock clicks -milliseconds]
+set realduration [expr $t1 - $t0]
+
+# Register the new song
 set previousAlbum $currentAlbum
 set previousTrack $currentTrack
 expect -re { ([0-9]+)/([0-9]+) }
@@ -681,8 +689,22 @@ if { $currentAlbum == $previousAlbum &&
 	send_error "*** Track $currentAlbum/$currentTrack played twice in a row!\n"
 }
 
-# Verify that the last track got its last-played timestamp updated
+# Verify that the last track's duration as reported by "info" is
+# somewhat realistic
 send "info $previousAlbum $previousTrack\n"
+expect -re {Duration: +([0-9]+):([0-9]+)}
+set minutes $expect_out(1,string)
+set seconds $expect_out(2,string)
+set infoduration [expr $minutes * 60 * 1000 + $seconds * 1000]
+set difference [expr abs($infoduration - $realduration)]
+if { $difference > 5000 } {
+	set infoseconds [expr $infoduration / 1000]
+	set realseconds [expr $realduration / 1000]
+	send_error "Info says track $previousAlbum/$previousTrack is $infoseconds seconds, but I just timed it to be $realseconds seconds.\n"
+	exit 1
+}
+
+# Verify that the last track got its last-played timestamp updated
 expect -re {Played: +([0-9]+) ([a-zA-Z]+) ago}
 set amount $expect_out(1,string)
 set unit $expect_out(2,string)

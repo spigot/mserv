@@ -158,7 +158,7 @@ typedef struct _t_track {
   int volume;                       /* percentage (100 is normal) */
   double prating;                   /* calculated rating of track */
   double rating;                    /* temporally, filtered adjusted rating */
-  unsigned long int duration;
+  unsigned long int duration;       /* song duration in 1/100 seconds */
   char *author;
   char *name;
   char *filename;

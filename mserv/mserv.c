@@ -726,6 +726,11 @@ static void mserv_checkchild(void)
   mserv_setHistoricalDuration(playing->track, duration);
   
   mserv_player_pid = 0;
+  if (abs(mserv_player_playing.track->duration - duration / 10) > 2500) {
+    /* The recorded duration is more than 2.5 seconds off.  Update it
+     * with how long it really took to play the track. */
+    mserv_player_playing.track->duration = duration / 10;
+  }
   mserv_player_playing.track->lastplay = time(NULL);
   mserv_player_playing.track->modified = 1;
   mserv_player_playing.track = NULL;
@@ -2857,10 +2862,9 @@ void mserv_abortplay()
 {
   char error[256];
   t_track *stop_me = NULL;
+  unsigned int duration = 0;
   
   if (mserv_player_playing.track) {
-    int duration;
-    
     duration = channel_getplaying_msecs(mserv_channel);
     mserv_setHistoricalDuration(mserv_player_playing.track, duration);
   }
@@ -2888,6 +2892,12 @@ void mserv_abortplay()
   /* Mark played track done */
   if (mserv_player_playing.track) {
     mserv_checkdisk_track(mserv_player_playing.track);
+    if (mserv_player_playing.track->duration < duration / 10) {
+      /* The track to be stopped has already been playing for longer
+       * than its total recorded duration.  This must mean the
+       * recorded duration is too short. */
+      mserv_player_playing.track->duration = duration / 10;
+    }
     mserv_player_playing.track->lastplay = time(NULL);
     mserv_player_playing.track->modified = 1;
     mserv_player_playing.track = NULL;

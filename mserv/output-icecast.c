@@ -418,9 +418,9 @@ void output_sync(t_output *o)
     /* try and read more from the input stream */
     if (o->paused || o->stopped) {
 #ifdef DEBUG_OUTPUT
-      mserv_log("filling in silence, reason: %s %s",
-                o->paused ? "paused" : "not-paused",
-                o->stopped ? "stopped" : "not-stopped");
+      mserv_log("filling in silence, reason: %s%s",
+                o->paused ? "paused" : "",
+                o->stopped ? "stopped" : "");
 #endif
       /* we're paused, output some zeros */
       memset(o->buffer_float + o->buffer_bytes, 0,

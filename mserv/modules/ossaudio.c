@@ -21,11 +21,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include "mserv.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.1 2004/03/28 15:41:09 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.2 2004/03/28 16:06:24 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -33,6 +38,7 @@ typedef struct _t_ossaudio {
   char *device_name;
   char *mixer_name;
   int  playing;
+  int  output_fd;
 } t_ossaudio;
 
 /* initialise module */
@@ -155,13 +161,33 @@ int ossaudio_output_start(t_channel *c, t_channel_outputstream *os,
                          void *private, char *error, int errsize)
 {
   t_ossaudio *ossaudio = (t_ossaudio *)private;
+  int output_fd;
+  
   (void)c;
   (void)os;
-  (void)ossaudio;
+
+  if (ossaudio->playing) {
+    return MSERV_SUCCESS;
+  }
   
-  snprintf(error, errsize, "%s() unimplemented", __FUNCTION__);
+  // FIXME: Set an alarm() that times out unless the open() call has
+  // returned within a couple of seconds
   
-  return MSERV_FAILURE;
+  if ((output_fd = open(ossaudio->device_name, O_WRONLY, 0)) == -1) {
+    snprintf(error, errsize,
+	     "failed opening audio device '%s' for output: %s",
+	     ossaudio->device_name,
+	     strerror(errno));
+    return MSERV_FAILURE;
+  }
+  
+  // FIXME: OSS devices default to 8kHz sample rate.  We need to ask
+  // for something better than that.
+  
+  ossaudio->output_fd = output_fd;
+  ossaudio->playing = 1;
+  
+  return MSERV_SUCCESS;
 }
 
 /* stop output stream */
@@ -172,9 +198,18 @@ int ossaudio_output_stop(t_channel *c, t_channel_outputstream *os,
   t_ossaudio *ossaudio = (t_ossaudio *)private;
   (void)c;
   (void)os;
-  (void)ossaudio;
-  
-  snprintf(error, errsize, "%s() unimplemented", __FUNCTION__);
-  
-  return MSERV_FAILURE;
+
+  if (!ossaudio->playing) {
+    return MSERV_SUCCESS;
+  }
+
+  if (close(ossaudio->output_fd) == 0) {
+    return MSERV_SUCCESS;
+  } else {
+    snprintf(error, errsize,
+	     "failed closing audio device '%s': %s",
+	     ossaudio->device_name,
+	     strerror(errno));
+    return MSERV_FAILURE;
+  }
 }

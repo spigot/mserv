@@ -7,3 +7,7 @@ DIST_SUBDIRS = libltdl mserv mservcli mservutils
 CTAGSFLAGS = -t -d
 
 EXTRA_DIST = ChangeLog README NEWS AUTHORS COPYING LICENSE
+
+run:
+	sudo make install
+	mserv

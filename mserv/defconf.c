@@ -31,16 +31,15 @@ const char defconf_file[] = "# Mserv configuration file for " VERSION "\n\
 # path_trackinfo=trackinfo\n\
 # path_playout=player.out\n\
 # path_idea=idea\n\
-# path_mixer=/dev/mixer\n\
 # path_language=" DATADIR "/english.lang\n\
 \n\
 #############################################################################\n\
-#                          OUTPUT ENGINE - ICECAST                          #\n\
+#                               OUTPUT STREAM                               #\n\
 #############################################################################\n\
-# Icecast output engine parameters\n\
+# Choose an output stream...\n\
 #\n\
-# default_icecast_output=http://source:password@localhost:8000/mserv.ogg\n\
-# default_icecast_bitrate=48000\n\
+# exec=channel output add default ossaudio /dev/dsp mixer=/dev/mixer\n\
+# exec=channel output add default icecast http://source:password@localhost:8000/mserv.ogg bitrate=48000\n\
 \n\
 #############################################################################\n\
 #                                  PLAYERS                                  #\n\

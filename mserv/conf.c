@@ -42,12 +42,12 @@ int conf_load(const char *file)
 	    progname, file, strerror(errno));
     return -1;
   }
-  while(fgets(buffer, CONFLINELEN, fd)) {
+  while (fgets(buffer, CONFLINELEN, fd)) {
     line++;
     if (buffer[strlen(buffer)-1] != '\n') {
       fprintf(stderr, "%s: line %d too long in conf file, ignoring.\n",
 	      progname, line);
-      while((a = fgets(buffer, CONFLINELEN, fd))) {
+      while ((a = fgets(buffer, CONFLINELEN, fd))) {
 	if (buffer[strlen(buffer)-1] == '\n')
 	  continue;
       }
@@ -61,7 +61,7 @@ int conf_load(const char *file)
     while (p > buffer && *p == ' ')
       *p-- = '\0';
     p = buffer;
-    while(*p == ' ')
+    while (*p == ' ')
       p++;
     /* check for comment */
     if (!*p || *p == '#' || *p == '|')
@@ -112,6 +112,20 @@ const char *conf_getvalue(const char *key)
   for (c = mserv_conf; c; c = c->next) {
     if (!stricmp(key, c->key))
       return c->value;
+  }
+  return NULL;
+}
+
+const char *conf_getvalue_n(const char *key, unsigned int n)
+{
+  t_conf *c;
+
+  for (c = mserv_conf; c; c = c->next) {
+    if (!stricmp(key, c->key)) {
+      if (n == 0)
+        return c->value;
+      n--;
+    }
   }
   return NULL;
 }

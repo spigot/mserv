@@ -1,4 +1,4 @@
-# generated automatically by aclocal 1.7.7 -*- Autoconf -*-
+# generated automatically by aclocal 1.7.8 -*- Autoconf -*-
 
 # Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002
 # Free Software Foundation, Inc.
@@ -223,7 +223,7 @@ AC_DEFUN([AM_AUTOMAKE_VERSION],[am__api_version="1.7"])
 # Call AM_AUTOMAKE_VERSION so it can be traced.
 # This function is AC_REQUIREd by AC_INIT_AUTOMAKE.
 AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
-	 [AM_AUTOMAKE_VERSION([1.7.7])])
+	 [AM_AUTOMAKE_VERSION([1.7.8])])
 
 # Helper functions for option handling.                    -*- Autoconf -*-
 
@@ -6868,7 +6868,7 @@ dnl Jack Moffitt <jack@icecast.org> 08-06-2001
 dnl Rewritten for libshout 2
 dnl Brendan Cully <brendan@xiph.org> 20030612
 dnl 
-dnl $Id: aclocal.m4,v 1.10 2003/11/05 00:45:02 squish Exp $
+dnl $Id: aclocal.m4,v 1.11 2003/11/10 00:00:08 squish Exp $
 
 # XIPH_PATH_SHOUT([ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
 # Test for libshout, and define SHOUT_CPPFLAGS SHOUT_CFLAGS SHOUT_LIBS, and

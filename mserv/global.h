@@ -111,11 +111,17 @@ typedef struct _t_client {
   unsigned int quitme:1;
 } t_client;
 
+typedef struct _t_cmdparams {
+  const char *ru;               /* remote user (or current user), always set */
+  const char *line;             /* command line, always set */
+  const char *channel;          /* for CHANNEL commands, the channel name */
+} t_cmdparams;
+
 typedef struct _t_cmds {
   unsigned int authed;
   t_userlevel userlevel;
   char *name;
-  void (*function)(t_client *cl, const char *ru, const char *line);
+  void (*function)(t_client *cl, t_cmdparams *cp);
   char *help;
   char *syntax;
 } t_cmds;
@@ -227,13 +233,24 @@ typedef struct _t_module {
   char *rcs_id;
 } t_module;
 
+typedef struct _t_params_list {
+  struct _t_params_list *next;   /* next entry in linked list */
+  char *key;                /* key=val */
+  char *val;
+} t_params_list;
+
+typedef struct _t_params {
+  char *memory;             /* memory allocated */
+  t_params_list *list;      /* parameter list */
+} t_params;
+
 struct _t_channel;
 typedef struct _t_channel t_channel;
 
 typedef int (*t_module_init)(char *error, int errsize);
 typedef int (*t_module_final)(char *error, int errsize);
-typedef int (*t_module_output_create)(t_channel *c, const char *uri,
-                                      const char *params, void **private,
+typedef int (*t_module_output_create)(t_channel *c, const char *location,
+                                      t_params *params, void **private,
                                       char *error, int errsize);
 typedef int (*t_module_output_destroy)(t_channel *c, void *private,
                                        char *error, int errsize);
@@ -262,8 +279,8 @@ typedef struct _t_modinfo {
 
 typedef struct _t_outputstream {
   struct _t_outputstream *next; /* next output stream */
-  char uri[256];                /* http://user:pass@hostname:port/thing */
-  char params[256];             /* parameters (bitrate, etc.) */
+  char location[256];           /* http://user:pass@hostname:port/thing */
+  t_params *params;             /* parameters (bitrate, etc.) */
   t_modinfo *modinfo;           /* the module itself */
   void *private;                /* private module info for this stream */
 } t_output_list;

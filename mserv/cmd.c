@@ -37,85 +37,72 @@
 
 /*** file-scope (static) function declarations ***/
 
-static void mserv_cmd_moo(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_quit(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_help(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_user(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_pass(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_status(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_userinfo(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_who(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_say(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_emote(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_create(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_remove(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_level(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_password(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_albums(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_tracks(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_ratings(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_unqueue(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_play(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_stop(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_next(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_clear(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_repeat(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_random(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_filter(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_factor(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_top(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_pause(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_volume(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_bass(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_treble(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_history(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_check(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_search(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_searchf(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_asearch(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_idea(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_info(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_date(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_kick(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_reset(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_sync(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_shutdown(t_client *cl, const char *ru,
-			       const char *line);
-static void mserv_cmd_gap(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_set(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_x(t_client *cl, const char *ru, const char *line);
-static void mserv_cmd_set_author(t_client *cl, const char *ru,
-				 const char *line);
-static void mserv_cmd_set_name(t_client *cl, const char *ru,
-			       const char *line);
-static void mserv_cmd_set_genre(t_client *cl, const char *ru,
-				const char *line);
-static void mserv_cmd_set_year(t_client *cl, const char *ru,
-			       const char *line);
-static void mserv_cmd_set_volume(t_client *cl, const char *ru,
-                                 const char *line);
-static void mserv_cmd_set_albumauthor(t_client *cl, const char *ru,
-				      const char *line);
-static void mserv_cmd_set_albumname(t_client *cl, const char *ru,
-				    const char *line);
-static void mserv_cmd_x_authors(t_client *cl, const char *ru,
-				const char *line);
-static void mserv_cmd_x_authorid(t_client *cl, const char *ru,
-				 const char *line);
-static void mserv_cmd_x_authorinfo(t_client *cl, const char *ru,
-				   const char *line);
-static void mserv_cmd_x_authortracks(t_client *cl, const char *ru,
-				     const char *line);
-static void mserv_cmd_x_genres(t_client *cl, const char *ru,
-			       const char *line);
-static void mserv_cmd_x_genreid(t_client *cl, const char *ru,
-				const char *line);
-static void mserv_cmd_x_genreinfo(t_client *cl, const char *ru,
-				  const char *line);
-static void mserv_cmd_x_genretracks(t_client *cl, const char *ru,
-				    const char *line);
+static void mserv_cmd_moo(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_quit(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_help(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_user(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_pass(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_status(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_userinfo(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_who(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_say(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_emote(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_create(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_remove(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_level(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_password(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_albums(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_tracks(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_ratings(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_queue(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_unqueue(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_play(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_stop(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_next(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_clear(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_repeat(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_random(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_filter(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_factor(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_top(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_pause(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_volume(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_bass(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_treble(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_history(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_rate(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_check(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_search(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_searchf(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_asearch(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_idea(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_info(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_date(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_kick(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_reset(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_sync(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_shutdown(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_gap(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_set(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_channel(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_channel_output(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_channel_output_add(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_x(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_set_author(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_set_name(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_set_genre(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_set_year(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_set_volume(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_set_albumauthor(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_set_albumname(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_x_authors(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_x_authorid(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_x_authorinfo(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_x_authortracks(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_x_genres(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_x_genreid(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_x_genreinfo(t_client *cl, t_cmdparams *cp);
+static void mserv_cmd_x_genretracks(t_client *cl, t_cmdparams *cp);
 
 static int mserv_cmd_queue_sub(t_client *cl, t_album *album, int n_track,
 			       int header);
@@ -269,6 +256,9 @@ t_cmds mserv_cmds[] = {
   { 1, level_priv, "SET", mserv_cmd_set,
     "Commands for setting track and album information",
     "<params>" },
+  { 1, level_priv, "CHANNEL", mserv_cmd_channel,
+    "Commands relating to channels",
+    "<params>" },
   { 1, level_guest, "X", mserv_cmd_x,
     "Extra commands for advanced users or computers",
     "<params>" },
@@ -329,9 +319,28 @@ t_cmds mserv_set_cmds[] = {
   { 0, level_guest, NULL, NULL, NULL, NULL }
 };
 
+t_cmds mserv_channel_cmds[] = {
+  { 1, level_priv, "OUTPUT", mserv_cmd_channel_output,
+    "Modify output streams of a channel",
+    "<params>" },
+  { 0, level_guest, NULL, NULL, NULL, NULL }
+};
+
+t_cmds mserv_channel_output_cmds[] = {
+  { 1, level_priv, "ADD", mserv_cmd_channel_output_add,
+    "Add a new output stream to the channel",
+    "<channel> <module> <location> [<parameters>]" },
+/*
+  { 1, level_priv, "REMOVE", mserv_cmd_channel_outputadd,
+    "Add a new output stream to the channel",
+    "<channel> <module> <location> [<parameters>]" },
+*/
+  { 0, level_guest, NULL, NULL, NULL, NULL }
+};
+
 /*** functions ***/
 
-static void mserv_cmd_x(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_x(t_client *cl, t_cmdparams *cp)
 {
   t_cmds *cmdsptr;
   int len;
@@ -340,23 +349,23 @@ static void mserv_cmd_x(t_client *cl, const char *ru, const char *line)
     if (!mserv_checklevel(cl, cmdsptr->userlevel))
       continue;
     len = strlen(cmdsptr->name);
-    if (strnicmp(line, cmdsptr->name, len) == 0) {
-      if (line[len] != '\0' && line[len] != ' ')
+    if (strnicmp(cp->line, cmdsptr->name, len) == 0) {
+      if (cp->line[len] != '\0' && cp->line[len] != ' ')
 	continue;
-      line+= len;
-      while(*line == ' ')
-	line++;
+      cp->line+= len;
+      while (*cp->line == ' ')
+	cp->line++;
       if (cmdsptr->authed == 1 && cl->authed == 0)
 	mserv_send(cl, "400 Not authenticated\r\n.\r\n", 0);
       else
-	cmdsptr->function(cl, ru, line);
+	cmdsptr->function(cl, cp);
       return;
     }
   }
   mserv_response(cl, "BADCOM", NULL);
 }
 
-static void mserv_cmd_set(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_set(t_client *cl, t_cmdparams *cp)
 {
   t_cmds *cmdsptr;
   int len;
@@ -365,26 +374,75 @@ static void mserv_cmd_set(t_client *cl, const char *ru, const char *line)
     if (!mserv_checklevel(cl, cmdsptr->userlevel))
       continue;
     len = strlen(cmdsptr->name);
-    if (strnicmp(line, cmdsptr->name, len) == 0) {
-      if (line[len] != '\0' && line[len] != ' ')
+    if (strnicmp(cp->line, cmdsptr->name, len) == 0) {
+      if (cp->line[len] != '\0' && cp->line[len] != ' ')
 	continue;
-      line+= len;
-      while(*line == ' ')
-	line++;
+      cp->line+= len;
+      while (*cp->line == ' ')
+	cp->line++;
       if (cmdsptr->authed == 1 && cl->authed == 0)
 	mserv_send(cl, "404 Not authenticated\r\n.\r\n", 0);
       else
-	cmdsptr->function(cl, ru, line);
+	cmdsptr->function(cl, cp);
       return;
     }
   }
   mserv_response(cl, "BADCOM", NULL);
 }
 
-static void mserv_cmd_moo(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_channel(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
+  t_cmds *cmdsptr;
+  int len;
+
+  for (cmdsptr = mserv_channel_cmds; cmdsptr->name; cmdsptr++) {
+    if (!mserv_checklevel(cl, cmdsptr->userlevel))
+      continue;
+    len = strlen(cmdsptr->name);
+    if (strnicmp(cp->line, cmdsptr->name, len) == 0) {
+      if (cp->line[len] != '\0' && cp->line[len] != ' ')
+	continue;
+      cp->line+= len;
+      while (*cp->line == ' ')
+	cp->line++;
+      if (cmdsptr->authed == 1 && cl->authed == 0)
+	mserv_send(cl, "404 Not authenticated\r\n.\r\n", 0);
+      else
+	cmdsptr->function(cl, cp);
+      return;
+    }
+  }
+  mserv_response(cl, "BADCOM", NULL);
+}
+
+static void mserv_cmd_channel_output(t_client *cl, t_cmdparams *cp)
+{
+  t_cmds *cmdsptr;
+  int len;
+
+  for (cmdsptr = mserv_channel_output_cmds; cmdsptr->name; cmdsptr++) {
+    if (!mserv_checklevel(cl, cmdsptr->userlevel))
+      continue;
+    len = strlen(cmdsptr->name);
+    if (strnicmp(cp->line, cmdsptr->name, len) == 0) {
+      if (cp->line[len] != '\0' && cp->line[len] != ' ')
+	continue;
+      cp->line+= len;
+      while (*cp->line == ' ')
+	cp->line++;
+      if (cmdsptr->authed == 1 && cl->authed == 0)
+	mserv_send(cl, "404 Not authenticated\r\n.\r\n", 0);
+      else
+	cmdsptr->function(cl, cp);
+      return;
+    }
+  }
+  mserv_response(cl, "BADCOM", NULL);
+}
+
+static void mserv_cmd_channel_output_add(t_client *cl, t_cmdparams *cp)
+{
+  /* XXX: TODO */
   mserv_response(cl, "MOO", NULL);
   if (cl->mode == mode_human) {
     mserv_send(cl, "[]   __  __          _\r\n", 0);
@@ -394,45 +452,74 @@ static void mserv_cmd_moo(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_quit(t_client *cl, const char *ru, const char *line)
+  /*
+#if ENGINE == icecast
+  if (channel_addoutput(mserv_channel, "icecast", opt_default_icecast_output,
+                        opt_default_icecast_bitrate,
+                        error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to add initial output stream to default channel: %s",
+              error);
+    mserv_closedown(1);
+  }
+#elif ENGINE == local
+  if (channel_addoutput(mserv_channel, "local", opt_default_local_output,
+                        NULL, error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to add initial output stream to default channel: %s",
+              error);
+    mserv_closedown(1);
+  }
+#else
+#error unknown engine
+#endif
+  */
+
+static void mserv_cmd_moo(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
+  mserv_response(cl, "MOO", NULL);
+  if (cl->mode == mode_human) {
+    mserv_send(cl, "[]   __  __          _\r\n", 0);
+    mserv_send(cl, "[]  |  \\/  |___  ___| |\r\n", 0);
+    mserv_send(cl, "[]  | |\\/| / _ \\/ _ \\_|\r\n", 0);
+    mserv_send(cl, "[]  |_|  |_\\___/\\___(_)\r\n", 0);
+  }
+}
+
+static void mserv_cmd_quit(t_client *cl, t_cmdparams *cp)
+{
   mserv_response(cl, "QUIT", NULL);
   mserv_close(cl);
 }
 
-static void mserv_cmd_help(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_help(t_client *cl, t_cmdparams *cp)
 {
   t_cmds *cmdsptr, *c;
   int i = 0;
   char buffer[1024];
 
-  (void)ru;
-  if ((*line == 'x' || *line == 'X') &&
-      (*(line+1) == '\0' || *(line+1) == ' ')) {
-    line++;
-    while (*line == ' ')
-      line++;
+  if ((*cp->line == 'x' || *cp->line == 'X') &&
+      (*(cp->line+1) == '\0' || *(cp->line+1) == ' ')) {
+    cp->line++;
+    while (*cp->line == ' ')
+      cp->line++;
     cmdsptr = mserv_x_cmds;
-  } else if (!strnicmp(line, "set", 3) && (*(line+3) == '\0' ||
-					   *(line+3) == ' ')) {
-    line+= 3;
-    while (*line == ' ')
-      line++;
+  } else if (!strnicmp(cp->line, "set", 3) && (*(cp->line+3) == '\0' ||
+					       *(cp->line+3) == ' ')) {
+    cp->line+= 3;
+    while (*cp->line == ' ')
+      cp->line++;
     cmdsptr = mserv_set_cmds;
   } else {
     cmdsptr = mserv_cmds;
   }
 
-  if (*line) {
+  if (*cp->line) {
     for (; cmdsptr->name; cmdsptr++) {
       if (cmdsptr->authed && !cl->authed)
 	continue;
       if (!mserv_checklevel(cl, cmdsptr->userlevel))
 	continue;
-      if (strnicmp(line, cmdsptr->name, strlen(cmdsptr->name)) == 0) {
-	if (line[strlen(cmdsptr->name)] != '\0')
+      if (strnicmp(cp->line, cmdsptr->name, strlen(cmdsptr->name)) == 0) {
+	if (cp->line[strlen(cmdsptr->name)] != '\0')
 	  continue;
 	if (cl->mode == mode_human) {
 	  snprintf(buffer, 1024, "[] %s\r\n[] Syntax: %s%s %s\r\n",
@@ -451,7 +538,7 @@ static void mserv_cmd_help(t_client *cl, const char *ru, const char *line)
 	return;
       }
     }
-    mserv_response(cl, "NOHELP", "%s", line);
+    mserv_response(cl, "NOHELP", "%s", cp->line);
     return;
   }
   if (cmdsptr == mserv_x_cmds)
@@ -496,10 +583,9 @@ static void mserv_cmd_help(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_user(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_user(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
@@ -507,19 +593,18 @@ static void mserv_cmd_user(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "AAUTHED", NULL);
     return;
   }
-  strncpy(cl->user, line, USERNAMELEN);
+  strncpy(cl->user, cp->line, USERNAMELEN);
   cl->user[USERNAMELEN] = '\0';
   mserv_response(cl, "USEROK", NULL);
 }
 
-static void mserv_cmd_pass(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_pass(t_client *cl, t_cmdparams *cp)
 {
   char password[16];
   char *s;
   t_acl *acl;
 
-  (void)ru;
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
@@ -531,17 +616,17 @@ static void mserv_cmd_pass(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "AAUTHED", NULL);
     return;
   }
-  if (!(s = strchr(line, ' '))) {
-    strncpy(password, line, 15);
+  if (!(s = strchr(cp->line, ' '))) {
+    strncpy(password, cp->line, 15);
     password[15] = '\0';
     cl->mode = mode_human;
   } else {
-    if ((s - line) > 15) {
-      strncpy(password, line, 15);
+    if ((s - cp->line) > 15) {
+      strncpy(password, cp->line, 15);
       password[15] = '\0';
     } else {
-      strncpy(password, line, s-line);
-      password[s-line] = '\0';
+      strncpy(password, cp->line, (s - cp->line));
+      password[s - cp->line] = '\0';
     }
     s++;
     if (!stricmp("HUMAN", s)) {
@@ -575,15 +660,13 @@ static void mserv_cmd_pass(t_client *cl, const char *ru, const char *line)
   return;
 }
 
-static void mserv_cmd_status(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_status(t_client *cl, t_cmdparams *cp)
 {
   char token[16];
   char *a;
   int i;
   struct timeval now, ago;
 
-  (void)ru;
-  (void)line;
   if (mserv_playing.track) {
     if (gettimeofday(&now, NULL) != 0) {
       mserv_response(cl, "SERROR", "%s", "Failed to gettimeofday()");
@@ -629,7 +712,7 @@ static void mserv_cmd_status(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_userinfo(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_userinfo(t_client *cl, t_cmdparams *cp)
 {
   t_acl *acl;
   t_track *track;
@@ -640,6 +723,7 @@ static void mserv_cmd_userinfo(t_client *cl, const char *ru, const char *line)
   unsigned int diffs = 0, indexnum = 0;
   double index;
   int i;
+  const char *line = cp->line;
 
   if (!*line)
     line = cl->user;
@@ -668,7 +752,7 @@ static void mserv_cmd_userinfo(t_client *cl, const char *ru, const char *line)
     } else {
       unheard++;
     }
-    rate2 = mserv_getrate(ru, track);
+    rate2 = mserv_getrate(cp->ru, track);
     if (rate1 && rate2 && rate1->rating && rate2->rating) {
       diffs+= abs(rate1->rating - rate2->rating);
       indexnum++;
@@ -681,7 +765,7 @@ static void mserv_cmd_userinfo(t_client *cl, const char *ru, const char *line)
   mserv_response(cl, "INFU", "%s\t%s\t"
 		 "%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t"
 		 "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.1f",
-		 acl->user, ru, 100*superb/(double)total,
+		 acl->user, cp->ru, 100*superb/(double)total,
 		 100*good/(double)total, 100*neutral/(double)total,
 		 100*bad/(double)total, 100*awful/(double)total,
 		 100*heard/(double)total, 100*unheard/(double)total,
@@ -693,7 +777,7 @@ static void mserv_cmd_userinfo(t_client *cl, const char *ru, const char *line)
       mserv_response(cl, token, "%s\t%s\t"
 		     "%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t"
 		     "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.1f",
-		     acl->user, ru, 100*superb/(double)total,
+		     acl->user, cp->ru, 100*superb/(double)total,
 		     100*good/(double)total, 100*neutral/(double)total,
 		     100*bad/(double)total, 100*awful/(double)total,
 		     100*heard/(double)total, 100*unheard/(double)total,
@@ -703,15 +787,13 @@ static void mserv_cmd_userinfo(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_who(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_who(t_client *cl, t_cmdparams *cp)
 {
   t_client *clu;
   char tmp[256];
   int total = 0;
   int connected = 0;
 
-  (void)ru;
-  (void)line;
   mserv_responsent(cl, "WHO", NULL);
 
   if (cl->mode == mode_human) {
@@ -742,14 +824,13 @@ static void mserv_cmd_who(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_password(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_password(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   t_acl *acl;
   char *str[3];
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
 
   if (mserv_split(str, 2, linespl, " ") != 2) {
     mserv_response(cl, "BADPARM", NULL);
@@ -765,15 +846,14 @@ static void mserv_cmd_password(t_client *cl, const char *ru, const char *line)
   acl_save();
 }
 
-static void mserv_cmd_level(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_level(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
   t_acl *acl;
   t_userlevel *ul;
   
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
 
   if (mserv_split(str, 2, linespl, " ") != 2) {
     mserv_response(cl, "BADPARM", NULL);
@@ -797,7 +877,7 @@ static void mserv_cmd_level(t_client *cl, const char *ru, const char *line)
   mserv_response(cl, "USERCHG", NULL);
 }
 
-static void mserv_cmd_create(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_create(t_client *cl, t_cmdparams *cp)
 {
   /* usernames must never start _ or have a : in them */
   char linespl[LINEBUFLEN];
@@ -807,8 +887,7 @@ static void mserv_cmd_create(t_client *cl, const char *ru, const char *line)
   t_acl *acl, *acli;
   t_userlevel *ul;
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
   
   if (mserv_split(str, 3, linespl, " ") != 3) {
     mserv_response(cl, "BADPARM", NULL);
@@ -853,15 +932,14 @@ static void mserv_cmd_create(t_client *cl, const char *ru, const char *line)
   acl_save();
 }
 
-static void mserv_cmd_remove(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_remove(t_client *cl, t_cmdparams *cp)
 {
   t_acl *acl, *aclp;
   t_track *track;
   t_rating *rate, *rp;
 
-  (void)ru;
   for (aclp = NULL, acl = mserv_acl; acl; aclp = acl, acl = acl->next) {
-    if (!stricmp(acl->user, line)) {
+    if (!stricmp(acl->user, cp->line)) {
       break;
     }
   }
@@ -895,13 +973,11 @@ static void mserv_cmd_remove(t_client *cl, const char *ru, const char *line)
   mserv_response(cl, "REMOVED", NULL);
 }
 
-static void mserv_cmd_albums(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_albums(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_album *album;
 
-  (void)ru;
-  (void)line;
   mserv_responsent(cl, "ALBUMS", NULL);
   if (cl->mode == mode_human) {
     for (album = mserv_albums; album; album = album->next) {
@@ -918,7 +994,7 @@ static void mserv_cmd_albums(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_tracks(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_tracks(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_album *album;
@@ -928,15 +1004,15 @@ static void mserv_cmd_tracks(t_client *cl, const char *ru, const char *line)
   char bit[32];
   t_rating *rate;
 
-  if (!*line) {
+  if (!*cp->line) {
     if (mserv_playing.track == NULL) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
     id = mserv_playing.track->n_album;
   } else {
-    id = strtol(line, &end, 10);
-    if (!*line || *end) {
+    id = strtol(cp->line, &end, 10);
+    if (!*cp->line || *end) {
       mserv_response(cl, "NAN", NULL);
       return;
     }
@@ -949,7 +1025,7 @@ static void mserv_cmd_tracks(t_client *cl, const char *ru, const char *line)
 		   album->name);
   for (i = 0; i < album->ntracks; i++) {
     if (album->tracks[i]) {
-      rate = mserv_getrate(ru, album->tracks[i]);
+      rate = mserv_getrate(cp->ru, album->tracks[i]);
       sprintf(bit, "%d/%d", album->tracks[i]->n_album,
 	      album->tracks[i]->n_track);
       if (cl->mode == mode_human) {
@@ -974,7 +1050,7 @@ static void mserv_cmd_tracks(t_client *cl, const char *ru, const char *line)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_ratings(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_ratings(t_client *cl, t_cmdparams *cp)
 {
   char linespl[1024];
   char buffer[AUTHORLEN+NAMELEN+64];
@@ -987,10 +1063,9 @@ static void mserv_cmd_ratings(t_client *cl, const char *ru, const char *line)
   char date_format[64];
   char date[64];
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
 
-  if (!*line) {
+  if (!*cp->line) {
     if ((track = mserv_playing.track) == NULL) {
       mserv_response(cl, "NOTHING", NULL);
       return;
@@ -1042,7 +1117,7 @@ static void mserv_cmd_ratings(t_client *cl, const char *ru, const char *line)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_unqueue(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_unqueue(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
@@ -1051,8 +1126,7 @@ static void mserv_cmd_unqueue(t_client *cl, const char *ru, const char *line)
   t_track *track;
   t_queue *p, *q;
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
 
   if (mserv_split(str, 2, linespl, " ") != 2) {
     mserv_response(cl, "BADPARM", NULL);
@@ -1095,7 +1169,7 @@ static void mserv_cmd_unqueue(t_client *cl, const char *ru, const char *line)
   mserv_response(cl, "NOUNQ", NULL);
 }
 
-static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_queue(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   char bit[32];
@@ -1111,14 +1185,14 @@ static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line)
   int random, mode;
   unsigned char *tracktally;
 
-  if (!*line) {
+  if (!*cp->line) {
     if (!mserv_queue) {
       mserv_response(cl, "NOQUEUE", NULL);
       return;
     }
     mserv_responsent(cl, "SHOW", NULL);
     for (q = mserv_queue; q; q = q->next) {
-      rate = mserv_getrate(ru, q->supinfo.track);
+      rate = mserv_getrate(cp->ru, q->supinfo.track);
       if (cl->mode == mode_human) {
 	sprintf(bit, "%d/%d", q->supinfo.track->n_album,
 		q->supinfo.track->n_track);
@@ -1152,7 +1226,7 @@ static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "SHUTNQ", NULL);
     return;
   }
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
   if ((p = mserv_split(str, 2, linespl, " ")) < 1) {
     mserv_response(cl, "BADPARM", NULL);
     return;
@@ -1295,12 +1369,10 @@ static int mserv_cmd_queue_sub(t_client *cl, t_album *album, int n_track,
   return 0;
 }
 
-static void mserv_cmd_play(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_play(t_client *cl, t_cmdparams *cp)
 {
   char error[256];
 
-  (void)ru;
-  (void)line;
   if (channel_paused(mserv_channel)) {
     mserv_resumeplay(cl);
     if (cl->mode != mode_human) {
@@ -1336,10 +1408,8 @@ static void mserv_cmd_play(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_stop(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_stop(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
   if (!channel_stopped(mserv_channel)) {
     mserv_broadcast("STOPPED", "%s\t%d\t%d\t%s\t%s", cl->user,
 		    mserv_playing.track->n_album, mserv_playing.track->n_track,
@@ -1357,10 +1427,8 @@ static void mserv_cmd_stop(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_pause(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_pause(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
   if (channel_paused(mserv_channel)) {
     mserv_response(cl, "APAUSED", NULL);
     return;
@@ -1376,10 +1444,8 @@ static void mserv_cmd_pause(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_next(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_next(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
   char error[256];
 
   if (mserv_playing.track)
@@ -1406,12 +1472,10 @@ static void mserv_cmd_next(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_clear(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_clear(t_client *cl, t_cmdparams *cp)
 {
   t_queue *q, *n;
 
-  (void)ru;
-  (void)line;
   if (!mserv_queue) {
     mserv_response(cl, "ACLEAR", NULL);
     return;
@@ -1427,10 +1491,8 @@ static void mserv_cmd_clear(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "CLEARR", NULL);
 }
 
-static void mserv_cmd_repeat(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_repeat(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
   if (!mserv_playing.track) {
     mserv_response(cl, "NOTHING", NULL);
     return;
@@ -1453,13 +1515,12 @@ static void mserv_cmd_repeat(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_random(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_random(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
 
-  (void)ru;
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "RANCUR", "%s", mserv_random ? "on" : "off");
     return;
   }
@@ -1467,7 +1528,7 @@ static void mserv_cmd_random(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "ACLFAIL", NULL);
     return;
   }
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
   if (mserv_split(str, 1, linespl, " ") == 0) {
     mserv_response(cl, "BADPARM", NULL);
     return;
@@ -1481,7 +1542,7 @@ static void mserv_cmd_random(t_client *cl, const char *ru, const char *line)
     mserv_broadcast("RANDOM1", "%s", cl->user);
     if (cl->mode != mode_human)
       mserv_response(cl, "RANDOM", NULL);
-  } else if (!stricmp(line, "off")) {
+  } else if (!stricmp(cp->line, "off")) {
     if (!mserv_random) {
       mserv_response(cl, "ARANDOM", NULL);
       return;
@@ -1494,10 +1555,9 @@ static void mserv_cmd_random(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "BADPARM", NULL);
 }
 
-static void mserv_cmd_filter(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_filter(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "CURFILT", "%s\t%s\t%d\t%d", "", mserv_getfilter(),
 		   mserv_filter_ok, mserv_filter_notok);
     return;
@@ -1506,12 +1566,12 @@ static void mserv_cmd_filter(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "ACLFAIL", NULL);
     return;
   }
-  if (!stricmp(line, "off")) {
+  if (!stricmp(cp->line, "off")) {
     mserv_setfilter("");
     mserv_broadcast("NFILTER", "%s", cl->user);
     mserv_recalcratings();
   } else {
-    if (mserv_setfilter(line) == -1) {
+    if (mserv_setfilter(cp->line) == -1) {
       mserv_response(cl, "BADFILT", NULL);
       return;
     }
@@ -1524,12 +1584,11 @@ static void mserv_cmd_filter(t_client *cl, const char *ru, const char *line)
 		   mserv_filter_notok);
 }
 
-static void mserv_cmd_factor(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_factor(t_client *cl, t_cmdparams *cp)
 {
-  double f = atof(line);
+  double f = atof(cp->line);
 
-  (void)ru;
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "FACTCUR", "%.2f", mserv_factor);
     return;
   }
@@ -1547,7 +1606,7 @@ static void mserv_cmd_factor(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "FACTSET", "%.2f", f);
 }
 
-static void mserv_cmd_top(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_top(t_client *cl, t_cmdparams *cp)
 {
   t_track *track;
   t_rating *rate;
@@ -1565,8 +1624,8 @@ static void mserv_cmd_top(t_client *cl, const char *ru, const char *line)
     if (track->filterok)
       ntracks++;
   }
-  if (*line) {
-    top_end = strtol(line, &end, 10);
+  if (*cp->line) {
+    top_end = strtol(cp->line, &end, 10);
     if (*end) {
       mserv_response(cl, "NAN", NULL);
       return;
@@ -1603,7 +1662,7 @@ static void mserv_cmd_top(t_client *cl, const char *ru, const char *line)
     pprob = cprob;
     if (prob < 0) /* rounding errors can result in -0.00000...0001, tsk */
       prob = 0;
-    rate = mserv_getrate(ru, track);
+    rate = mserv_getrate(cp->ru, track);
     if (cl->mode == mode_human) {
       sprintf(bit, "%d/%d", track->n_album, track->n_track);
       sprintf(buffer, "[] %5.2f%%     %7.7s %-1.1s %-20.20s "
@@ -1630,15 +1689,14 @@ static void mserv_cmd_top(t_client *cl, const char *ru, const char *line)
 
 #if ENGINE != local
 
-static void mserv_cmd_volume(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_volume(t_client *cl, t_cmdparams *cp)
 {
   int val;
 
-  (void)ru;
-  if (*line && cl->userlevel == level_guest) {
+  if (*cp->line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_channelvolume(cl, line)) != -1) {
-    if (!*line) {
+  } else if ((val = mserv_channelvolume(cl, cp->line)) != -1) {
+    if (!*cp->line) {
       mserv_response(cl, "VOLCUR", "%d", val);
     } else {
       mserv_broadcast("VOLSET", "%d\t%s", val, cl->user);
@@ -1648,32 +1706,27 @@ static void mserv_cmd_volume(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_bass(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_bass(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
   mserv_response(cl, "NOTIMPL", NULL);
 }
 
-static void mserv_cmd_treble(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_treble(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
   mserv_response(cl, "NOTIMPL", NULL);
 }
 
 #else
 
-static void mserv_cmd_volume(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_volume(t_client *cl, t_cmdparams *cp)
 {
 #ifdef SOUNDCARD
   int val;
 
-  (void)ru;
-  if (*line && cl->userlevel == level_guest) {
+  if (*cp->line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_PCM, line)) != -1) {
-    if (!*line) {
+  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_PCM, cp->line)) != -1) {
+    if (!*cp->line) {
       mserv_response(cl, "VOLCUR", "%d", val & 0xFF);
     } else {
       mserv_broadcast("VOLSET", "%d\t%s", val & 0xFF, cl->user);
@@ -1682,22 +1735,19 @@ static void mserv_cmd_volume(t_client *cl, const char *ru, const char *line)
     }
   }
 #else
-  (void)ru;
-  (void)line;
   mserv_response(cl, "NOSCARD", NULL);
 #endif
 }
 
-static void mserv_cmd_bass(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_bass(t_client *cl, t_cmdparams *cp)
 {
 #ifdef SOUNDCARD
   int val;
 
-  (void)ru;
-  if (*line && cl->userlevel == level_guest) {
+  if (*cp->line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_BASS, line)) != -1) {
-    if (!*line) {
+  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_BASS, cp->line)) != -1) {
+    if (!*cp->line) {
       mserv_response(cl, "BASSCUR", "%d", val & 0xFF);
     } else {
       mserv_broadcast("BASSSET", "%d\t%s", val & 0xFF, cl->user);
@@ -1706,22 +1756,19 @@ static void mserv_cmd_bass(t_client *cl, const char *ru, const char *line)
     }
   }
 #else
-  (void)ru;
-  (void)line;
   mserv_response(cl, "NOSCARD", NULL);
 #endif
 }
 
-static void mserv_cmd_treble(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_treble(t_client *cl, t_cmdparams *cp)
 {
 #ifdef SOUNDCARD
   int val;
 
-  (void)ru;
-  if (*line && cl->userlevel == level_guest) {
+  if (*cp->line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_TREBLE, line)) != -1) {
-    if (!*line) {
+  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_TREBLE, cp->line)) != -1) {
+    if (!*cp->line) {
       mserv_response(cl, "TREBCUR", "%d", val & 0xFF);
     } else {
       mserv_broadcast("TREBSET", "%d\t%s", val & 0xFF, cl->user);
@@ -1730,32 +1777,27 @@ static void mserv_cmd_treble(t_client *cl, const char *ru, const char *line)
     }
   }
 #else
-  (void)ru;
-  (void)line;
   mserv_response(cl, "NOSCARD", NULL);
 #endif
 }
 
 #endif
 
-static void mserv_cmd_say(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_say(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  mserv_broadcast("SAY", "%s\t%s", cl->user, line);
+  mserv_broadcast("SAY", "%s\t%s", cl->user, cp->line);
   if (cl->mode != mode_human)
-    mserv_response(cl, "SAY", "%s\t%s", cl->user, line);
+    mserv_response(cl, "SAY", "%s\t%s", cl->user, cp->line);
 }
 
-static void mserv_cmd_emote(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_emote(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  mserv_broadcast("EMOTE", "%s\t%s", cl->user, line);
+  mserv_broadcast("EMOTE", "%s\t%s", cl->user, cp->line);
   if (cl->mode != mode_human)
-    mserv_response(cl, "EMOTE", "%s\t%s", cl->user, line);
+    mserv_response(cl, "EMOTE", "%s\t%s", cl->user, cp->line);
 }
 
-static void mserv_cmd_set_author(t_client *cl, const char *ru,
-				 const char *line)
+static void mserv_cmd_set_author(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[4];
@@ -1765,8 +1807,7 @@ static void mserv_cmd_set_author(t_client *cl, const char *ru,
   
   /* <album> <track> <author> */
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
 
   if (mserv_split(str, 3, linespl, " ") != 3) {
     mserv_response(cl, "BADPARM", NULL);
@@ -1804,7 +1845,7 @@ static void mserv_cmd_set_author(t_client *cl, const char *ru,
 		   track->name, str[2]);
 }
 
-static void mserv_cmd_set_name(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_set_name(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[4];
@@ -1814,8 +1855,7 @@ static void mserv_cmd_set_name(t_client *cl, const char *ru, const char *line)
 
   /* <album> <track> <name> */
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
   if (mserv_split(str, 3, linespl, " ") != 3) {
     mserv_response(cl, "BADPARM", NULL);
     return;
@@ -1852,8 +1892,7 @@ static void mserv_cmd_set_name(t_client *cl, const char *ru, const char *line)
 		   track->name, str[2]);
 }
 
-static void mserv_cmd_set_genre(t_client *cl, const char *ru,
-				const char *line)
+static void mserv_cmd_set_genre(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[4];
@@ -1866,8 +1905,7 @@ static void mserv_cmd_set_genre(t_client *cl, const char *ru,
 
   /* <album> [<track>] <genre>[,genre]* */
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
   n = mserv_split(str, 3, linespl, " ");
   if (n < 2 || n > 3) {
     mserv_response(cl, "BADPARM", NULL);
@@ -1933,7 +1971,7 @@ static void mserv_cmd_set_genre(t_client *cl, const char *ru,
   }
 }
 
-static void mserv_cmd_set_year(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_set_year(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[4];
@@ -1943,8 +1981,7 @@ static void mserv_cmd_set_year(t_client *cl, const char *ru, const char *line)
 
   /* <album> <track> <year> */
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
   if (mserv_split(str, 3, linespl, " ") != 3) {
     mserv_response(cl, "BADPARM", NULL);
     return;
@@ -1984,7 +2021,7 @@ static void mserv_cmd_set_year(t_client *cl, const char *ru, const char *line)
   mserv_savechanges();
 }
 
-static void mserv_cmd_set_volume(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_set_volume(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[4];
@@ -1995,8 +2032,7 @@ static void mserv_cmd_set_volume(t_client *cl, const char *ru, const char *line)
 
   /* <volume> */
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
   if (mserv_split(str, 3, linespl, " ") != 3) {
     mserv_response(cl, "BADPARM", NULL);
     return;
@@ -2036,7 +2072,7 @@ static void mserv_cmd_set_volume(t_client *cl, const char *ru, const char *line)
   mserv_savechanges();
 }
 
-static void mserv_cmd_set_albumauthor(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_set_albumauthor(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
@@ -2046,8 +2082,7 @@ static void mserv_cmd_set_albumauthor(t_client *cl, const char *ru, const char *
 
   /* <album> <author> */
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
 
   if (mserv_split(str, 2, linespl, " ") != 2) {
     mserv_response(cl, "BADPARM", NULL);
@@ -2079,8 +2114,7 @@ static void mserv_cmd_set_albumauthor(t_client *cl, const char *ru, const char *
 		   album->author, album->name, str[1]);
 }
 
-static void mserv_cmd_set_albumname(t_client *cl, const char *ru,
-				    const char *line)
+static void mserv_cmd_set_albumname(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
@@ -2090,8 +2124,7 @@ static void mserv_cmd_set_albumname(t_client *cl, const char *ru,
 
   /* <album> <name> */
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
 
   if (mserv_split(str, 2, linespl, " ") != 2) {
     mserv_response(cl, "BADPARM", NULL);
@@ -2123,7 +2156,7 @@ static void mserv_cmd_set_albumname(t_client *cl, const char *ru,
 		   album->author, album->name, str[1]);
 }
 
-static void mserv_cmd_history(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_history(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char buffer[AUTHORLEN+NAMELEN+64];
@@ -2137,8 +2170,8 @@ static void mserv_cmd_history(t_client *cl, const char *ru, const char *line)
 
   /* [<entries> [<from entry>]] */
 
-  if (*line) {
-    strcpy(linespl, line);
+  if (*cp->line) {
+    strcpy(linespl, cp->line);
     if (mserv_split(str, 2, linespl, " ") < 1) {
       mserv_response(cl, "BADPARM", NULL);
       return;
@@ -2171,7 +2204,7 @@ static void mserv_cmd_history(t_client *cl, const char *ru, const char *line)
   for (i = start;
        mserv_history[i] && i < HISTORYLEN && i < (start + entries);
        i++) {
-    rate = mserv_getrate(ru, mserv_history[i]->track);
+    rate = mserv_getrate(cp->ru, mserv_history[i]->track);
     if (cl->mode == mode_human) {
       sprintf(bit, "%d/%d", mserv_history[i]->track->n_album,
 	      mserv_history[i]->track->n_track);
@@ -2193,7 +2226,7 @@ static void mserv_cmd_history(t_client *cl, const char *ru, const char *line)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_rate(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char buffer[AUTHORLEN+NAMELEN+64];
@@ -2212,8 +2245,7 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
 
   /* [<album> [<track>]] <rating> */
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
   n = mserv_split(str, 3, linespl, " ");
   if (n < 1) {
     mserv_response(cl, "BADPARM", NULL);
@@ -2347,7 +2379,7 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
   mserv_savechanges();
 }
 
-static void mserv_cmd_check(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_check(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   char bit[32];
@@ -2357,7 +2389,7 @@ static void mserv_cmd_check(t_client *cl, const char *ru, const char *line)
   int f = 0;
   unsigned int ui;
 
-  if (*line) {
+  if (*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
@@ -2366,8 +2398,8 @@ static void mserv_cmd_check(t_client *cl, const char *ru, const char *line)
       if ((track1 = author->tracks[ui]) && (track2 = author->tracks[ui+1])) {
 	if (!stricmp(track1->author, track2->author) &&
 	    !stricmp(track1->name, track2->name)) {
-	  rate1 = mserv_getrate(ru, track1);
-	  rate2 = mserv_getrate(ru, track2);
+	  rate1 = mserv_getrate(cp->ru, track1);
+	  rate2 = mserv_getrate(cp->ru, track2);
 	  if ((rate1 == NULL && rate2 == NULL) ||
 	      (rate1 && rate2 && rate1->rating == rate2->rating) ||
 	      (rate1 && !rate2 && rate1->rating == 0) ||
@@ -2422,7 +2454,7 @@ static void mserv_cmd_check(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_search(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_search(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   char bit[32];
@@ -2432,20 +2464,20 @@ static void mserv_cmd_search(t_client *cl, const char *ru, const char *line)
   int f = 0;
   unsigned int ui;
 
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
   for (author = mserv_authors; author; author = author->next) {
     for (ui = 0; ui < author->ntracks; ui++) {
       if ((track = author->tracks[ui])) {
-	if ((stristr(track->author, line)) ||
-	    (stristr(track->name, line))) {
+	if ((stristr(track->author, cp->line)) ||
+	    (stristr(track->name, cp->line))) {
 	  if (!f) {
 	    f = 1;
 	    mserv_responsent(cl, "SEARCHA", NULL);
 	  }
-	  rate = mserv_getrate(ru, track);
+	  rate = mserv_getrate(cp->ru, track);
 	  if (cl->mode == mode_human) {
 	    sprintf(bit, "%d/%d", track->n_album, track->n_track);
 	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
@@ -2475,20 +2507,19 @@ static void mserv_cmd_search(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_asearch(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_asearch(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_album *album;
   int f = 0;
 
-  (void)ru;
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
   for (album = mserv_albums; album; album = album->next) {
-    if ((stristr(album->author, line)) ||
-	(stristr(album->name, line))) {
+    if ((stristr(album->author, cp->line)) ||
+	(stristr(album->name, cp->line))) {
       if (!f) {
 	f = 1;
 	mserv_responsent(cl, "ASRCHA", NULL);
@@ -2512,7 +2543,7 @@ static void mserv_cmd_asearch(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_searchf(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_searchf(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   char bit[32];
@@ -2522,23 +2553,23 @@ static void mserv_cmd_searchf(t_client *cl, const char *ru, const char *line)
   int f = 0;
   unsigned int ui;
 
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
-  if (mserv_tracks == NULL || filter_check(line, mserv_tracks) == -1) {
+  if (mserv_tracks == NULL || filter_check(cp->line, mserv_tracks) == -1) {
     mserv_response(cl, "BADFILT", NULL);
     return;
   }
   for (author = mserv_authors; author; author = author->next) {
     for (ui = 0; ui < author->ntracks; ui++) {
       if ((track = author->tracks[ui])) {
-	if (filter_check(line, track) == 1) {
+	if (filter_check(cp->line, track) == 1) {
 	  if (!f) {
 	    f = 1;
 	    mserv_responsent(cl, "SEARCFA", NULL);
 	  }
-	  rate = mserv_getrate(ru, track);
+	  rate = mserv_getrate(cp->ru, track);
 	  if (cl->mode == mode_human) {
 	    sprintf(bit, "%d/%d", track->n_album, track->n_track);
 	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
@@ -2569,21 +2600,20 @@ static void mserv_cmd_searchf(t_client *cl, const char *ru, const char *line)
 }
 
 #ifdef IDEA
-static void mserv_cmd_idea(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_idea(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
-  if (mserv_idea(line) == -1)
+  if (mserv_idea(cp->line) == -1)
     mserv_response(cl, "IDEAF", NULL);
   else
     mserv_response(cl, "IDEAD", NULL);
 }
 #endif
 
-static void mserv_cmd_info(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_info(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   t_rating *rate;
@@ -2600,13 +2630,13 @@ static void mserv_cmd_info(t_client *cl, const char *ru, const char *line)
   char year[32];
   unsigned int ttime;
   
-  if (!*line) {
+  if (!*cp->line) {
     if ((track = mserv_playing.track) == NULL) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
   } else {
-    strcpy(linespl, line);
+    strcpy(linespl, cp->line);
     if (mserv_split(str, 2, linespl, " ") < 1) {
       mserv_response(cl, "BADPARM", NULL);
       return;
@@ -2668,7 +2698,7 @@ static void mserv_cmd_info(t_client *cl, const char *ru, const char *line)
     else
       sprintf(ago, "%d days ago", diff/60/60/24);
   }
-  rate = mserv_getrate(ru, track);
+  rate = mserv_getrate(cp->ru, track);
   snprintf(year, sizeof(year), "%d", track->year);
   mserv_response(cl, "INFT",
 		 "%d\t%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%.1f\t%.1f\t"
@@ -2699,8 +2729,7 @@ static void mserv_cmd_info(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_x_authors(t_client *cl, const char *ru,
-				const char *line)
+static void mserv_cmd_x_authors(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_author *author;
@@ -2708,7 +2737,6 @@ static void mserv_cmd_x_authors(t_client *cl, const char *ru,
   unsigned int ui;
   t_rating *rate;
 
-  (void)line;
   mserv_responsent(cl, "AUTHORS", NULL);
   for (author = mserv_authors; author; author = author->next) {
     total = 0;
@@ -2716,7 +2744,7 @@ static void mserv_cmd_x_authors(t_client *cl, const char *ru,
     for (ui = 0; ui < author->ntracks; ui++) {
       if (author->tracks[ui]) {
 	total++;
-	rate = mserv_getrate(ru, author->tracks[ui]);
+	rate = mserv_getrate(cp->ru, author->tracks[ui]);
 	if (rate && rate->rating) /* rate->rating being 0 means 'heard' */
 	  rated++;
       }
@@ -2734,14 +2762,12 @@ static void mserv_cmd_x_authors(t_client *cl, const char *ru,
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_x_authorid(t_client *cl, const char *ru,
-				 const char *line)
+static void mserv_cmd_x_authorid(t_client *cl, t_cmdparams *cp)
 {
   t_author *author;
 
-  (void)ru;
   for (author = mserv_authors; author; author = author->next) {
-    if (!stricmp(line, author->name)) {
+    if (!stricmp(cp->line, author->name)) {
       mserv_response(cl, "AUTHID", "%d\t%s", author->id, author->name);
       return;
     }
@@ -2749,8 +2775,7 @@ static void mserv_cmd_x_authorid(t_client *cl, const char *ru,
   mserv_response(cl, "NOAUTH", NULL);
 }
 
-static void mserv_cmd_x_authorinfo(t_client *cl, const char *ru,
-				   const char *line)
+static void mserv_cmd_x_authorinfo(t_client *cl, t_cmdparams *cp)
 {
   unsigned int n_author;
   char *end;
@@ -2759,11 +2784,11 @@ static void mserv_cmd_x_authorinfo(t_client *cl, const char *ru,
   t_rating *rate;
   unsigned int ui;
 
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
-  n_author = strtol(line, &end, 10);
+  n_author = strtol(cp->line, &end, 10);
   if (*end) {
     mserv_response(cl, "NAN", NULL);
     return;
@@ -2775,7 +2800,7 @@ static void mserv_cmd_x_authorinfo(t_client *cl, const char *ru,
       for (ui = 0; ui < author->ntracks; ui++) {
 	if (author->tracks[ui]) {
 	  total++;
-	  rate = mserv_getrate(ru, author->tracks[ui]);
+	  rate = mserv_getrate(cp->ru, author->tracks[ui]);
 	  if (rate && rate->rating) /* rate->rating being 0 means 'heard' */
 	    rated++;
 	}
@@ -2788,8 +2813,7 @@ static void mserv_cmd_x_authorinfo(t_client *cl, const char *ru,
   mserv_response(cl, "NOAUTH", NULL);
 }
 
-static void mserv_cmd_x_authortracks(t_client *cl, const char *ru,
-				     const char *line)
+static void mserv_cmd_x_authortracks(t_client *cl, t_cmdparams *cp)
 {
   unsigned int n_author;
   char *end;
@@ -2799,11 +2823,11 @@ static void mserv_cmd_x_authortracks(t_client *cl, const char *ru,
   char buffer[AUTHORLEN+NAMELEN+64];
   t_rating *rate;
 
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
-  n_author = strtol(line, &end, 10);
+  n_author = strtol(cp->line, &end, 10);
   if (*end) {
     mserv_response(cl, "NAN", NULL);
     return;
@@ -2813,7 +2837,7 @@ static void mserv_cmd_x_authortracks(t_client *cl, const char *ru,
       mserv_responsent(cl, "AUTHTRK", "%d\t%s", author->id, author->name);
       for (ui = 0; ui < author->ntracks; ui++) {
 	if (author->tracks[ui]) {
-	  rate = mserv_getrate(ru, author->tracks[ui]);
+	  rate = mserv_getrate(cp->ru, author->tracks[ui]);
 	  sprintf(bit, "%d/%d", author->tracks[ui]->n_album,
 		  author->tracks[ui]->n_track);
 	  if (cl->mode == mode_human) {
@@ -2838,7 +2862,7 @@ static void mserv_cmd_x_authortracks(t_client *cl, const char *ru,
   mserv_response(cl, "NOAUTH", NULL);
 }
 
-static void mserv_cmd_date(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_date(t_client *cl, t_cmdparams *cp)
 {
   time_t curtime = time(NULL);
   struct tm curtm = *localtime(&curtime);
@@ -2847,8 +2871,6 @@ static void mserv_cmd_date(t_client *cl, const char *ru, const char *line)
   char time[16];
   char ct[32];
 
-  (void)ru;
-  (void)line;
   strcpy(ct, ctime(&curtime));
   ct[24] = '\0';
   /* Wednesday 1st January 1998 */
@@ -2867,7 +2889,7 @@ static void mserv_cmd_date(t_client *cl, const char *ru, const char *line)
 		 mktime(&curtm), ct, date, time);
 }
 
-static void mserv_cmd_kick(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_kick(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
@@ -2875,8 +2897,7 @@ static void mserv_cmd_kick(t_client *cl, const char *ru, const char *line)
   t_client *client;
   char *end;
 
-  (void)ru;
-  strcpy(linespl, line);
+  strcpy(linespl, cp->line);
 
   if (mserv_split(str, 2, linespl, " ") < 1) {
     mserv_response(cl, "BADPARM", NULL);
@@ -2892,7 +2913,7 @@ static void mserv_cmd_kick(t_client *cl, const char *ru, const char *line)
   }
   if (str[1]) {
     acl->nexttime = time(NULL) + 60 * strtol(str[1], &end, 10);
-    if (!*line || *end) {
+    if (!*cp->line || *end) {
       mserv_response(cl, "NAN", NULL);
       return;
     }
@@ -2915,12 +2936,10 @@ static void mserv_cmd_kick(t_client *cl, const char *ru, const char *line)
   mserv_close(client);
 }
 
-static void mserv_cmd_reset(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_reset(t_client *cl, t_cmdparams *cp)
 {
   static int timer = 0;
 
-  (void)ru;
-  (void)line;
   mserv_abortplay();
   acl_save();
   if (mserv_savechanges() && time(NULL) > timer) {
@@ -2937,10 +2956,8 @@ static void mserv_cmd_reset(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "RESETR", NULL);
 }
 
-static void mserv_cmd_sync(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_sync(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
   mserv_log("Syncing disks/memory (%s)...", cl->user);
   mserv_savechanges();
   mserv_ensuredisk();
@@ -2948,10 +2965,8 @@ static void mserv_cmd_sync(t_client *cl, const char *ru, const char *line)
   mserv_response(cl, "SYNCED", NULL);
 }
 
-static void mserv_cmd_shutdown(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_shutdown(t_client *cl, t_cmdparams *cp)
 {
-  (void)ru;
-  (void)line;
   if (mserv_shutdown) {
     mserv_response(cl, "SHUTALR", NULL);
     return;
@@ -2972,18 +2987,17 @@ static void mserv_cmd_shutdown(t_client *cl, const char *ru, const char *line)
   }
 }
 
-static void mserv_cmd_gap(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_gap(t_client *cl, t_cmdparams *cp)
 {
   double delay;
   char *end;
 
-  (void)ru;
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "GAPCUR", "%.1f", mserv_getgap());
     return;
   }    
-  delay = strtod(line, &end);
-  if (!*line || *end || delay < 0 || delay > 3600) {
+  delay = strtod(cp->line, &end);
+  if (!*cp->line || *end || delay < 0 || delay > 3600) {
     mserv_response(cl, "NAN", NULL);
     return;
   }
@@ -2993,7 +3007,7 @@ static void mserv_cmd_gap(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "DELAYR", NULL);
 }
 
-static void mserv_cmd_x_genres(t_client *cl, const char *ru, const char *line)
+static void mserv_cmd_x_genres(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_genre *genre;
@@ -3001,12 +3015,11 @@ static void mserv_cmd_x_genres(t_client *cl, const char *ru, const char *line)
   unsigned int ui;
   t_rating *rate;
 
-  (void)line;
   mserv_responsent(cl, "GENRES", NULL);
   for (genre = mserv_genres; genre; genre = genre->next) {
     rated = 0;
     for (ui = 0; ui < genre->ntracks; ui++) {
-      rate = mserv_getrate(ru, genre->tracks[ui]);
+      rate = mserv_getrate(cp->ru, genre->tracks[ui]);
       if (rate && rate->rating) /* rate->rating being 0 means 'heard' */
 	rated++;
     }
@@ -3023,14 +3036,12 @@ static void mserv_cmd_x_genres(t_client *cl, const char *ru, const char *line)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_x_genreid(t_client *cl, const char *ru,
-				const char *line)
+static void mserv_cmd_x_genreid(t_client *cl, t_cmdparams *cp)
 {
   t_genre *genre;
 
-  (void)ru;
   for (genre = mserv_genres; genre; genre = genre->next) {
-    if (!stricmp(line, genre->name)) {
+    if (!stricmp(cp->line, genre->name)) {
       mserv_response(cl, "GENID", "%d\t%s", genre->id, genre->name);
       return;
     }
@@ -3038,8 +3049,7 @@ static void mserv_cmd_x_genreid(t_client *cl, const char *ru,
   mserv_response(cl, "NOGEN", NULL);
 }
 
-static void mserv_cmd_x_genreinfo(t_client *cl, const char *ru,
-				  const char *line)
+static void mserv_cmd_x_genreinfo(t_client *cl, t_cmdparams *cp)
 {
   unsigned int n_genre;
   char *end;
@@ -3048,11 +3058,11 @@ static void mserv_cmd_x_genreinfo(t_client *cl, const char *ru,
   unsigned int ui;
   t_rating *rate;
 
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
-  n_genre = strtol(line, &end, 10);
+  n_genre = strtol(cp->line, &end, 10);
   if (*end) {
     mserv_response(cl, "NAN", NULL);
     return;
@@ -3061,7 +3071,7 @@ static void mserv_cmd_x_genreinfo(t_client *cl, const char *ru,
     if (genre->id == n_genre) {
       rated = 0;
       for (ui = 0; ui < genre->ntracks; ui++) {
-	rate = mserv_getrate(ru, genre->tracks[ui]);
+	rate = mserv_getrate(cp->ru, genre->tracks[ui]);
 	if (rate && rate->rating) /* rate->rating being 0 means 'heard' */
 	  rated++;
       }
@@ -3073,8 +3083,7 @@ static void mserv_cmd_x_genreinfo(t_client *cl, const char *ru,
   mserv_response(cl, "NOGEN", NULL);
 }
 
-static void mserv_cmd_x_genretracks(t_client *cl, const char *ru,
-				    const char *line)
+static void mserv_cmd_x_genretracks(t_client *cl, t_cmdparams *cp)
 {
   unsigned int n_genre;
   char *end;
@@ -3084,11 +3093,11 @@ static void mserv_cmd_x_genretracks(t_client *cl, const char *ru,
   char buffer[AUTHORLEN+NAMELEN+64];
   t_rating *rate;
 
-  if (!*line) {
+  if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
-  n_genre = strtol(line, &end, 10);
+  n_genre = strtol(cp->line, &end, 10);
   if (*end) {
     mserv_response(cl, "NAN", NULL);
     return;
@@ -3098,7 +3107,7 @@ static void mserv_cmd_x_genretracks(t_client *cl, const char *ru,
       mserv_responsent(cl, "GENTRK", "%d\t%s\t%d", genre->id, genre->name,
 		       genre->ntracks);
       for (ui = 0; ui < genre->ntracks; ui++) {
-	rate = mserv_getrate(ru, genre->tracks[ui]);
+	rate = mserv_getrate(cp->ru, genre->tracks[ui]);
 	sprintf(bit, "%d/%d", genre->tracks[ui]->n_album,
 		genre->tracks[ui]->n_track);
 	if (cl->mode == mode_human) {

@@ -29,7 +29,7 @@
 
 int stricmp(const char *str1, const char *str2)
 {
-  while(tolower(*str1) == tolower(*str2++)) {
+  while (tolower(*str1) == tolower(*str2++)) {
     if (*str1++ == '\0')
       return 0;
   }

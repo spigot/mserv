@@ -1,5 +1,3 @@
-extern const char *opt_default_icecast_output;
-extern const char *opt_default_icecast_bitrate;
 extern const char *opt_path_distconf;
 extern const char *opt_path_acl;
 extern const char *opt_path_webacl;
@@ -8,7 +6,6 @@ extern const char *opt_path_tracks;
 extern const char *opt_path_trackinfo;
 extern const char *opt_path_playout;
 extern const char *opt_path_idea;
-extern const char *opt_path_mixer;
 extern const char *opt_path_language;
 extern const char *opt_path_libdir;
 extern unsigned int opt_port;

@@ -210,6 +210,8 @@ int main(int argc, char *argv[])
   char *m = NULL;
   char error[256];
   int badparams = 0;
+  const char *config_execline;
+  t_client cl;
 
   progname = argv[0];
 
@@ -460,6 +462,7 @@ int main(int argc, char *argv[])
   /* do initialization */
   mserv_init();
 
+  /* create default channel */
   if (channel_init(error, sizeof(error)) != MSERV_SUCCESS) {
     mserv_log("Failed to initialise channel sub-system: %s", error);
     mserv_closedown(1);
@@ -469,24 +472,34 @@ int main(int argc, char *argv[])
     mserv_log("Failed to create default channel: %s", error);
     mserv_closedown(1);
   }
-#if ENGINE == icecast
-  if (channel_addoutput(mserv_channel, "icecast", opt_default_icecast_output,
-                        opt_default_icecast_bitrate,
-                        error, sizeof(error)) != MSERV_SUCCESS) {
-    mserv_log("Failed to add initial output stream to default channel: %s",
-              error);
-    mserv_closedown(1);
+
+  memset(&cl, 0, sizeof(t_client));
+  cl.userlevel = level_master;
+  cl.authed = 1;
+  cl.state = st_wait;
+  cl.mode = mode_human;
+  strcpy(cl.user, "root");
+  cl.socket = fileno(mserv_logfile);
+  fflush(mserv_logfile);
+
+  /* execute commands in options file */
+  for (i = 0;; i++) {
+    char line[256];
+
+    if ((config_execline = conf_getvalue_n("exec", i)) == NULL)
+      break;
+    if (strlen(config_execline) >= sizeof(line)) {
+      mserv_log("Line too long: %s", config_execline);
+      continue;
+    }
+    strncpy(line, config_execline, sizeof(line));
+    line[sizeof(line) - 1] = '\0';
+
+    if (mserv_debug)
+      mserv_log("executing: %s", line);
+    mserv_endline(&cl, line);
   }
-#elif ENGINE == local
-  if (channel_addoutput(mserv_channel, "local", opt_default_local_output,
-                        NULL, error, sizeof(error)) != MSERV_SUCCESS) {
-    mserv_log("Failed to add initial output stream to default channel: %s",
-              error);
-    mserv_closedown(1);
-  }
-#else
-#error unknown engine
-#endif
+  mserv_pollwrite(&cl);
 
   signal(SIGINT, mserv_sighandler);
   signal(SIGPIPE, SIG_IGN);
@@ -707,7 +720,7 @@ static void mserv_pollwrite(t_client *cl)
   }
   if (mserv_debug >= 3)
     mserv_log("%s: write %d bytes", inet_ntoa(cl->sin.sin_addr), bytes);
-  while(bytes) {
+  while (bytes) {
     if (cl->outbuf[0].iov_len == 0) {
       mserv_log("%s: Internal output buffer error",
 		inet_ntoa(cl->sin.sin_addr));
@@ -953,6 +966,7 @@ static void mserv_endline(t_client *cl, char *line)
   char *p = line;
   char *q;
   char ru[USERNAMELEN+1];
+  t_cmdparams cp;
 
   if (cl->mode == mode_human && !*line)
     return;
@@ -985,14 +999,18 @@ static void mserv_endline(t_client *cl, char *line)
 	if (p[len] != '\0' && p[len] != ' ')
 	  continue;
 	p+= len;
-	while(*p == ' ')
+	while (*p == ' ')
 	  p++;
-	while(*p && p[strlen(p)-1] == ' ')
+	while (*p && p[strlen(p)-1] == ' ')
 	  p[strlen(p)-1] = '\0';
-	if (cmdsptr->authed && !cl->authed)
+	if (cmdsptr->authed && !cl->authed) {
 	  mserv_response(cl, "NOTAUTH", NULL);
-	else
-	  cmdsptr->function(cl, ru, p);
+        } else {
+          memset(&cp, 0, sizeof(cp));
+          cp.ru = ru;
+          cp.line = p;
+          cmdsptr->function(cl, &cp);
+        }
 	return;
       }
     }
@@ -1241,7 +1259,7 @@ static int mserv_loadlang(const char *pathname)
     return 1;
   }
 
-  while(fgets(buffer, LANGLINELEN, fd)) {
+  while (fgets(buffer, LANGLINELEN, fd)) {
     line++;
     if (buffer[strlen(buffer)-1] != '\n') {
       mserv_log("Line %d too long in language file.", line);
@@ -1657,7 +1675,7 @@ static void mserv_scandir_recurse(const char *pathname)
     mserv_log("Unable to opendir '%s'", fullpath);
     return;
   }
-  while((ent = readdir(dir))) {
+  while ((ent = readdir(dir))) {
     llen = strlen(ent->d_name);
     /* ignore dot files */
     if (ent->d_name[0] == '.')
@@ -1868,7 +1886,7 @@ static t_album *mserv_loadalbum(const char *filename, int onlyifexists)
     /* there is an album file - get details */
     if (mserv_verbose)
       mserv_log("Album info file: %s", filename);
-    while(fgets(buffer, 1024, fd)) {
+    while (fgets(buffer, 1024, fd)) {
       line++;
       alen = strlen(buffer);
       if (buffer[alen-1] != '\n') {
@@ -2028,7 +2046,7 @@ static t_track *mserv_loadtrk(const char *filename)
     /* no track information */
   } else {
     newinfofile = 0;
-    while(fgets(buffer, 1024, fd)) {
+    while (fgets(buffer, 1024, fd)) {
       line++;
       alen = strlen(buffer);
       if (buffer[alen-1] != '\n') {
@@ -3457,7 +3475,7 @@ int mserv_channelvolume(t_client *cl, const char *line)
     param = 1;
     p = line+1;
     if (*line == *p) {
-      while(*p == *line) {
+      while (*p == *line) {
         p++;
         param+= 1;
       }
@@ -3524,7 +3542,7 @@ int mserv_setmixer(t_client *cl, int what, const char *line)
     param = 1;
     p = line+1;
     if (*line == *p) {
-      while(*p == *line) {
+      while (*p == *line) {
         p++;
         param+= 1;
       }

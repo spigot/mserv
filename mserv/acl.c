@@ -43,11 +43,11 @@ int acl_load(void)
     mserv_log("Unable to fopen ACL for reading");
     return -1;
   }
-  while(fgets(buffer, ACLLINELEN, fd)) {
+  while (fgets(buffer, ACLLINELEN, fd)) {
     line++;
     if (buffer[strlen(buffer)-1] != '\n') {
       mserv_log("Line %d too long in ACL, ignoring.\n", line);
-      while((a = fgets(buffer, ACLLINELEN, fd))) {
+      while ((a = fgets(buffer, ACLLINELEN, fd))) {
 	if (buffer[strlen(buffer)-1] == '\n')
 	  continue;
       }

@@ -116,7 +116,7 @@ int channel_create(t_channel **channel, const char *name,
 
 /* add output stream to channel */
 
-int channel_addoutput(t_channel *c, const char *modname, const char *uri,
+int channel_addoutput(t_channel *c, const char *modname, const char *location,
                      const char *params, char *error, int errsize)
 {
   t_output_list *ol, **olend;
@@ -126,12 +126,8 @@ int channel_addoutput(t_channel *c, const char *modname, const char *uri,
     snprintf(error, errsize, "module %s not loaded", modname);
     return MSERV_FAILURE;
   }
-  if (strlen(uri) >= sizeof(ol->uri)) {
-    snprintf(error, errsize, "destination URI too long");
-    return MSERV_FAILURE;
-  }
-  if (strlen(params) >= sizeof(ol->params)) {
-    snprintf(error, errsize, "destination parameters too long");
+  if (strlen(location) >= sizeof(ol->location)) {
+    snprintf(error, errsize, "destination location too long");
     return MSERV_FAILURE;
   }
   if ((ol = malloc(sizeof(t_output_list))) == NULL) {
@@ -140,10 +136,10 @@ int channel_addoutput(t_channel *c, const char *modname, const char *uri,
   }
   ol->next = NULL;
   ol->modinfo = mi;
-  strncpy(ol->uri, uri, sizeof(ol->uri));
-  ol->uri[sizeof(ol->uri) - 1] = '\0';
-  strncpy(ol->params, params, sizeof(ol->params));
-  ol->params[sizeof(ol->params) - 1] = '\0';
+  strncpy(ol->location, location, sizeof(ol->location));
+  ol->location[sizeof(ol->location) - 1] = '\0';
+  if (params_parse(ol->params, params, error, errsize) != MSERV_SUCCESS)
+    return MSERV_FAILURE;
   if (mi->output_create == NULL) {
     snprintf(error, errsize, "module '%s' has no output creation function",
              modname);
@@ -151,7 +147,7 @@ int channel_addoutput(t_channel *c, const char *modname, const char *uri,
   }
   if (mserv_debug)
     mserv_log("calling module '%s' output_create function", modname);
-  if (mi->output_create(c, uri, params, &ol->private,
+  if (mi->output_create(c, location, ol->params, &ol->private,
                         error, errsize) != MSERV_SUCCESS)
     return MSERV_FAILURE;
   if (mserv_debug)
@@ -168,7 +164,7 @@ int channel_addoutput(t_channel *c, const char *modname, const char *uri,
 /* remove output from channel stream (modname or uri can be NULL) */
 
 int channel_removeoutput(t_channel *c, const char *modname,
-                        const char *uri, char *error, int errsize)
+                        const char *location, char *error, int errsize)
 {
   t_output_list *ol, *ol_last;
   t_output_list **olp, **olp_last;
@@ -179,7 +175,7 @@ int channel_removeoutput(t_channel *c, const char *modname,
   olp_last = NULL;
   for (olp = &c->output, ol = c->output; ol; olp = &(ol->next), ol = ol->next) {
     if (modname == NULL || stricmp(ol->modinfo->module->name, modname) == 0) {
-      if (uri == NULL || stricmp(ol->uri, uri) == 0) {
+      if (location == NULL || stricmp(ol->location, location) == 0) {
         ol_last = ol;
         olp_last = olp;
       }

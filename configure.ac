@@ -45,13 +45,19 @@ dnl Options
   AC_ARG_ENABLE(module-ossaudio,
     AC_HELP_STRING([--enable-module-ossaudio], [build ossaudio module]),,
     enable_module_ossaudio="yes")
-  AC_ARG_ENABLE(module-icecast,
+  AC_ARG_ENABLE(with-ossaudio-mixer,
+    AC_HELP_STRING([--with-ossaudio-mixer=PATH], [path to ossaudio mixer]),,
+    with_mixer="/dev/mixer")
+
+  AC_ARG_WITH(module-icecast,
     AC_HELP_STRING([--with-engine-icecast], [build icecast module]),,
     enable_module_icecast="yes")
+
   AC_ARG_WITH(warnings,
     AC_HELP_STRING([--with-warnings], [turn on gcc warnings]))
   AC_ARG_WITH(debug,
     AC_HELP_STRING([--with-debug], [turn debugging options on]))
+
   AC_ARG_ENABLE(server,
     AC_HELP_STRING([--disable-server], [do not compile server]),,
     enable_server="yes")
@@ -140,6 +146,10 @@ dnl mserv modules
     AC_CHECK_HEADERS(soundcard.h, FOUND_SOUNDCARD=yes)
     if test "x$FOUND_SOUNDCARD" = "xno"; then
       AC_MSG_ERROR([cannot find soundcard.h])
+    fi
+    if test "x$with_ossaudio_mixer" != "xno"; then
+      AC_DEFINE_UNQUOTED(OSSAUDIO_MIXER, $with_ossaudio_mixer,
+                         [path to ossaudio mixer])
     fi
   fi
 

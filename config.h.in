@@ -48,6 +48,9 @@
 /* Define to 1 if you have the `vsnprintf' function. */
 #undef HAVE_VSNPRINTF
 
+/* path to ossaudio mixer */
+#undef OSSAUDIO_MIXER
+
 /* Name of package */
 #undef PACKAGE
 

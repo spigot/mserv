@@ -372,6 +372,7 @@ int channel_addinput(t_channel *c, int fd, t_trkinfo *trkinfo,
   i->silence_start = delay_start * c->samplerate;
   i->silence_end = delay_end * c->samplerate;
   i->announced = 0;
+  i->timer_started = 0;
   i->trkinfo = *trkinfo;
   mserv_log("channel %s: added %d/%d to stream", c->name,
             i->trkinfo.track->album->id, i->trkinfo.track->n_track);
@@ -468,6 +469,17 @@ int channel_sync(t_channel *c, char *error, int errsize)
         mserv_log("buffer_bytes = %d (post)", c->buffer_bytes);
       /* we may have only had a bit of silence and can fill with some data */
       continue;
+    }
+    if (!c->input->announced) {
+      /* announce this song to users in channel, if we haven't already */
+      mserv_setplaying(c, c->playing.track ? &c->playing : NULL,
+		       &c->input->trkinfo);
+      c->playing = c->input->trkinfo;
+      c->input->announced = 1;
+    }
+    if (!c->input->timer_started) {
+      gettimeofday(&c->playing_start, NULL);
+      c->input->timer_started = 1;
     }
     if (c->input->fd != -1) {
       /* read PCM data from input stream */
@@ -777,9 +789,14 @@ t_trkinfo *channel_getplaying(t_channel *c)
   return NULL;
 }
 
-/* channel_playing_start - get currently playing track start time */
+/* channel_playing_start - get currently playing track start time,
+ * or NULL if the current track hasn't started playing yet. */
 
 struct timeval *channel_getplaying_start(t_channel *c)
 {
-  return &c->playing_start;
+  if (c && c->input && c->input->timer_started) {
+    return &c->playing_start;
+  } else {
+    return NULL;
+  }
 }

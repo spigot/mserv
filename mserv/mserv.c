@@ -2708,10 +2708,13 @@ int mserv_player_playnext(void)
               error);
     /* continue anyway? */
   }
-
+  
   mserv_setplaying(mserv_channel,
 		   mserv_channel->playing.track ? &mserv_channel->playing : NULL,
 		   &mserv_channel->input->trkinfo);
+  mserv_channel->playing = mserv_channel->input->trkinfo;
+  mserv_channel->input->announced = 1;
+  
   return 0;
 }
 

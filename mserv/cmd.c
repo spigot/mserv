@@ -463,11 +463,18 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
 
   (void)cp;
   if (playing && playing->track) {
-    if (gettimeofday(&now, NULL) != 0) {
-      mserv_response(cl, "SERROR", "%s", "Failed to gettimeofday()");
-      return;
+    // Has the song started playing?
+    if (start != NULL) {
+      // Yes, how long ago was it?
+      if (gettimeofday(&now, NULL) != 0) {
+	mserv_response(cl, "SERROR", "%s", "Failed to gettimeofday()");
+	return;
+      }
+      mserv_timersub(&now, start, &ago);
+    } else {
+      // No, not yet.
+      memset(&ago, 0, sizeof(ago));
     }
-    mserv_timersub(&now, start, &ago);
     a = channel_paused(channel) ? "STATPAU" : "STATPLA";
     mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d\t%s"
                    "\t%.2f",
@@ -475,7 +482,7 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
 		   playing->track->album->id,
 		   playing->track->n_track,
 		   playing->track->author,
-		   playing->track->name, start->tv_sec,
+		   playing->track->name, ago.tv_sec,
 		   ago.tv_sec/60, ago.tv_sec % 60,
 		   mserv_random ? "ON" : "OFF", mserv_factor);
     if (cl->mode == mode_human) {
@@ -486,7 +493,7 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
 		       mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
 		       playing->track->album->id, playing->track->n_track,
                        playing->track->author, playing->track->name, 
-                       start->tv_sec,
+                       ago.tv_sec,
                        ago.tv_sec/60, ago.tv_sec % 60, ago.tv_usec / 100000,
 		       mserv_random ? "ON" : "OFF", mserv_factor);
       }

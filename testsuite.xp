@@ -137,7 +137,15 @@ expect "Playing"
 
 send "status\n"
 expect "Track name"
-# This is really the result of the "play" command, not "status".
+expect -re {Time playing: +([0-9]+):([0-9][0-9])[^0-9]}
+
+if { $expect_out(1,string) > 0 || $expect_out(2,string) >= 2 } then {
+	send_error "*** The status command says the just started song has played too long\n"
+	exit 1
+}
+
+# What comes next is really the result of the "play" command, not
+# "status".
 
 # The reason we don't wait for the computer being notified about that
 # a new song has started playing before we do "status" is that doing

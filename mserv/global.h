@@ -237,6 +237,7 @@ typedef struct _t_channel_inputstream {
   unsigned int silence_start; /* number of zero samples (all chans) left */
   unsigned int silence_end;   /* number of zero samples (all chans) left */
   unsigned int announced;     /* have we announced the play of this track? */
+  unsigned int timer_started; /* have we started timing this track? */
 } t_channel_inputstream;
 
 typedef struct _t_module {

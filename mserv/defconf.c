@@ -1,6 +1,6 @@
 #include "defines.h"
 
-const char defconf_file[] = "# Mserv configuration file for 0.30 and later
+const char defconf_file[] = "# Mserv configuration file for 0.33 and later
 
 # File locations, / at start is absolute, otherwise relative to mserv root
 path_acl=acl
@@ -15,12 +15,17 @@ path_language=" SHAREDIR "/english.lang
 
 # Define player invokation methods
 # mservplay is our special wrapper, the first parameter is a 'nice' level
-mpg123=/usr/local/bin/mpg123 -b 1024
-freeamp=/usr/local/bin/freeamp -ui mpg123
-mservplay=/usr/local/bin/mservplay 0 mpg123 -b 1024
+# play is part of sox
+prog_mpg123=/usr/local/bin/mpg123 -b 1024
+prog_freeamp=/usr/local/bin/freeamp -ui mpg123
+prog_mservplay=/usr/local/bin/mservplay 0 mpg123 -b 1024
+prog_play=/usr/local/bin/play
 
-# Set default player from list above
-player=mpg123
+# Set players for each file extension we want to support, unknown extensions
+# are ignored by mserv
+player_mp3=prog_mpg123
+player_wav=prog_play
+player_au=prog_play
 
 # Set default random mode, either on or off.  You must still tell mserv to
 # start playing (PLAY).

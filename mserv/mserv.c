@@ -150,6 +150,7 @@ static int mserv_createdir(const char *path);
 static void mserv_sendwrap(t_client *cl, const char *string, int wrapwidth,
 			   const char *indentstr, int nextwidth);
 static void mserv_strtoprintable(char *string);
+static const char *mserv_getplayer(char *fname);
 #ifdef SOUNDCARD
 static int mserv_setvolume(int vol);
 static int mserv_readvolume(void);
@@ -1633,7 +1634,7 @@ static void mserv_scandir_recurse(const char *pathname)
   tnum = 0;
   toomany = 0;
 
-  /* find .mp3 files and use .trk files if they exist */
+  /* find music files and use .trk files if they exist */
 
   if ((unsigned int)snprintf(fullpath, 1024, "%s/%s",
 			     opt_path_tracks, pathname) >= 1024) {
@@ -1647,13 +1648,16 @@ static void mserv_scandir_recurse(const char *pathname)
   }
   while((ent = readdir(dir))) {
     llen = strlen(ent->d_name);
+    /* ignore dot files */
     if (ent->d_name[0] == '.')
       continue;
+    /* construct full path */
     if ((unsigned int)snprintf(fullpath, 1024, "%s/%s%s", opt_path_tracks,
 			       pathname, ent->d_name) >= 1024) {
       mserv_log("fullpath buffer too small");
       return;
     }
+    /* get details about this file */
     if (stat(fullpath, &buf)) {
       perror("stat");
       mserv_log("Unable to stat '%s'", fullpath);
@@ -1661,33 +1665,38 @@ static void mserv_scandir_recurse(const char *pathname)
     }
     filename = fullpath+strlen(opt_path_tracks)+1;
     if (S_ISDIR(buf.st_mode)) {
+      /* recurse into directories */
       strcat(filename, "/");
       mserv_scandir_recurse(filename);
-    } else if (!toomany && S_ISREG(buf.st_mode)) {
-      if (llen > 4 && !stricmp(".mp3", ent->d_name+llen-4)) {
-	if (tnum >= TRACKSPERALBUM) {
-	  mserv_log("The limit of tracks per album was reached, and some "
-		    "tracks were discarded. To increase this limit "
-		    "recompile with TRACKSPERALBUM set higher.  A better "
-		    "solution is to sub-divide your tracks into more "
-		    "directories.");
-	  toomany = 1;
-	  break;
-	}
-	if (mserv_verbose)
-	  mserv_log("Track file: %s", fullpath);
-	if ((tracks[tnum] = mserv_loadtrk(filename)) == NULL) {
-	  mserv_log("Unable to add track '%s'", fullpath);
-	} else {
-	  tracks[tnum]->id = mserv_nextid_track++;
-	  tracks[tnum]->n_album = mserv_nextid_album;
-	  tracks[tnum]->n_track = tnum+1;
-	  tracks[tnum]->next = mserv_tracks;
-	  mserv_tracks = tracks[tnum++];
-	}
-	flag = 1; /* there is at least one track in this directory */
-      }
+      continue;
     }
+    if (toomany || !S_ISREG(buf.st_mode))
+      /* ignore files once we're got too many or they aren't regular */
+      continue;
+    /* we have found a normal track - check there is a player for it */
+    if (mserv_getplayer(ent->d_name) == NULL)
+      continue; /* extension not found */
+    if (tnum >= TRACKSPERALBUM) {
+      mserv_log("The limit of tracks per album was reached, and some "
+		"tracks were discarded. To increase this limit "
+		"recompile with TRACKSPERALBUM set higher.  A better "
+		"solution is to sub-divide your tracks into more "
+		"directories.");
+      toomany = 1;
+      break;
+    }
+    if (mserv_verbose)
+      mserv_log("Track file: %s", fullpath);
+    if ((tracks[tnum] = mserv_loadtrk(filename)) == NULL) {
+      mserv_log("Unable to add track '%s'", fullpath);
+    } else {
+      tracks[tnum]->id = mserv_nextid_track++;
+      tracks[tnum]->n_album = mserv_nextid_album;
+      tracks[tnum]->n_track = tnum+1;
+      tracks[tnum]->next = mserv_tracks;
+      mserv_tracks = tracks[tnum++];
+    }
+    flag = 1; /* there is at least one track in this directory */
   }
   closedir(dir);
   /* load album, but only if there is an album file or flag is set */
@@ -2219,6 +2228,7 @@ int mserv_playnext(void)
   t_supinfo *history;
   char *str[21];
   char *strbuf;
+  const char *player;
 
   if (mserv_playing.track) {
     mserv_abortplay();
@@ -2311,11 +2321,12 @@ int mserv_playnext(void)
   }
   snprintf(fullpath, MAXFNAME, "%s/%s", opt_path_tracks,
 	   mserv_playing.track->filename);
-  if ((strbuf = malloc(strlen(opt_player)+1)) == NULL) {
+  player = mserv_getplayer(fullpath);
+  if ((strbuf = malloc(strlen(player)+1)) == NULL) {
     mserv_broadcast("MEMORY", NULL);
     return 1;
   }
-  strcpy(strbuf, opt_player);
+  strcpy(strbuf, player);
   if ((i = mserv_split(str, 21, strbuf, " ")) >= 21) {
     mserv_log("Internal error - too many parameters for player");
     exit(1);
@@ -2344,7 +2355,7 @@ int mserv_playnext(void)
     }
     execv(str[0], str);
     fprintf(stderr, "%s: Unable to execv '%s': '%s'", progname,
-	    opt_player, strerror(errno));
+	    player, strerror(errno));
     exit(0);
   } else if (pid == -1) {
     perror("fork");
@@ -2365,6 +2376,23 @@ int mserv_playnext(void)
     memcpy(mserv_history[0], &mserv_playing, sizeof(t_supinfo));
   }
   return 0;
+}
+
+/* get player string from filename or NULL for no player */
+
+static const char *mserv_getplayer(char *fname)
+{
+  char *dot;
+  char playername[32];
+  const char *player;
+
+  if ((dot = strrchr(fname, '.')) == NULL)
+    return NULL;
+  snprintf(playername, 32, "player_%s", dot+1);
+  if ((player = conf_getvalue(playername)) == NULL)
+    return NULL;
+  /* now convert player name (e.g. "mpg123") to full path and options */
+  return conf_getvalue(player); /* NULL or player invocation string */
 }
 
 void mserv_abortplay(void)

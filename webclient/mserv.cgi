@@ -125,7 +125,8 @@ sub data {
 		print "</body></html>\n";
 		exit();
 	    } else {
-		print "<b>Internal error ($exit) executing ($cmd)</b>\n";
+		print "<b>Internal error ($exit) - see log for details</b>\n";
+		print STDERR "Failed to run '$cmd', received exit code $exit\n";
 		print "</body></html>\n";
 		exit();
 	    }

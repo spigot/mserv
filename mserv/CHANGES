@@ -9,14 +9,18 @@ via CVS the version of the first entry is the forthcoming version number.
 - Applied patch from Joseph Heenan <joseph@ping.demon.co.uk> to provide
   better logging of duplicate albums
 - Applied patch from <unknown> to give a new 'play' option in the config file
-  to get mserv to automatically start on start-up.
+  to get mserv to automatically start on start-up
 - Applied patch from Joseph Heenan <joseph@ping.demon.co.uk> that improves
-  the CDDB splitting of track/author names in mservripcd.
+  the CDDB splitting of track/author names in mservripcd
+- Fixed QUEUE incorrect bounds check on track argument
+- Fixed STOP/NEXT commands so that zombie processes don't appear
+- Fixed some response codes
+- Added ASEARCH command for searching for an album based on name
 
 0.32 - Jun 6th 2000
 -------------------
 - Fixed bug in RATE <album> <string> which rated the songs in an album that
-  had been rated, instead of the ones that weren't.
+  had been rated, instead of the ones that weren't
 
 0.31 - Jan 25th 2000
 --------------------
@@ -25,10 +29,10 @@ via CVS the version of the first entry is the forthcoming version number.
 - Altered scaning code so that it looks for .mp3's case insensitively
 - Bug fix to queuing - any computer users online when a user queues a track
   resulted in broadcasts going to the queuing user rather than the other users
-- Bug fix in set genre for an album, so that it doesn't segv.
+- Bug fix in set genre for an album, so that it doesn't segv
 - Incorporated patch from Jan Hecking <jhecking@informatik.uni-rostock.de>
   which cleans up the initialisation code.
-- Added mservripcd to distribution, a script for ripping CDs for mserv use.
+- Added mservripcd to distribution, a script for ripping CDs for mserv use
 
 0.30 - Jan 2nd 2000
 -------------------

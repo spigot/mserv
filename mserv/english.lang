@@ -43,7 +43,7 @@ BASSCUR	236	Bass level is currently %01%%
 TREBCUR	237	Treble level is currently %01%%
 FACTCUR	238	Random play factor is currently %01
 FACTSET	239	Random play factor set to %01
-NEXT	240	Moved to next track %03
+NEXT	240	Moved to next track (%01/%02)
 HISTORY	241	The following tracks were recently played:
 RANCUR	242	Random play is currently %01.
 SEARCHA	243	Search results:

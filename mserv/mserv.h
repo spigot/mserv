@@ -29,9 +29,7 @@ t_album *mserv_getalbum(unsigned int n_album);
 t_rating *mserv_getrate(const char *user, t_track *track);
 int mserv_addqueue(t_client *cl, t_track *track);
 int mserv_player_playnext(void);
-void mserv_pauseplay(t_client *cl);
 void mserv_abortplay(void);
-void mserv_resumeplay(t_client *cl);
 void mserv_recalcratings(void);
 t_track *mserv_altertrack(t_track *track, const char *author,
                           const char *name, const char *genres,
@@ -68,9 +66,10 @@ t_track *mserv_checkdisk_track(t_track *track);
 t_album *mserv_checkdisk_album(t_album *album);
 void mserv_ensuredisk(void);
 int mserv_checklevel(t_client *cl, t_userlevel level);
-void mserv_setplaying(t_supinfo *supinfo);
-t_supinfo *mserv_getplaying(void);
-void mserv_addtohistory(t_supinfo *sup);
+void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
+                      t_trkinfo *nowplaying);
+t_trkinfo *mserv_getplaying(void);
+void mserv_addtohistory(t_trkinfo *sup);
 const char *mserv_clientmodetext(t_client *cl);
 void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
                           unsigned int bold, const char *info);
@@ -82,10 +81,8 @@ extern t_client *mserv_clients;
 extern t_track *mserv_tracks;
 extern t_album *mserv_albums;
 extern t_queue *mserv_queue;
-extern t_supinfo *mserv_history[];
-extern t_supinfo mserv_playing;
-extern t_supinfo mserv_player_playing;
-extern struct timeval mserv_playing_start;
+extern t_trkinfo *mserv_history[];
+extern t_trkinfo mserv_player_playing;
 extern t_acl *mserv_acl;
 extern int mserv_shutdown;
 extern int mserv_random;

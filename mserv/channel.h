@@ -11,7 +11,7 @@ int channel_removeoutput(t_channel *c, const char *modname,
                         const char *uri, char *error, int errsize);
 int channel_volume(t_channel *c, int *volume, char *error, int errsize);
 int channel_close(t_channel *c, char *error, int errsize);
-int channel_addinput(t_channel *c, int fd, t_supinfo *track_supinfo,
+int channel_addinput(t_channel *c, int fd, t_trkinfo *track_trkinfo,
                      unsigned int samplerate, unsigned int channels, 
                      double delay_start, double delay_end,
                      char *error, int errsize);
@@ -26,5 +26,7 @@ int channel_unpause(t_channel *c, char *error, int errsize);
 int channel_stopped(t_channel *c);
 int channel_paused(t_channel *c);
 t_channel *channel_find(const char *name);
+t_trkinfo *channel_getplaying(t_channel *c);
+struct timeval *channel_getplaying_start(t_channel *c);
 
 #endif

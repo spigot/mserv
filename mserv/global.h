@@ -107,6 +107,7 @@ typedef struct _t_client {
   char user[USERNAMELEN+1];
   t_userlevel userlevel;
   t_mode mode;
+  char channel[CHANNELNAMELEN+1]; /* current channel */
   unsigned int authed:1;
   unsigned int quitme:1;
 } t_client;
@@ -204,14 +205,14 @@ typedef struct _t_lang {
   char *text;
 } t_lang;
 
-typedef struct _t_supinfo {
+typedef struct _t_trkinfo {
   t_track *track;
   char user[USERNAMELEN+1];
-} t_supinfo;
+} t_trkinfo;
 
 typedef struct _t_queue {
   struct _t_queue *next;
-  t_supinfo supinfo;
+  t_trkinfo trkinfo;
 } t_queue;
 
 /* input stream structure */
@@ -219,7 +220,7 @@ typedef struct _t_queue {
 typedef struct _t_channel_inputstream {
   struct _t_channel_inputstream *next; /* next input in stream */
   int fd;                     /* input file descriptor */
-  t_supinfo supinfo;          /* track sup. info. */
+  t_trkinfo trkinfo;          /* track + info. */
   unsigned int silence_start; /* number of zero samples (all chans) left */
   unsigned int silence_end;   /* number of zero samples (all chans) left */
   unsigned int announced;     /* have we announced the play of this track? */
@@ -307,19 +308,21 @@ struct _t_modinfo {
 };
 
 struct _t_channel {
-  char name[16];               /* channel name */
-  struct timeval lasttime;     /* interval timer */
-  unsigned int paused;         /* are we currently paused? */
-  unsigned int stopped;        /* are we currently stopped? */
-  t_channel_inputstream *input;   /* stream of inputs */
+  char name[CHANNELNAMELEN + 1];  /* channel name */
+  struct timeval lasttime;        /* interval timer */
+  unsigned int paused;            /* are we currently paused? */
+  unsigned int stopped;           /* are we currently stopped? */
+  t_trkinfo playing;              /* currently playing track */
+  struct timeval playing_start;   /* currently playing track start time */
+  t_channel_inputstream *input;    /* stream of inputs */
   t_channel_outputstream *output; /* outputs (simultaneous) */
-  unsigned int channels;       /* 1 for mono, 2 for stereo, etc. */
-  unsigned int samplerate;     /* samples per second (16 bit) */
-  unsigned int buffer_size;    /* samplerate * channels * bytes per sample */
-  unsigned int buffer_bytes;   /* bytes we have so far */
-  char *buffer_char;           /* one second input buffer */
-  unsigned int buffer_samples; /* samples in buffer and buffer_char (16 bit) */
-  float *buffer;               /* same as buffer_char, but float and volume'd */
+  unsigned int channels;          /* 1 for mono, 2 for stereo, etc. */
+  unsigned int samplerate;        /* samples per second (16 bit) */
+  unsigned int buffer_size;       /* samplerate * channels * bytes per sample */
+  unsigned int buffer_bytes;      /* bytes we have so far */
+  char *buffer_char;              /* one second input buffer */
+  unsigned int buffer_samples;    /* samps in buffer and buffer_char (16 bit) */
+  float *buffer;                  /* same as buffer_char, but float and vol'd */
 };
 
 typedef struct _t_channel_list {

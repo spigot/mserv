@@ -97,6 +97,7 @@ int channel_create(t_channel **channel, const char *name,
   }
   strncpy(c->name, name, sizeof(c->name));
   c->name[sizeof(c->name) - 1] = '\0';
+  c->playing.track = NULL;
   c->input = NULL;
   c->output = NULL;
   c->paused = 0;
@@ -349,7 +350,7 @@ int channel_close(t_channel *c, char *error, int errsize)
  *   if delay is given (in ms), then there will be a delay before/after play
  */
 
-int channel_addinput(t_channel *c, int fd, t_supinfo *track_supinfo,
+int channel_addinput(t_channel *c, int fd, t_trkinfo *trkinfo,
                      unsigned int samplerate, unsigned int channels, 
                      double delay_start, double delay_end,
                      char *error, int errsize)
@@ -371,10 +372,9 @@ int channel_addinput(t_channel *c, int fd, t_supinfo *track_supinfo,
   i->silence_start = delay_start * c->samplerate;
   i->silence_end = delay_end * c->samplerate;
   i->announced = 0;
-  i->supinfo = *track_supinfo;
-  if (c->input == NULL)
-    mserv_log("channel %s: decoding of %d/%d started", c->name,
-              i->supinfo.track->n_album, i->supinfo.track->n_track);
+  i->trkinfo = *trkinfo;
+  mserv_log("channel %s: added %d/%d to stream", c->name,
+            i->trkinfo.track->n_album, i->trkinfo.track->n_track);
   /* add on end of linked list */
   for (tail = &c->input; *tail; tail = &(*tail)->next) ;
   *tail = i;
@@ -390,14 +390,14 @@ int channel_inputfinished(t_channel *c)
   if (i == NULL)
     return MSERV_SUCCESS;
   mserv_log("channel %s: decoding of %d/%d finished", c->name,
-            i->supinfo.track->n_album, i->supinfo.track->n_track);
+            i->trkinfo.track->n_album, i->trkinfo.track->n_track);
   if (i->fd != -1)
     close(i->fd);
   c->input = i->next;
   free(i);
   if (c->input)
     mserv_log("channel %s: decoding of %d/%d started", c->name,
-              i->supinfo.track->n_album, i->supinfo.track->n_track);
+              i->trkinfo.track->n_album, i->trkinfo.track->n_track);
   return MSERV_SUCCESS;
 }
 
@@ -471,7 +471,10 @@ int channel_sync(t_channel *c, char *error, int errsize)
     }
     if (!c->input->announced) {
       /* announce this song to users in channel, if we haven't already */
-      mserv_setplaying(&c->input->supinfo);
+      mserv_setplaying(c, c->playing.track ? &c->playing : NULL,
+                       &c->input->trkinfo);
+      c->playing = c->input->trkinfo;
+      gettimeofday(&c->playing_start, NULL);
       c->input->announced = 1;
     }
     if (c->input->fd != -1) {
@@ -481,8 +484,8 @@ int channel_sync(t_channel *c, char *error, int errsize)
       if (ret == -1) {
         if (errno != EAGAIN || errno != EINTR) {
           mserv_log("channel %s: failure reading on input socket for %d/%d: %s",
-                    c->name, c->input->supinfo.track->n_album,
-                    c->input->supinfo.track->n_track, strerror(errno));
+                    c->name, c->input->trkinfo.track->n_album,
+                    c->input->trkinfo.track->n_track, strerror(errno));
         }
         break;
       } else if (ret == 0) {
@@ -503,7 +506,7 @@ int channel_sync(t_channel *c, char *error, int errsize)
         fp = (float *)c->buffer + (c->buffer_bytes / 2);
         for (ui = 0; ui < words; ui++)
           fp[ui] = (sp[ui] / 32768.f) *
-              ((float)c->input->supinfo.track->volume / 100);
+              ((float)c->input->trkinfo.track->volume / 100);
         c->buffer_bytes += ret;
       }
     } else {
@@ -656,9 +659,11 @@ void channel_replacetrack(t_channel *c, t_track *track, t_track *newtrack)
 
   for (i = c->input; i; i = next) {
     next = i->next;
-    if (i->supinfo.track == track)
-      i->supinfo.track = newtrack;
+    if (i->trkinfo.track == track)
+      i->trkinfo.track = newtrack;
   }
+  if (c->playing.track == track)
+    c->playing.track = newtrack;
   return;
 }
 
@@ -673,6 +678,7 @@ int channel_stop(t_channel *c, char *error, int errsize)
   (void)errsize;
   if (c->stopped)
     return MSERV_SUCCESS;
+  mserv_setplaying(c, c->playing.track ? &c->playing : NULL, NULL);
   /* call output stream modules stop methods */
   for (os = c->output; os; os = os->next) {
     if (os->modinfo->output_stop)
@@ -687,7 +693,6 @@ int channel_stop(t_channel *c, char *error, int errsize)
   c->input = NULL;
   c->stopped = 1;
   c->paused = 0;
-  mserv_setplaying(NULL);
   return MSERV_SUCCESS;
 }
 
@@ -767,4 +772,20 @@ t_channel *channel_find(const char *name)
       return cl->channel;
   }
   return NULL;
+}
+
+/* channel_playing - get currently playing track */
+
+t_trkinfo *channel_getplaying(t_channel *c)
+{
+  if (c->playing.track)
+    return &c->playing;
+  return NULL;
+}
+
+/* channel_playing_start - get currently playing track start time */
+
+struct timeval *channel_getplaying_start(t_channel *c)
+{
+  return &c->playing_start;
 }

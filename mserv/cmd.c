@@ -456,22 +456,25 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
   char *a;
   int i;
   struct timeval now, ago;
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
+  struct timeval *start = channel_getplaying_start(channel);
 
   (void)cp;
-  if (mserv_playing.track) {
+  if (playing->track) {
     if (gettimeofday(&now, NULL) != 0) {
       mserv_response(cl, "SERROR", "%s", "Failed to gettimeofday()");
       return;
     }
-    mserv_timersub(&now, &mserv_playing_start, &ago);
-    a = channel_paused(mserv_channel) ? "STATPAU" : "STATPLA";
+    mserv_timersub(&now, start, &ago);
+    a = channel_paused(channel) ? "STATPAU" : "STATPLA";
     mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d.%d\t%s"
                    "\t%.2f",
 		   mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
-		   mserv_playing.track->n_album,
-		   mserv_playing.track->n_track,
-		   mserv_playing.track->author,
-		   mserv_playing.track->name, mserv_playing_start.tv_sec,
+		   playing->track->n_album,
+		   playing->track->n_track,
+		   playing->track->author,
+		   playing->track->name, start->tv_sec,
 		   ago.tv_sec/60, ago.tv_sec % 60, ago.tv_usec / 100000,
 		   mserv_random ? "ON" : "OFF", mserv_factor);
     if (cl->mode == mode_human) {
@@ -480,10 +483,9 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
 	mserv_response(cl, token, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d.%d"
 		       "\t%s\t%.2f",
 		       mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
-		       mserv_playing.track->n_album,
-		       mserv_playing.track->n_track,
-		       mserv_playing.track->author,
-		       mserv_playing.track->name, mserv_playing_start.tv_sec,
+		       playing->track->n_album, playing->track->n_track,
+                       playing->track->author, playing->track->name, 
+                       start->tv_sec,
                        ago.tv_sec/60, ago.tv_sec % 60, ago.tv_usec / 100000,
 		       mserv_random ? "ON" : "OFF", mserv_factor);
       }
@@ -491,7 +493,7 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
   } else {
     mserv_response(cl, "STATN", "%s\t%d\t%d\t%s\t%.2f",
 		   mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
-		       mserv_random ? "ON" : "OFF", mserv_factor);
+                   mserv_random ? "ON" : "OFF", mserv_factor);
     if (cl->mode == mode_human) {
       for (i = 1; i <= 4; i++) {
 	sprintf(token, "STATN%d", i);
@@ -795,13 +797,15 @@ static void cmd_tracks(t_client *cl, t_cmdparams *cp)
   unsigned int i;
   char *end;
   t_rating *rate;
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
 
   if (!*cp->line) {
-    if (mserv_playing.track == NULL) {
+    if (playing->track == NULL) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
-    id = mserv_playing.track->n_album;
+    id = playing->track->n_album;
   } else {
     id = strtol(cp->line, &end, 10);
     if (!*cp->line || *end) {
@@ -847,11 +851,13 @@ static void cmd_ratings(t_client *cl, t_cmdparams *cp)
   struct tm curtm;
   char date_format[64];
   char date[64];
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
 
   strcpy(linespl, cp->line);
 
   if (!*cp->line) {
-    if ((track = mserv_playing.track) == NULL) {
+    if ((track = playing->track) == NULL) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
@@ -933,17 +939,17 @@ static void cmd_unqueue(t_client *cl, t_cmdparams *cp)
   }
   /* no, I refuse to use pointers to pointers */
   for (p = NULL, q = mserv_queue; q; p = q, q = q->next) {
-    if (q->supinfo.track == track)
+    if (q->trkinfo.track == track)
       break;
   }
   if (q) {
     mserv_broadcast("UNQ", "%s\t%d\t%d\t%s\t%s", cl->user,
-		    q->supinfo.track->n_album, q->supinfo.track->n_track,
-		    q->supinfo.track->author, q->supinfo.track->name);
+		    q->trkinfo.track->n_album, q->trkinfo.track->n_track,
+		    q->trkinfo.track->author, q->trkinfo.track->name);
     if (cl->mode != mode_human)
       mserv_response(cl, "UNQR", "%d\t%d\t%s\t%s",
-		     q->supinfo.track->n_album, q->supinfo.track->n_track,
-		     q->supinfo.track->author, q->supinfo.track->name);
+		     q->trkinfo.track->n_album, q->trkinfo.track->n_track,
+		     q->trkinfo.track->author, q->trkinfo.track->name);
     if (p)
       p->next = q->next;
     else
@@ -976,16 +982,16 @@ static void cmd_queue(t_client *cl, t_cmdparams *cp)
     }
     mserv_responsent(cl, "SHOW", NULL);
     for (q = mserv_queue; q; q = q->next) {
-      rate = mserv_getrate(cp->ru, q->supinfo.track);
+      rate = mserv_getrate(cp->ru, q->trkinfo.track);
       if (cl->mode == mode_human) {
-        mserv_send_trackinfo(cl, q->supinfo.track, rate, 0, q->supinfo.user);
+        mserv_send_trackinfo(cl, q->trkinfo.track, rate, 0, q->trkinfo.user);
       } else {
 	sprintf(buffer, "%s\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-		q->supinfo.user, q->supinfo.track->n_album,
-		q->supinfo.track->n_track, q->supinfo.track->author,
-		q->supinfo.track->name,	mserv_ratestr(rate),
-		(q->supinfo.track->duration / 100) / 60,
-		(q->supinfo.track->duration / 100) % 60);
+		q->trkinfo.user, q->trkinfo.track->n_album,
+		q->trkinfo.track->n_track, q->trkinfo.track->author,
+		q->trkinfo.track->name,	mserv_ratestr(rate),
+		(q->trkinfo.track->duration / 100) / 60,
+		(q->trkinfo.track->duration / 100) % 60);
 	mserv_send(cl, buffer, 0);
       }
     }
@@ -1139,26 +1145,42 @@ static void cmd_play(t_client *cl, t_cmdparams *cp)
 {
   char error[256];
   t_track *track;
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
 
   (void)cp;
-  if (channel_paused(mserv_channel)) {
-    mserv_resumeplay(cl);
+  if (channel_paused(channel)) {
+    if (channel_unpause(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS) {
+      mserv_log("Failed to resume %s: %s", mserv_channel->name, error);
+      mserv_response(cl, "SERROR", "Failed to resume: %s", error);
+      return;
+    }
+    mserv_broadcast("RESUME", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
+                    playing->track->n_album,
+                    playing->track->n_track,
+                    playing->track->author, playing->track->name);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
-      track = mserv_playing.track ? mserv_playing.track
-                                  : mserv_player_playing.track;
-      mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
-		     track->n_album, track->n_track,
-		     track->author, track->name);
+      if (playing) {
+        mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
+                       track->n_album, track->n_track,
+                       track->author, track->name);
+      } else {
+        /* must be resuming silence */
+        mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s", 0, 0, "", "silence");
+      }
     }
     return;
   }
-  if (mserv_playing.track) {
-    track = mserv_playing.track ? mserv_playing.track
-                                : mserv_player_playing.track;
-    mserv_response(cl, "ALRPLAY", "%d\t%d\t%s\t%s",
-                   track->n_album, track->n_track,
-                   track->author, track->name);
+  if (!channel_stopped(channel)) {
+    if (playing) {
+      mserv_response(cl, "ALRPLAY", "%d\t%d\t%s\t%s",
+                     track->n_album, track->n_track,
+                     track->author, track->name);
+    } else {
+      /* must be in silence */
+      mserv_response(cl, "ALRPLAY", "%d\t%d\t%s\t%s", 0, 0, "", "silence");
+    }
     return;
   }
   if (mserv_player_playnext()) {
@@ -1172,8 +1194,7 @@ static void cmd_play(t_client *cl, t_cmdparams *cp)
   } else {
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
-      track = mserv_playing.track ? mserv_playing.track
-                                  : mserv_player_playing.track;
+      track = playing->track ? playing->track : mserv_player_playing.track;
       mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
                      track->n_album, track->n_track,
                      track->author, track->name);
@@ -1183,18 +1204,19 @@ static void cmd_play(t_client *cl, t_cmdparams *cp)
 
 static void cmd_stop(t_client *cl, t_cmdparams *cp)
 {
-  (void)cp;
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
 
-  if (!channel_stopped(mserv_channel)) {
+  (void)cp;
+  if (!channel_stopped(channel)) {
     mserv_broadcast("STOPPED", "%s\t%d\t%d\t%s\t%s", cl->user,
-		    mserv_playing.track->n_album, mserv_playing.track->n_track,
-		    mserv_playing.track->author, mserv_playing.track->name);
+		    playing->track->n_album, playing->track->n_track,
+		    playing->track->author, playing->track->name);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
       mserv_response(cl, "STOP", "%d\t%d\t%s\t%s",
-		     mserv_playing.track->n_album,
-		     mserv_playing.track->n_track,
-		     mserv_playing.track->author, mserv_playing.track->name);
+		     playing->track->n_album, playing->track->n_track,
+		     playing->track->author, playing->track->name);
     }
     mserv_abortplay();
   } else {
@@ -1204,14 +1226,25 @@ static void cmd_stop(t_client *cl, t_cmdparams *cp)
 
 static void cmd_pause(t_client *cl, t_cmdparams *cp)
 {
-  (void)cp;
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
+  char error[256];
 
-  if (channel_paused(mserv_channel)) {
+  (void)cp;
+  if (channel_paused(channel)) {
     mserv_response(cl, "APAUSED", NULL);
     return;
   }
-  if (mserv_playing.track) {
-    mserv_pauseplay(cl);
+  if (playing->track) {
+    if (channel_pause(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS) {
+      mserv_log("Failed to pause %s: %s", mserv_channel->name, error);
+      mserv_response(cl, "SERROR", "Failed to pause: %s", error);
+      return;
+    }
+    mserv_broadcast("PAUSE", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
+                    playing->track->n_album,
+                    playing->track->n_track,
+                    playing->track->author, playing->track->name);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
       mserv_response(cl, "PAUSED", NULL);
@@ -1223,12 +1256,14 @@ static void cmd_pause(t_client *cl, t_cmdparams *cp)
 
 static void cmd_next(t_client *cl, t_cmdparams *cp)
 {
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
   char error[256];
 
   (void)cp;
-  if (mserv_playing.track)
+  if (playing->track)
     mserv_broadcast("SKIP", "%s", cl->user);
-  if (mserv_playing.track == mserv_player_playing.track) {
+  if (playing->track == mserv_player_playing.track) {
     /* we haven't moved to the next track yet */
     mserv_abortplay();
     if (mserv_player_playnext()) {
@@ -1238,15 +1273,15 @@ static void cmd_next(t_client *cl, t_cmdparams *cp)
       return;
     }
   }
-  if (channel_start(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
-    mserv_log("Failed to commence play on channel %s: %s", mserv_channel->name,
+  if (channel_start(channel, error, sizeof(error)) != MSERV_SUCCESS)
+    mserv_log("Failed to commence play on channel %s: %s", channel->name,
               error);
   if (cl->mode != mode_human) {
     /* humans will already have seen broadcast */
     mserv_response(cl, "NEXT", "%d\t%d\t%s\t%s",
-                   mserv_playing.track->n_album, /* TODO: mserv_player_playing */
-                   mserv_playing.track->n_track, mserv_playing.track->author,
-                   mserv_playing.track->name);
+                   playing->track->n_album, /* TODO: mserv_player_playing */
+                   playing->track->n_track, playing->track->author,
+                   playing->track->name);
   }
 }
 
@@ -1272,9 +1307,11 @@ static void cmd_clear(t_client *cl, t_cmdparams *cp)
 
 static void cmd_repeat(t_client *cl, t_cmdparams *cp)
 {
-  (void)cp;
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
 
-  if (!mserv_playing.track) {
+  (void)cp;
+  if (!playing->track) {
     mserv_response(cl, "NOTHING", NULL);
     return;
   }
@@ -1282,15 +1319,14 @@ static void cmd_repeat(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, "SHUTNQ", NULL);
     return;
   }
-  if (!mserv_addqueue(cl, mserv_playing.track)) {
+  if (!mserv_addqueue(cl, playing->track)) {
     mserv_broadcast("REPEAT", "%s\t%d\t%d\t%s\t%s", cl->user,
-		    mserv_playing.track->n_album, mserv_playing.track->n_track,
-		    mserv_playing.track->author, mserv_playing.track->name);
+		    playing->track->n_album, playing->track->n_track,
+		    playing->track->author, playing->track->name);
     if (cl->mode != mode_human)
       mserv_response(cl, "REPEAT", "%s\t%d\t%d\t%s\t%s", cl->user,
-		     mserv_playing.track->n_album,
-		     mserv_playing.track->n_track,
-		     mserv_playing.track->author, mserv_playing.track->name);
+		     playing->track->n_album, playing->track->n_track,
+		     playing->track->author, playing->track->name);
   } else {
     mserv_response(cl, "QNONE", NULL);
   }
@@ -1643,6 +1679,8 @@ static void cmd_history(t_client *cl, t_cmdparams *cp)
 
 static void cmd_rate(t_client *cl, t_cmdparams *cp)
 {
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
   char linespl[LINEBUFLEN];
   char buffer[AUTHORLEN+NAMELEN+64];
   char *str[4];
@@ -1670,12 +1708,12 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
     return;
   }
   if (n == 1) {
-    if (!mserv_playing.track) {
+    if (!playing->track) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
-    n_album = mserv_playing.track->n_album;
-    n_track = mserv_playing.track->n_track;
+    n_album = playing->track->n_album;
+    n_track = playing->track->n_track;
   } else {
     n_album = strtol(str[0], &end, 10);
     if (!*str[0] || *end) {
@@ -1703,16 +1741,16 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
 	mserv_response(cl, "MEMORYR", NULL);
       return;
     }
-    if (mserv_playing.track && n_album == mserv_playing.track->n_album &&
-	n_track == mserv_playing.track->n_track) {
+    if (playing->track && n_album == playing->track->n_album &&
+	n_track == playing->track->n_track) {
       mserv_broadcast("RATECUR", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		      mserv_playing.track->n_album,
-		      mserv_playing.track->n_track, track->author,
+		      playing->track->n_album,
+		      playing->track->n_track, track->author,
 		      track->name, mserv_ratestr(rate));
       if (cl->mode != mode_human)
 	mserv_response(cl, "RATED", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		       mserv_playing.track->n_album,
-		       mserv_playing.track->n_track, track->author,
+		       playing->track->n_album,
+		       playing->track->n_track, track->author,
 		       track->name, mserv_ratestr(rate));
     } else {
       mserv_broadcast("RATE", "%s\t%d\t%d\t%s\t%s\t%s", cl->user, n_album,
@@ -1991,6 +2029,8 @@ static void cmd_idea(t_client *cl, t_cmdparams *cp)
 
 static void cmd_info(t_client *cl, t_cmdparams *cp)
 {
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
   char linespl[LINEBUFLEN];
   t_rating *rate;
   t_album *album;
@@ -2007,7 +2047,7 @@ static void cmd_info(t_client *cl, t_cmdparams *cp)
   unsigned int ttime;
   
   if (!*cp->line) {
-    if ((track = mserv_playing.track) == NULL) {
+    if ((track = playing->track) == NULL) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
@@ -2214,15 +2254,17 @@ static void cmd_sync(t_client *cl, t_cmdparams *cp)
 
 static void cmd_shutdown(t_client *cl, t_cmdparams *cp)
 {
-  (void)cp;
+  t_channel *channel = channel_find(cl->channel);
+  t_trkinfo *playing = channel_getplaying(channel);
 
+  (void)cp;
   if (mserv_shutdown) {
     mserv_response(cl, "SHUTALR", NULL);
     return;
   }
   mserv_log("Shutdown initiated by %s", cl->user);
   mserv_shutdown = 1;
-  if (mserv_playing.track) {
+  if (playing->track) {
     mserv_broadcast("SHUTEND", cl->user);
   } else {
     mserv_broadcast("SHUTNOW", cl->user);
@@ -2230,7 +2272,7 @@ static void cmd_shutdown(t_client *cl, t_cmdparams *cp)
   if (cl->mode != mode_human)
     mserv_response(cl, "SHUTYES", NULL);
 
-  if (!mserv_playing.track) {
+  if (!playing->track) {
     mserv_flush();
     mserv_closedown(0);
   }

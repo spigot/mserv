@@ -32,6 +32,9 @@
 /* maximum track name or album name length */
 #define NAMELEN 128
 
+/* maximum channel name */
+#define CHANNELNAMELEN 16
+
 /* maximum track genres length */
 #define GENRESLEN 128
 

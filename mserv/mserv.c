@@ -81,10 +81,7 @@ t_client *mserv_clients = NULL;
 t_track *mserv_tracks = NULL;
 t_album *mserv_albums = NULL;
 t_queue *mserv_queue = NULL;
-t_supinfo *mserv_history[HISTORYLEN];
-t_supinfo mserv_playing;
-t_supinfo mserv_player_playing;
-struct timeval mserv_playing_start;
+t_trkinfo *mserv_history[HISTORYLEN];
 t_acl *mserv_acl = NULL;
 int mserv_shutdown = 0;
 int mserv_random = 0;
@@ -94,6 +91,7 @@ t_genre *mserv_genres = NULL;
 unsigned int mserv_filter_ok = 0;
 unsigned int mserv_filter_notok = 0;
 t_channel *mserv_channel = NULL;
+t_trkinfo mserv_player_playing = { NULL, "" };
 
 /*** file-scope (static) function declarations ***/
 
@@ -150,10 +148,15 @@ static RETSIGTYPE mserv_sighandler(int signum)
 
 /* General initialisiation to be done after
    starting mserv and also after a reset */
+
 static void mserv_init(void)
 {
   unsigned int i;
   t_album *album;
+  char line[256];
+  char error[256];
+  const char *config_execline;
+  t_client cl;
 
   /* load up defaults */
   mserv_factor = opt_factor;
@@ -182,14 +185,49 @@ static void mserv_init(void)
 
   mserv_savechanges();
 
+  /* create default channel */
+  if (channel_create(&mserv_channel, "default",
+                     error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to create default channel: %s", error);
+    mserv_closedown(1);
+  }
+
   /* setting the filter must be done after all the tracks are loaded, if
      there is no filter then don't try to set it, the default install won't
      have any tracks and this will cause it to fail */
   if (*opt_filter && mserv_setfilter(opt_filter)) {
     mserv_log("Unable to set default filter, ignoring");
-  } else {
-    mserv_recalcratings();
   }
+
+  /* must be done when there is a default channel */
+  mserv_recalcratings();
+
+  memset(&cl, 0, sizeof(t_client));
+  cl.userlevel = level_master;
+  cl.authed = 1;
+  cl.state = st_wait;
+  cl.mode = mode_human;
+  strcpy(cl.user, "root");
+  strcpy(cl.channel, "default");
+  cl.socket = fileno(mserv_logfile); /* TODO: startup.out */
+  fflush(mserv_logfile);
+
+  /* execute commands in options file */
+  for (i = 0;; i++) {
+    if ((config_execline = conf_getvalue_n("exec", i)) == NULL)
+      break;
+    if (strlen(config_execline) >= sizeof(line)) {
+      mserv_log("Line too long: %s", config_execline);
+      continue;
+    }
+    strncpy(line, config_execline, sizeof(line));
+    line[sizeof(line) - 1] = '\0';
+
+    if (mserv_debug)
+      mserv_log("executing: %s", line);
+    mserv_endline(&cl, line);
+  }
+  mserv_pollwrite(&cl);
 }
 
 int main(int argc, char *argv[])
@@ -210,8 +248,6 @@ int main(int argc, char *argv[])
   char *m = NULL;
   char error[256];
   int badparams = 0;
-  const char *config_execline;
-  t_client cl;
 
   progname = argv[0];
 
@@ -459,47 +495,14 @@ int main(int argc, char *argv[])
     mserv_closedown(1);
   }
 
-  /* do initialization */
-  mserv_init();
-
-  /* create default channel */
+  /* init channel part */
   if (channel_init(error, sizeof(error)) != MSERV_SUCCESS) {
     mserv_log("Failed to initialise channel sub-system: %s", error);
     mserv_closedown(1);
   }
-  if (channel_create(&mserv_channel, "default",
-                     error, sizeof(error)) != MSERV_SUCCESS) {
-    mserv_log("Failed to create default channel: %s", error);
-    mserv_closedown(1);
-  }
 
-  memset(&cl, 0, sizeof(t_client));
-  cl.userlevel = level_master;
-  cl.authed = 1;
-  cl.state = st_wait;
-  cl.mode = mode_human;
-  strcpy(cl.user, "root");
-  cl.socket = fileno(mserv_logfile); /* TODO: startup.out */
-  fflush(mserv_logfile);
-
-  /* execute commands in options file */
-  for (i = 0;; i++) {
-    char line[256];
-
-    if ((config_execline = conf_getvalue_n("exec", i)) == NULL)
-      break;
-    if (strlen(config_execline) >= sizeof(line)) {
-      mserv_log("Line too long: %s", config_execline);
-      continue;
-    }
-    strncpy(line, config_execline, sizeof(line));
-    line[sizeof(line) - 1] = '\0';
-
-    if (mserv_debug)
-      mserv_log("executing: %s", line);
-    mserv_endline(&cl, line);
-  }
-  mserv_pollwrite(&cl);
+  /* do initialization */
+  mserv_init();
 
   /* TODO: write startup.out to stdout (log?) if verbose (debug?) on */
 
@@ -643,6 +646,7 @@ static void mserv_mainloop(void)
     cl->authed = 0;
     cl->mode = mode_computer;
     cl->user[0] = '\0';
+    strcpy(cl->channel, "default");
     mserv_send(cl, "200 Mserv " VERSION " (c) James Ponder 1999-2003 - "
 	       "Type: USER <username>\r\n", 0);
     mserv_send(cl, ".\r\n", 0);
@@ -652,6 +656,7 @@ static void mserv_mainloop(void)
 static void mserv_checkchild(void)
 {
   int st, pid;
+  t_trkinfo *playing = channel_getplaying(mserv_channel);
 
   if ((pid = waitpid(mserv_player_pid, &st,
 		     WNOHANG | WUNTRACED)) == mserv_player_pid) {
@@ -662,10 +667,10 @@ static void mserv_checkchild(void)
 	if (WEXITSTATUS(st)) {
 	  mserv_log("Child process exited (%d)", WEXITSTATUS(st));
 	  mserv_broadcast("NOSPAWN", "%d\t%d\t%s\t%s",
-			  mserv_playing.track->n_album,
-			  mserv_playing.track->n_track,
-			  mserv_playing.track->author,
-			  mserv_playing.track->name);
+			  playing->track->n_album,
+			  playing->track->n_track,
+			  playing->track->author,
+			  playing->track->name);
 	  mserv_player_pid = 0;
 	  mserv_checkshutdown();
 	  return;
@@ -884,10 +889,10 @@ void mserv_close(t_client *cl)
     b = mserv_queue;
     c = mserv_queue ? mserv_queue->next : NULL;
     while (b) {
-      if (!stricmp(b->supinfo.user, cl->user)) {
+      if (!stricmp(b->trkinfo.user, cl->user)) {
 	mserv_broadcast("UNQA", "%d\t%d\t%s\t%s",
-			b->supinfo.track->n_album, b->supinfo.track->n_track,
-			b->supinfo.track->author, b->supinfo.track->name);
+			b->trkinfo.track->n_album, b->trkinfo.track->n_track,
+			b->trkinfo.track->author, b->trkinfo.track->name);
 	free(b);
 	if (a == NULL)
 	  mserv_queue = c;
@@ -1189,16 +1194,13 @@ static void mserv_replacetrack(t_track *track, t_track *newtrack)
 	album->tracks[ui] = newtrack;
     }
   }
-  /* change currently playing track pointer */
-  if (mserv_playing.track == track)
-    mserv_playing.track = newtrack;
   /* change currently decoding track pointer */
   if (mserv_player_playing.track == track)
     mserv_player_playing.track = newtrack;
   /* change queue track pointers */
   for (queue = mserv_queue; queue; queue = queue->next) {
-    if (queue->supinfo.track == track)
-      queue->supinfo.track = newtrack;
+    if (queue->trkinfo.track == track)
+      queue->trkinfo.track = newtrack;
   }
   /* change track linked list pointer */
   for (tr = mserv_tracks; tr; tr = tr->next) {
@@ -1644,7 +1646,6 @@ static void mserv_scandir(void)
   mserv_log("Scanning '%s'...", opt_path_tracks);
   mserv_scandir_recurse("");
   mserv_log("Finished scanning.");
-  mserv_recalcratings();
 }
 
 static void mserv_scandir_recurse(const char *pathname)
@@ -2230,18 +2231,18 @@ int mserv_addqueue(t_client *cl, t_track *track)
     mserv_broadcast("MEMORY", NULL);
     return -1;
   }
-  newq->supinfo.track = track;
-  strcpy(newq->supinfo.user, cl->user);
+  newq->trkinfo.track = track;
+  strcpy(newq->trkinfo.user, cl->user);
   newq->next = NULL;
 
   total = 0;
   for (q = mserv_queue; q; q = q->next) {
-    if (q->supinfo.track == track) {
+    if (q->trkinfo.track == track) {
       /* can't enter the same track into the queue twice */
       free(newq);
       return -1;
     }
-    if (!stricmp(q->supinfo.user, cl->user))
+    if (!stricmp(q->trkinfo.user, cl->user))
       total++;
   }
   if (total >= 100) { /* don't allow a user to queue more than 100 tracks */
@@ -2251,7 +2252,7 @@ int mserv_addqueue(t_client *cl, t_track *track)
   /* find our last queued song */
   last = NULL;
   for (q = mserv_queue; q; q = q->next) {
-    if (stricmp(q->supinfo.user, cl->user) == 0)
+    if (stricmp(q->trkinfo.user, cl->user) == 0)
       last = q;
   }
   /* now we're going to loop around all the tracks in the queue, looking for
@@ -2265,7 +2266,7 @@ int mserv_addqueue(t_client *cl, t_track *track)
     for (ppos = qpos + 1, last = q, p = q->next;
          p;
          last = p, p = p->next, ppos++) {
-      if (stricmp(q->supinfo.user, p->supinfo.user) == 0) {
+      if (stricmp(q->trkinfo.user, p->trkinfo.user) == 0) {
         /* found second song */
         if (newpos == -1 || ppos < newpos) {
           newpos = ppos;
@@ -2345,7 +2346,7 @@ int mserv_player_playnext(void)
     }
   } else {
     q = mserv_queue;
-    memcpy(&mserv_player_playing, &q->supinfo, sizeof(t_supinfo));
+    memcpy(&mserv_player_playing, &q->trkinfo, sizeof(t_trkinfo));
     mserv_queue = mserv_queue->next;
     free(q);
   }
@@ -2507,38 +2508,6 @@ static void mserv_checkshutdown(void)
   }
 }
 
-void mserv_pauseplay(t_client *cl)
-{
-  char error[256];
-
-  if (channel_paused(mserv_channel))
-    return;
-  if (channel_pause(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS) {
-    mserv_log("Failed to pause %s: %s", mserv_channel->name, error);
-  } else {
-    mserv_broadcast("PAUSE", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
-                    mserv_playing.track->n_album,
-                    mserv_playing.track->n_track,
-                    mserv_playing.track->author, mserv_playing.track->name);
-  }
-}
-
-void mserv_resumeplay(t_client *cl)
-{
-  char error[256];
-
-  if (!channel_paused(mserv_channel))
-    return;
-  if (channel_unpause(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS) {
-    mserv_log("Failed to resume %s: %s", mserv_channel->name, error);
-  } else {
-    mserv_broadcast("RESUME", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
-                    mserv_playing.track->n_album,
-                    mserv_playing.track->n_track,
-                    mserv_playing.track->author, mserv_playing.track->name);
-  }
-}
-
 void mserv_recalcratings(void)
 {
   t_track *track;
@@ -2550,6 +2519,7 @@ void mserv_recalcratings(void)
   int ntracks;
   t_track **sbuf;
   int i;
+  t_trkinfo *playing = channel_getplaying(mserv_channel);
 
   if (mserv_debug)
     mserv_log("Calculating ratings of tracks...");
@@ -2606,7 +2576,7 @@ void mserv_recalcratings(void)
       track->rating = track->rating*0.8;
     else if (track->lastplay != 0) /* played */
       track->rating = track->rating*0.95;
-    if (track == mserv_playing.track)
+    if (playing && track == playing->track)
       track->rating = 0; /* currently playing */
     if (!track->filterok)
       track->rating = 0; /* filtered out */
@@ -3090,6 +3060,7 @@ void mserv_reset(void)
   t_author *auth, *auth_n;
   t_genre *genre, *genre_n;
   int i;
+  char error[256];
 
   /* clear queue */
   for (q = mserv_queue; q; q = q_n) {
@@ -3135,14 +3106,19 @@ void mserv_reset(void)
   /* other stuff */
   mserv_nextid_album = 1;
   mserv_nextid_track = 1;
-  mserv_playing.track = NULL;
   mserv_player_playing.track = NULL;
   mserv_player_pid = 0;
   mserv_shutdown = 0;
 
+  /* remove default channel */
+  if (mserv_channel) {
+    if (channel_close(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
+      mserv_log("Failed to close default channel during reset: %s", error);
+  }
+  mserv_channel = NULL;
+
   /* ok, lets get everything back */
   mserv_init();
-
 }
 
 void mserv_setgap(double gap)
@@ -3352,21 +3328,22 @@ void mserv_ensuredisk(void)
   }
 }
 
-void mserv_setplaying(t_supinfo *supinfo)
+void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
+                      t_trkinfo *nowplaying)
 {
   t_lang *lang;
   t_client *cl;
   t_rating *rate;
   char buffer[USERNAMELEN+AUTHORLEN+NAMELEN+64];
 
-  if (mserv_playing.track) {
-    mserv_checkdisk_track(mserv_playing.track);
+  if (wasplaying) {
+    mserv_checkdisk_track(wasplaying->track);
     for (cl = mserv_clients; cl; cl = cl->next) {
       if (!cl->authed)
         continue;
       if (cl->mode == mode_human) {
-        if ((rate = mserv_getrate(cl->user, mserv_playing.track)) == NULL) {
-          if (mserv_ratetrack(cl, &mserv_playing.track, 0) == NULL)
+        if ((rate = mserv_getrate(cl->user, wasplaying->track)) == NULL) {
+          if (mserv_ratetrack(cl, &wasplaying->track, 0) == NULL)
             mserv_broadcast("MEMORY", NULL);
         }
       }
@@ -3375,10 +3352,8 @@ void mserv_setplaying(t_supinfo *supinfo)
     mserv_savechanges();
     mserv_checkshutdown();
   }
-  if (supinfo) {
-    mserv_playing = *supinfo;
-    gettimeofday(&mserv_playing_start, NULL);
-    mserv_checkdisk_track(mserv_playing.track);
+  if (nowplaying) {
+    mserv_checkdisk_track(nowplaying->track);
     if ((lang = mserv_gettoken("NOWPLAY")) == NULL) {
       mserv_log("Failed to find language token NOWPLAY");
       exit(1);
@@ -3386,17 +3361,17 @@ void mserv_setplaying(t_supinfo *supinfo)
     for (cl = mserv_clients; cl; cl = cl->next) {
       if (!cl->authed)
         continue;
-      rate = mserv_getrate(cl->user, mserv_playing.track);
+      rate = mserv_getrate(cl->user, nowplaying->track);
       if (cl->mode == mode_human) {
         mserv_send(cl, "[] ", 0);
         mserv_send(cl, lang->text, 0);
         mserv_send(cl, "\r\n", 0);
-        mserv_send_trackinfo(cl, mserv_playing.track, rate, 1,
-                             mserv_playing.user);
-        if (!mserv_playing.track->genres[0])
+        mserv_send_trackinfo(cl, nowplaying->track, rate, 1,
+                             nowplaying->user);
+        if (!nowplaying->track->genres[0])
           if (opt_human_alert_nogenre)
             mserv_response(cl, "GENREME", NULL); /* set my genre! */
-        if (!mserv_playing.track->ratings) {
+        if (!nowplaying->track->ratings) {
           if (opt_human_alert_firstplay)
             mserv_response(cl, "FPLAY", NULL);
         } else if (!rate) {
@@ -3408,23 +3383,20 @@ void mserv_setplaying(t_supinfo *supinfo)
         }
       } else if (cl->mode == mode_rtcomputer) {
         sprintf(buffer, "=%d\t%s\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-                lang->code,
-                mserv_playing.user, mserv_playing.track->n_album,
-                mserv_playing.track->n_track,
-                mserv_playing.track->author,
-                mserv_playing.track->name, mserv_ratestr(rate),
-                (mserv_playing.track->duration / 100) / 60,
-                (mserv_playing.track->duration / 100) % 60);
+                lang->code, nowplaying->user, nowplaying->track->n_album,
+                nowplaying->track->n_track, nowplaying->track->author,
+                nowplaying->track->name, mserv_ratestr(rate),
+                (nowplaying->track->duration / 100) / 60,
+                (nowplaying->track->duration / 100) % 60);
         mserv_send(cl, buffer, 0);
       }
     }
-    mserv_addtohistory(&mserv_playing);
-    mserv_playing.track->lastplay = time(NULL);
-    mserv_playing.track->modified = 1;
+    mserv_addtohistory(nowplaying);
+    nowplaying->track->lastplay = time(NULL);
+    nowplaying->track->modified = 1;
     mserv_recalcratings(); /* recalc ratings now lastplay has changed */
     mserv_savechanges();
   } else {
-    mserv_playing.track = NULL;
     if (mserv_player_playing.track == NULL) {
       /* reached end of input stream, and no more upcoming tracks... */
       mserv_broadcast("FINISH", NULL);
@@ -3504,26 +3476,21 @@ void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
   mserv_send(cl, "\r\n", 0);
 }
 
-void mserv_addtohistory(t_supinfo *sup)
+void mserv_addtohistory(t_trkinfo *sup)
 {
-  t_supinfo *history;
+  t_trkinfo *history;
 
-  if ((history = malloc(sizeof(t_supinfo))) == NULL) {
+  if ((history = malloc(sizeof(t_trkinfo))) == NULL) {
     mserv_log("Out of memory adding item to history");
     mserv_broadcast("MEMORY", NULL);
   } else {
     if (mserv_history[HISTORYLEN-1])
       free(mserv_history[HISTORYLEN-1]);
-    memmove((char *)mserv_history+sizeof(t_supinfo *), mserv_history,
-            (HISTORYLEN-1)*sizeof(t_supinfo *));
+    memmove((char *)mserv_history+sizeof(t_trkinfo *), mserv_history,
+            (HISTORYLEN-1)*sizeof(t_trkinfo *));
     mserv_history[0] = history;
-    memcpy(mserv_history[0], sup, sizeof(t_supinfo));
+    memcpy(mserv_history[0], sup, sizeof(t_trkinfo));
   }
-}
-
-t_supinfo *mserv_getplaying(void)
-{
-  return &mserv_playing;
 }
 
 const char *mserv_clientmodetext(t_client *cl)

@@ -533,16 +533,40 @@ static void mserv_mainloop(void)
 {
   char error[256];
   t_client *cl, *last;
-  fd_set fd_reads, fd_writes;
   int client_socket;
-  int maxfd;
-  struct timeval timeout;
   struct sockaddr_in sin_client;
   int sin_client_len = sizeof(sin_client);
   int flags;
   int i;
 
+  long timestampBeforeUserIo = 0;
+  long timestampBeforeSleep = 0;
+  long timestampBeforeSoundIo = 0;
+  long timestampBeforeNewConnections = 0;
+  
   for(;;) {
+    long timestampCycleWrap = mserv_getMSecsSinceEpoch();
+    int soundBufferMs = channel_getSoundBufferMs();
+
+    if (soundBufferMs > 0) {
+      int ioTime = timestampBeforeSleep - timestampBeforeUserIo;
+      int sleepTime = timestampBeforeSoundIo - timestampBeforeSleep;
+      int soundTime = timestampBeforeNewConnections - timestampBeforeSoundIo;
+      int newConnectionTime = timestampCycleWrap - timestampBeforeNewConnections;
+      int cycleTime = timestampCycleWrap - timestampBeforeUserIo;
+      
+      if (cycleTime >= soundBufferMs) {
+	mserv_log("Warning: Main loop cycle took %dms, which is longer than the %dms sound buffer.",
+		  cycleTime,
+		  soundBufferMs);
+	mserv_log("         Expect sound skips.  Start mserv with -d for more info on where time is spent.");
+	mserv_log("         Cycle time (%dms) = user IO (%dms) + sleep (%dms) + sound IO (%dms) + new connections (%dms)",
+		  cycleTime, ioTime, sleepTime, soundTime, newConnectionTime);
+      }
+    }
+    
+    timestampBeforeUserIo = mserv_getMSecsSinceEpoch();
+    
     /* check all connections */
     for (cl = mserv_clients; cl; cl = cl->next) {
       mserv_pollclient(cl);
@@ -573,27 +597,15 @@ static void mserv_mainloop(void)
       last = cl;
       cl = cl->next;
     }
-    /* setup select */
-    FD_ZERO(&fd_reads);
-    FD_ZERO(&fd_writes);
-    FD_SET(mserv_socket, &fd_reads);
-    maxfd = mserv_socket+1;
-    for (cl = mserv_clients; cl; cl = cl->next) {
-      if (cl->socket != -1) {
-        FD_SET(cl->socket, &fd_reads);
-        if (cl->outbuf[0].iov_len)
-	  FD_SET(cl->socket, &fd_writes);
-        if (cl->socket >= maxfd)
-	  maxfd = cl->socket+1;
-      }
-    }
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 100000;
-    /* mserv_log("SELECT %d %d", timeout.tv_sec, timeout.tv_usec); */
-    select(maxfd, &fd_reads, &fd_writes, NULL, &timeout);
-    /* mserv_log("END SELECT"); */
+    
+    timestampBeforeSleep = mserv_getMSecsSinceEpoch();
+    usleep(100000);
+    
+    timestampBeforeSoundIo = mserv_getMSecsSinceEpoch();
     /* output any sound that needs to be */
     channel_sync(mserv_channel, error, sizeof(error));
+    
+    timestampBeforeNewConnections = mserv_getMSecsSinceEpoch();
     /* check for incoming connections */
     client_socket = accept(mserv_socket, (struct sockaddr *)&sin_client,
 			   &sin_client_len);

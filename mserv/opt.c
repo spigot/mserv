@@ -99,12 +99,13 @@ int opt_read(const char *root)
     if (!stricmp(p->type, "path")) {
       if (*val != '/') {
 	/* value is relative to mserv root */
-	if ((m = malloc(rl+2+strlen(val))) == NULL) {
+	if ((m = malloc(rl + strlen(val) + 2)) == NULL) {
 	  fprintf(stderr, "%s: out of memory building path\n", progname);
 	  return -1;
 	}
         strncpy(m, root, rl);
-        m[rl] = '\0';
+        m[rl] = '/';
+        m[rl+1] = '\0';
         strcat(m, val);
       } else {
 	/* value is absolute path */

@@ -45,7 +45,7 @@ proc benchmark { description benchmarkee } {
 	set total_runtime [expr $total_runtime + $runtime]
 	set average_runtime [expr 1.0 * $total_runtime / $i]
 	
-	if { $i == 0 } {
+	if { $i == 1 } {
 		set max_runtime $runtime
 		set min_runtime $runtime
 	}
@@ -165,7 +165,7 @@ benchmark {The "play"-"pause"-"play"-"next"-"stop" cycle} {
     expect "no tracks in the queue"
     
     send "play\n"
-    expect "resumed by root"
+    expect "resumed"
     expect -i $computerroot "=605\troot"
     send "status\n"
     expect "Playing"

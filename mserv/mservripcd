@@ -121,6 +121,16 @@ if (!open(CONFIG, "$home/.mservripcd")) {
     close(CONFIG) || die "Failed to close configuration file: $!\n";
 }
 
+if ($config{ripper} eq 'cdparanoia' && !-x $config{cdparanoia}) {
+    die 'cdparanoia ('.$config{cdparanoia}.') is not found/executable'. "\n";
+} elsif ($config{ripper} eq 'tosha' && !-x $config{tosha}) {
+    die 'tosha ('.$config{tosha}.') is not found/executable'. "\n";
+} elsif (!-x $config{bladeenc}) {
+    die 'bladeenc ('.$config{bladeenc}.') is not found/executable'. "\n";
+} elsif (!-x $config{mservedit}) {
+    die 'mservedit ('.$config{mservedit}.') is not found/executable'. "\n";
+}
+
 sub msf {
     my $bytes = $_[0];
     my $blocks_per_second = 75;
@@ -188,16 +198,6 @@ if ($tracks == 0) {
 }
 
 print "There are $tracks tracks to rip\n\n";
-
-if ($config{ripper} eq 'cdparanoia' && !-x $config{cdparanoia}) {
-    die 'cdparanoia ('.$config{cdparanoia}.') is not found/executable'. "\n";
-} elsif ($config{ripper} eq 'tosha' && !-x $config{tosha}) {
-    die 'tosha ('.$config{tosha}.') is not found/executable'. "\n";
-} elsif (!-x $config{bladeenc}) {
-    die 'bladeenc ('.$config{bladeenc}.') is not found/executable'. "\n";
-} elsif (!-x $config{mservedit}) {
-    die 'mservedit ('.$config{mservedit}.') is not found/executable'. "\n";
-}
 
 if ($verbose) {
     print "The following question asks for a temporary name to use, this\n";
@@ -271,7 +271,8 @@ if ($cddbask eq 'yes' or $cddbask eq 'y') {
 	for(;;) {
 	    my $disc = ask("CD to view or 'none' (1-$mdisc)", "1");
 	    last if ($disc eq '');
-	    my ($cd_id, $cd_genre) = ($db{$disc}{'id'}, $db{$disc}{'genre'});
+	    my ($cd_id, $cd_genre, $cd_title) = ($db{$disc}{'id'},
+                    $db{$disc}{'genre'}, $db{$disc}{'title'});
 	    my $cd_info = $db->get_disc_details($cd_genre, $cd_id);
 	    if (!defined($cd_info)) {
 		print "Failed to get track information\n";
@@ -287,6 +288,7 @@ if ($cddbask eq 'yes' or $cddbask eq 'y') {
 		if ($go eq 'yes' || $go eq 'y') {
 		    $tracknames = \@cd_titles;
 		    $genre = $cd_genre;
+		    $cdtitle = $cd_title;
 		    $cddb = 1;
 		    last;
 		}
@@ -297,13 +299,22 @@ if ($cddbask eq 'yes' or $cddbask eq 'y') {
 
 my $author = '';
 my $cddbconv = 0;
+my $splitchar = '';
 
 if ($cddb) {
-    my $a = ask("Shall I split the CDDB titles into name/author", "yes");
+    my $title = defined($tracknames) ? $$tracknames[0] : '';
+    my $default = ($title =~ m#[/-]#) ? "yes" : "no";
+    my $a = ask("Shall I split the CDDB titles into name/author", $default);
     $cddbconv = 1 if ($a eq 'y' or $a eq 'yes');
 }
-if (!$cddbconv) {
-    $author = ask("What author should I set by default on tracks", "");
+if ($cddbconv) {
+    my $title = defined($tracknames) ? $$tracknames[0] : '';
+    my $default = ($title =~ /-/) ? "-" : "/";
+    $splitchar = ask("What character should I split the titles into ".
+                     "name/author at?", $default);
+} else {
+    my ($default) = ($cdtitle =~ /^([^\/]+)\s+\/\s+.*$/);
+    $author = ask("What author should I set by default on tracks", $default);
 }
 
 my $year = ask("What year should I set by default on tracks (0=none)", "0");
@@ -313,18 +324,35 @@ for (my $track = 1; $track <= $tracks; $track++) {
     open(TRK, ">$s") || die "failed to open $s for writing: $!\n";
     if ($cddbconv) {
         my $title = defined($tracknames) ? shift(@$tracknames) : '';
-	my ($author, $name) = ($title =~ /^([^\/]+)\s+\/\s+(.*)$/);
+        my ($name, $author);
+	($author, $name) = ($title =~ /^([^\/]+)\s+${splitchar}\s+(.*)$/);
+        $name = ucfirst(lc($name));
+	$name =~ s/(\W)i(?!\w)/$1I/g; # uppercase lone I's
         print TRK '_author='.$author."\n";
-        print TRK '_name='.ucfirst(lc($name))."\n";
+        print TRK '_name='.$name."\n";
     } else {
         print TRK '_author='.$author."\n";
         $name = shift(@$tracknames) if (defined($tracknames));
-        print TRK '_name='.ucfirst(lc($name))."\n";
+	$name = ucfirst(lc($name));
+	$name =~ s/(\W)i(?!\w)/$1I/g; # uppercase lone I's
+        print TRK '_name='.$name."\n";
     }
     print TRK '_genres='.$genre."\n";
     print TRK '_year='.$year."\n";
     close(TRK) || die "failed to close $s: $!\n";
 }
+
+my $s = $config{workdir}."/$cdname/album";
+open(TRK, ">$s") || die "failed to open $s for writing: $!\n";
+if ($cddbconv) {
+    print TRK "_author=Various\n";
+    print TRK '_name='.$cdtitle."\n";
+} else {
+    my ($author, $name) = ($cdtitle =~ /^([^\/]+)\s+\/\s+(.*)$/);
+    print TRK '_author='.$author."\n";
+    print TRK '_name='.$name."\n";
+}
+close(TRK) || die "failed to close $s: $!\n";
 
 NONAMING:
 
@@ -333,7 +361,7 @@ while($go eq "yes" || $go eq "y") {
     if (system($config{mservedit}, $config{workdir}."/$cdname")) {
 	print "system failed to run '$config{mservedit}': $?\n";
     }
-    $go = ask("Run mservedit again?", "yes");
+    $go = ask("Run mservedit again?", "no");
 }
 
 print "\n\n--- Doing my stuff...\n\n";
@@ -350,6 +378,9 @@ for ($i = 1; $i <= $tracks; $i++) {
 	print "--- Ripping track $i...\n\n";
 	if ($config{ripper} eq 'cdparanoia') {
 	    $rc = system($config{cdparanoia}." -z -w $i $s.wav");
+# 2.7 upwards users should really have abort-on-skip turned on.
+#	    $rc = system($config{cdparanoia}." -z -w --abort-on-skip $i ".
+#			 "$s.wav");
 	} elsif ($config{ripper} eq 'tosha') {
 	    $rc = system($config{tosha}." -v -t $i -o $s.wav -f wav");
 	} else {

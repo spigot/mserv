@@ -1,3 +1,6 @@
+PWD = ${shell pwd}
+BASE = ${shell basename ${PWD}}
+
 default:
 	(cd mserv; ./configure)
 	(cd mserv; make DEFS=${DEFS})
@@ -20,3 +23,6 @@ cleaner:
 	(cd mserv; make cleaner)
 	(cd mservcli; make cleaner)
 	(cd mservutils; make cleaner)
+
+dist:	
+	(cd ..; tar -cvf ${BASE}.tar --exclude CVS ${BASE}; gzip ${BASE}.tar)

@@ -103,9 +103,10 @@ INFU5	246	  Awful:           %07%% (%14)
 INFU6	246	  Heard (unrated): %08%% (%15)
 INFU7	246	  Unheard:         %09%% (%16)
 INFU8	246	  Index:           %17%% (%02/%01)
-CHECKRN	247	There are no inconsistent songs.
-CHECKR	248	These songs are inconsistent:
-SEARCFA	249	These songs match filter:
+CHECKRN	277	There are no inconsistent songs.
+CHECKR	278	These songs are inconsistent:
+SEARCFA	279	These songs match filter:
+ASRCHA	280	Search results:
 
 RATETOO	200	You may like to rate these too:
 FPLAY	200	** First play!
@@ -164,6 +165,7 @@ BADNAME	534	Invalid name setting
 NOTRKS	535	There are no tracks!
 NOGEN	536	No such genre
 SEARCFB	537	No tracks matching filter found
+ASRCHB	538	No albums matching search pattern found
 
 CONNECT	600	User %01 has connected
 DISCONN	601	User %01 has disconnected

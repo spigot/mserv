@@ -121,6 +121,7 @@ typedef struct _t_cmds {
   unsigned int authed;
   t_userlevel userlevel;
   char *name;
+  struct _t_cmds *sub_cmds;
   void (*function)(t_client *cl, t_cmdparams *cp);
   char *help;
   char *syntax;
@@ -306,5 +307,11 @@ struct _t_channel {
   unsigned int buffer_samples; /* samples in buffer and buffer_char (16 bit) */
   float *buffer;               /* same as buffer_char, but float and volume'd */
 };
+
+typedef struct _t_channel_list {
+  struct _t_channel_list *next; /* next in list */
+  unsigned int created;        /* time the user created the channel */
+  t_channel *channel;
+} t_channel_list;
 
 #endif

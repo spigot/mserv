@@ -26,8 +26,10 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "mserv.h"
+#include "misc.h"
 #include "params.h"
 
 #define SKIP_LEADING_SPACES(string) \

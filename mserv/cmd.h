@@ -1,1 +1,1 @@
-extern t_cmds mserv_cmds[];
+extern t_cmds cmd_cmds[];

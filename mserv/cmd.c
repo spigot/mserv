@@ -14,6 +14,13 @@
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+/*
+  cmd - command table and associated commands.  see also:
+    cmd_x        X commands
+    cmd_set      SET commands
+    cmd_channel  CHANNEL commands
+*/
+
 #define _GNU_SOURCE 1
 #define _BSD_SOURCE 1
 #define __EXTENSIONS__ 1
@@ -37,352 +44,227 @@
 #include "filter.h"
 #include "cmd.h"
 #include "cmd_x.h"
+#include "cmd_set.h"
+#include "cmd_channel.h"
 
 /*** file-scope (static) function declarations ***/
 
-static void mserv_cmd_moo(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_quit(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_help(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_user(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_pass(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_status(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_userinfo(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_who(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_say(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_emote(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_create(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_remove(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_level(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_password(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_albums(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_tracks(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_ratings(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_queue(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_unqueue(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_play(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_stop(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_next(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_clear(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_repeat(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_random(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_filter(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_factor(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_top(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_pause(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_volume(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_bass(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_treble(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_history(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_rate(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_check(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_search(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_searchf(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_asearch(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_idea(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_info(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_date(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_kick(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_reset(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_sync(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_shutdown(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_gap(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_set(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_channel(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_channel_output(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_channel_output_add(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_set_author(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_set_name(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_set_genre(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_set_year(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_set_volume(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_set_albumauthor(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_set_albumname(t_client *cl, t_cmdparams *cp);
+static void cmd_moo(t_client *cl, t_cmdparams *cp);
+static void cmd_quit(t_client *cl, t_cmdparams *cp);
+static void cmd_help(t_client *cl, t_cmdparams *cp);
+static void cmd_user(t_client *cl, t_cmdparams *cp);
+static void cmd_pass(t_client *cl, t_cmdparams *cp);
+static void cmd_status(t_client *cl, t_cmdparams *cp);
+static void cmd_userinfo(t_client *cl, t_cmdparams *cp);
+static void cmd_who(t_client *cl, t_cmdparams *cp);
+static void cmd_say(t_client *cl, t_cmdparams *cp);
+static void cmd_emote(t_client *cl, t_cmdparams *cp);
+static void cmd_create(t_client *cl, t_cmdparams *cp);
+static void cmd_remove(t_client *cl, t_cmdparams *cp);
+static void cmd_level(t_client *cl, t_cmdparams *cp);
+static void cmd_password(t_client *cl, t_cmdparams *cp);
+static void cmd_albums(t_client *cl, t_cmdparams *cp);
+static void cmd_tracks(t_client *cl, t_cmdparams *cp);
+static void cmd_ratings(t_client *cl, t_cmdparams *cp);
+static void cmd_queue(t_client *cl, t_cmdparams *cp);
+static void cmd_unqueue(t_client *cl, t_cmdparams *cp);
+static void cmd_play(t_client *cl, t_cmdparams *cp);
+static void cmd_stop(t_client *cl, t_cmdparams *cp);
+static void cmd_next(t_client *cl, t_cmdparams *cp);
+static void cmd_clear(t_client *cl, t_cmdparams *cp);
+static void cmd_repeat(t_client *cl, t_cmdparams *cp);
+static void cmd_random(t_client *cl, t_cmdparams *cp);
+static void cmd_filter(t_client *cl, t_cmdparams *cp);
+static void cmd_factor(t_client *cl, t_cmdparams *cp);
+static void cmd_top(t_client *cl, t_cmdparams *cp);
+static void cmd_pause(t_client *cl, t_cmdparams *cp);
+static void cmd_volume(t_client *cl, t_cmdparams *cp);
+static void cmd_bass(t_client *cl, t_cmdparams *cp);
+static void cmd_treble(t_client *cl, t_cmdparams *cp);
+static void cmd_history(t_client *cl, t_cmdparams *cp);
+static void cmd_rate(t_client *cl, t_cmdparams *cp);
+static void cmd_check(t_client *cl, t_cmdparams *cp);
+static void cmd_search(t_client *cl, t_cmdparams *cp);
+static void cmd_searchf(t_client *cl, t_cmdparams *cp);
+static void cmd_asearch(t_client *cl, t_cmdparams *cp);
+static void cmd_idea(t_client *cl, t_cmdparams *cp);
+static void cmd_info(t_client *cl, t_cmdparams *cp);
+static void cmd_date(t_client *cl, t_cmdparams *cp);
+static void cmd_kick(t_client *cl, t_cmdparams *cp);
+static void cmd_reset(t_client *cl, t_cmdparams *cp);
+static void cmd_sync(t_client *cl, t_cmdparams *cp);
+static void cmd_shutdown(t_client *cl, t_cmdparams *cp);
+static void cmd_gap(t_client *cl, t_cmdparams *cp);
 
-static int mserv_cmd_queue_sub(t_client *cl, t_album *album, int n_track,
+static int cmd_queue_sub(t_client *cl, t_album *album, int n_track,
 			       int header);
 
 /*** file-scope (static) globals ***/
 
 /*** externed variables ***/
 
-t_cmds mserv_cmds[] = {
-  /* authed_flag, level, name, command, help, syntax */
-  { 0, level_guest, "QUIT", mserv_cmd_quit,
+t_cmds cmd_cmds[] = {
+  /* authed_flag, level, name, sub-command table, command, help, syntax */
+  { 0, level_guest, "QUIT", NULL, cmd_quit,
     "Quits you from this server",
     "" },
-  { 0, level_guest, "HELP", mserv_cmd_help,
+  { 0, level_guest, "HELP", NULL, cmd_help,
     "Displays help",
     "[<command> [<sub-command>]]" },
-  { 0, level_guest, "USER", mserv_cmd_user,
+  { 0, level_guest, "USER", NULL, cmd_user,
     "Informs server of your username",
     "<username>" },
-  { 0, level_guest, "PASS", mserv_cmd_pass,
+  { 0, level_guest, "PASS", NULL, cmd_pass,
     "Informs server of your password",
     "<password> [<mode: HUMAN, COMPUTER, RTCOMPUTER>]" },
-  { 0, level_guest, "DATE", mserv_cmd_date,
+  { 0, level_guest, "DATE", NULL, cmd_date,
     "Display the time and date",
     "" },
-  { 1, level_guest, "STATUS", mserv_cmd_status,
+  { 1, level_guest, "STATUS", NULL, cmd_status,
     "Displays the current status of the server",
     "" },
-  { 1, level_guest, "USERINFO", mserv_cmd_userinfo,
+  { 1, level_guest, "USERINFO", NULL, cmd_userinfo,
     "Displays information about a particular user",
     "<username>" },
-  { 1, level_user, "WHO", mserv_cmd_who,
+  { 1, level_user, "WHO", NULL, cmd_who,
     "Displays who is currently connected",
     "" },
-  { 1, level_user, "SAY", mserv_cmd_say,
+  { 1, level_user, "SAY", NULL, cmd_say,
     "Say something to the rest of the server",
     "<text>" },
-  { 1, level_user, "EMOTE", mserv_cmd_emote,
+  { 1, level_user, "EMOTE", NULL, cmd_emote,
     "Emote something to the rest of the server",
     "<text>" },
-  { 1, level_guest, "ALBUMS", mserv_cmd_albums,
+  { 1, level_guest, "ALBUMS", NULL, cmd_albums,
     "List all albums",
     "" },
-  { 1, level_guest, "TRACKS", mserv_cmd_tracks,
+  { 1, level_guest, "TRACKS", NULL, cmd_tracks,
     "List all tracks belonging to an album",
     "[<album>]" },
-  { 1, level_guest, "RATINGS", mserv_cmd_ratings,
+  { 1, level_guest, "RATINGS", NULL, cmd_ratings,
     "List ratings for a given track or current track",
     "[<album> <track>]" },
-  { 1, level_guest, "QUEUE", mserv_cmd_queue,
+  { 1, level_guest, "QUEUE", NULL, cmd_queue,
     "Show queue contents, add an album (optionally random order) or a track",
     "[<album> [<track>|RANDOM]]" },
-  { 1, level_user, "UNQUEUE", mserv_cmd_unqueue,
+  { 1, level_user, "UNQUEUE", NULL, cmd_unqueue,
     "Remove track from the queue",
     "<album> <track>" },
-  { 1, level_user, "PLAY", mserv_cmd_play,
+  { 1, level_user, "PLAY", NULL, cmd_play,
     "Start playing queued tracks",
     "" },
-  { 1, level_user, "STOP", mserv_cmd_stop,
+  { 1, level_user, "STOP", NULL, cmd_stop,
     "Stop playing current song",
     "" },
-  { 1, level_user, "NEXT", mserv_cmd_next,
+  { 1, level_user, "NEXT", NULL, cmd_next,
     "Stop playing current song and play next in queue",
     "" },
-  { 1, level_user, "PAUSE", mserv_cmd_pause,
+  { 1, level_user, "PAUSE", NULL, cmd_pause,
     "Pause current song, use PLAY to resume",
     "" },
-  { 1, level_user, "CLEAR", mserv_cmd_clear,
+  { 1, level_user, "CLEAR", NULL, cmd_clear,
     "Clear the queue",
     "" },
-  { 1, level_user, "REPEAT", mserv_cmd_repeat,
+  { 1, level_user, "REPEAT", NULL, cmd_repeat,
     "Repeat the current track by putting it in the queue",
     "" },
-  { 1, level_guest, "RANDOM", mserv_cmd_random,
+  { 1, level_guest, "RANDOM", NULL, cmd_random,
     "Enable, disable or show current random song selection mode",
     "[off|on]" },
-  { 1, level_user, "FILTER", mserv_cmd_filter,
+  { 1, level_user, "FILTER", NULL, cmd_filter,
     "Limit random play to tracks matching filter",
     "off|<filter>" },
-  { 1, level_guest, "FACTOR", mserv_cmd_factor,
+  { 1, level_guest, "FACTOR", NULL, cmd_factor,
     "Set random factor (default 0.6)",
     "<0=play worst, 0.5=play any, 0.99=play best>" },
-  { 1, level_guest, "TOP", mserv_cmd_top,
+  { 1, level_guest, "TOP", NULL, cmd_top,
     "Show most likely to be played tracks, default 20 lines",
     "[<lines>]" },
-  { 1, level_guest, "VOLUME", mserv_cmd_volume,
+  { 1, level_guest, "VOLUME", NULL, cmd_volume,
     "Display or set the volume (+/- for relative)",
     "[[+|-][<0-100>]]" },
-  { 1, level_guest, "BASS", mserv_cmd_bass,
+  { 1, level_guest, "BASS", NULL, cmd_bass,
     "Display or set the bass level (+/- for relative)",
     "[[+|-][<0-100>]]" },
-  { 1, level_guest, "TREBLE", mserv_cmd_treble,
+  { 1, level_guest, "TREBLE", NULL, cmd_treble,
     "Display or set the treble level (+/- for relative)",
     "[[+|-][<0-100>]]" },
-  { 1, level_guest, "HISTORY", mserv_cmd_history,
+  { 1, level_guest, "HISTORY", NULL, cmd_history,
     "View list of last tracks played (default shows last 20)",
     "[<entries> [<from entry>]]" },
-  { 1, level_user, "RATE", mserv_cmd_rate,
+  { 1, level_user, "RATE", NULL, cmd_rate,
     "Rate the current track, a specified track or all tracks in an album",
     "[<album> [<track>]] <AWFUL|BAD|NEUTRAL|GOOD|SUPERB>" },
-  { 1, level_user, "CHECK", mserv_cmd_check,
+  { 1, level_user, "CHECK", NULL, cmd_check,
     "Check ratings of same-named tracks and inform of inconsitencies",
     "" },
-  { 1, level_guest, "SEARCH", mserv_cmd_search,
+  { 1, level_guest, "SEARCH", NULL, cmd_search,
     "Search for a track based on string",
     "<string>" },
-  { 1, level_guest, "SEARCHF", mserv_cmd_searchf,
+  { 1, level_guest, "SEARCHF", NULL, cmd_searchf,
     "Search for a track based on filter",
     "<filter>" },
-  { 1, level_guest, "ASEARCH", mserv_cmd_asearch,
+  { 1, level_guest, "ASEARCH", NULL, cmd_asearch,
     "Search for a album based on string",
     "<string>" },
-  { 1, level_guest, "INFO", mserv_cmd_info,
+  { 1, level_guest, "INFO", NULL, cmd_info,
     "Display information on the current track, a specified track or an album",
     "[<album> [<track>]]" },
-  { 1, level_user, "PASSWORD", mserv_cmd_password,
+  { 1, level_user, "PASSWORD", NULL, cmd_password,
     "Change your password",
     "<old password> <new password>" },
 #ifdef IDEA
-  { 1, level_user, "IDEA", mserv_cmd_idea,
+  { 1, level_user, "IDEA", NULL, cmd_idea,
     "Store your idea in a file",
     "<string>" },
 #endif
-  { 1, level_master, "MOO", mserv_cmd_moo,
+  { 1, level_master, "MOO", NULL, cmd_moo,
     "Moo!",
     "" },
-  { 1, level_master, "CREATE", mserv_cmd_create,
+  { 1, level_master, "CREATE", NULL, cmd_create,
     "Create a user, or change details if it exists",
     "<username> <password> <GUEST|USER|PRIV|MASTER>" },
-  { 1, level_master, "REMOVE", mserv_cmd_remove,
+  { 1, level_master, "REMOVE", NULL, cmd_remove,
     "Removes a user from the system - WILL PURGE ALL RATINGS!",
     "<username>" },
-  { 1, level_master, "LEVEL", mserv_cmd_level,
+  { 1, level_master, "LEVEL", NULL, cmd_level,
     "Set a user's user level",
     "<username> <GUEST|USER|PRIV|MASTER>" },
-  { 1, level_priv, "KICK", mserv_cmd_kick,
+  { 1, level_priv, "KICK", NULL, cmd_kick,
     "Kick a user off the server and prohibit from re-connecting for a bit",
     "<user> [0|<minutes>]" },
-  { 1, level_priv, "RESET", mserv_cmd_reset,
+  { 1, level_priv, "RESET", NULL, cmd_reset,
     "Clear everything and reload tracks",
     "" },
-  { 1, level_priv, "SYNC", mserv_cmd_sync,
+  { 1, level_priv, "SYNC", NULL, cmd_sync,
     "Ensure track information on disk and in memory are synchronised",
     "" },
-  { 1, level_priv, "GAP", mserv_cmd_gap,
+  { 1, level_priv, "GAP", NULL, cmd_gap,
     "Set or display the gap between each track, in seconds",
     "[<delay>]" },
-  { 1, level_master, "SHUTDOWN", mserv_cmd_shutdown,
+  { 1, level_master, "SHUTDOWN", NULL, cmd_shutdown,
     "Shutdown server when server isn't playing a song",
     "" },
-  { 1, level_priv, "SET", mserv_cmd_set,
+
+  { 1, level_priv, "SET", cmd_set_cmds, NULL,
     "Commands for setting track and album information",
     "<params>" },
-  { 1, level_priv, "CHANNEL", mserv_cmd_channel,
+  { 1, level_priv, "CHANNEL", cmd_channel_cmds, NULL,
     "Commands relating to channels",
     "<params>" },
-  { 1, level_guest, "X", mserv_cmd_x,
+  { 1, level_guest, "X", cmd_x_cmds, NULL,
     "Extra commands for advanced users or computers",
     "<params>" },
-  { 0, level_guest, NULL, NULL, NULL, NULL }
-};
 
-t_cmds mserv_set_cmds[] = {
-  { 1, level_priv, "AUTHOR", mserv_cmd_set_author,
-    "Set the author of a track",
-    "<album> <track> <author>" },
-  { 1, level_priv, "NAME", mserv_cmd_set_name,
-    "Set the name of a track",
-    "<album> <track> <name>" },
-  { 1, level_priv, "GENRE", mserv_cmd_set_genre,
-    "Set the genre, or genres, of a track or entire album",
-    "<album> [<track>] <genre>[,<genre>]*" },
-  { 1, level_priv, "YEAR", mserv_cmd_set_year,
-    "Set the year of a track",
-    "<album> <track> <0|year>" },
-  { 1, level_priv, "VOLUME", mserv_cmd_set_volume,
-    "Set the volume of a track (in percentage - 100 is normal)",
-    "<album> <track> <0-1000>" },
-  { 1, level_priv, "ALBUMAUTHOR", mserv_cmd_set_albumauthor,
-    "Set the author of an album",
-    "<album> <author>" },
-  { 1, level_priv, "ALBUMNAME", mserv_cmd_set_albumname,
-    "Set the name of an album",
-    "<album> <name>" },
-  { 0, level_guest, NULL, NULL, NULL, NULL }
-};
-
-t_cmds mserv_channel_cmds[] = {
-  { 1, level_priv, "OUTPUT", mserv_cmd_channel_output,
-    "Modify output streams of a channel",
-    "<params>" },
-  { 0, level_guest, NULL, NULL, NULL, NULL }
-};
-
-t_cmds mserv_channel_output_cmds[] = {
-  { 1, level_priv, "ADD", mserv_cmd_channel_output_add,
-    "Add a new output stream to the channel",
-    "<channel> <module> <location> [<parameters>]" },
-/*
-  { 1, level_priv, "REMOVE", mserv_cmd_channel_outputadd,
-    "Add a new output stream to the channel",
-    "<channel> <module> <location> [<parameters>]" },
-*/
-  { 0, level_guest, NULL, NULL, NULL, NULL }
+  { 0, level_guest, NULL, NULL, NULL, NULL, NULL }
 };
 
 /*** functions ***/
 
-static void mserv_cmd_set(t_client *cl, t_cmdparams *cp)
+static void cmd_moo(t_client *cl, t_cmdparams *cp)
 {
-  t_cmds *cmdsptr;
-  int len;
+  (void)cp;
 
-  for (cmdsptr = mserv_set_cmds; cmdsptr->name; cmdsptr++) {
-    if (!mserv_checklevel(cl, cmdsptr->userlevel))
-      continue;
-    len = strlen(cmdsptr->name);
-    if (strnicmp(cp->line, cmdsptr->name, len) == 0) {
-      if (cp->line[len] != '\0' && cp->line[len] != ' ')
-	continue;
-      cp->line+= len;
-      while (*cp->line == ' ')
-	cp->line++;
-      if (cmdsptr->authed == 1 && cl->authed == 0)
-	mserv_send(cl, "404 Not authenticated\r\n.\r\n", 0);
-      else
-	cmdsptr->function(cl, cp);
-      return;
-    }
-  }
-  mserv_response(cl, "BADCOM", NULL);
-}
-
-static void mserv_cmd_channel(t_client *cl, t_cmdparams *cp)
-{
-  t_cmds *cmdsptr;
-  int len;
-
-  for (cmdsptr = mserv_channel_cmds; cmdsptr->name; cmdsptr++) {
-    if (!mserv_checklevel(cl, cmdsptr->userlevel))
-      continue;
-    len = strlen(cmdsptr->name);
-    if (strnicmp(cp->line, cmdsptr->name, len) == 0) {
-      if (cp->line[len] != '\0' && cp->line[len] != ' ')
-	continue;
-      cp->line+= len;
-      while (*cp->line == ' ')
-	cp->line++;
-      if (cmdsptr->authed == 1 && cl->authed == 0)
-	mserv_send(cl, "404 Not authenticated\r\n.\r\n", 0);
-      else
-	cmdsptr->function(cl, cp);
-      return;
-    }
-  }
-  mserv_response(cl, "BADCOM", NULL);
-}
-
-static void mserv_cmd_channel_output(t_client *cl, t_cmdparams *cp)
-{
-  t_cmds *cmdsptr;
-  int len;
-
-  for (cmdsptr = mserv_channel_output_cmds; cmdsptr->name; cmdsptr++) {
-    if (!mserv_checklevel(cl, cmdsptr->userlevel))
-      continue;
-    len = strlen(cmdsptr->name);
-    if (strnicmp(cp->line, cmdsptr->name, len) == 0) {
-      if (cp->line[len] != '\0' && cp->line[len] != ' ')
-	continue;
-      cp->line+= len;
-      while (*cp->line == ' ')
-	cp->line++;
-      if (cmdsptr->authed == 1 && cl->authed == 0)
-	mserv_send(cl, "404 Not authenticated\r\n.\r\n", 0);
-      else
-	cmdsptr->function(cl, cp);
-      return;
-    }
-  }
-  mserv_response(cl, "BADCOM", NULL);
-}
-
-static void mserv_cmd_channel_output_add(t_client *cl, t_cmdparams *cp)
-{
-  /* XXX: TODO */
   mserv_response(cl, "MOO", NULL);
   if (cl->mode == mode_human) {
     mserv_send(cl, "[]   __  __          _\r\n", 0);
@@ -392,87 +274,55 @@ static void mserv_cmd_channel_output_add(t_client *cl, t_cmdparams *cp)
   }
 }
 
-  /*
-#if ENGINE == icecast
-  if (channel_addoutput(mserv_channel, "icecast", opt_default_icecast_output,
-                        opt_default_icecast_bitrate,
-                        error, sizeof(error)) != MSERV_SUCCESS) {
-    mserv_log("Failed to add initial output stream to default channel: %s",
-              error);
-    mserv_closedown(1);
-  }
-#elif ENGINE == local
-  if (channel_addoutput(mserv_channel, "local", opt_default_local_output,
-                        NULL, error, sizeof(error)) != MSERV_SUCCESS) {
-    mserv_log("Failed to add initial output stream to default channel: %s",
-              error);
-    mserv_closedown(1);
-  }
-#else
-#error unknown engine
-#endif
-  */
-
-static void mserv_cmd_moo(t_client *cl, t_cmdparams *cp)
+static void cmd_quit(t_client *cl, t_cmdparams *cp)
 {
-  mserv_response(cl, "MOO", NULL);
-  if (cl->mode == mode_human) {
-    mserv_send(cl, "[]   __  __          _\r\n", 0);
-    mserv_send(cl, "[]  |  \\/  |___  ___| |\r\n", 0);
-    mserv_send(cl, "[]  | |\\/| / _ \\/ _ \\_|\r\n", 0);
-    mserv_send(cl, "[]  |_|  |_\\___/\\___(_)\r\n", 0);
-  }
-}
+  (void)cp;
 
-static void mserv_cmd_quit(t_client *cl, t_cmdparams *cp)
-{
   mserv_response(cl, "QUIT", NULL);
   mserv_close(cl);
 }
 
-static void mserv_cmd_help(t_client *cl, t_cmdparams *cp)
+static void cmd_help(t_client *cl, t_cmdparams *cp)
 {
   t_cmds *cmdsptr, *c;
   int i = 0;
   char buffer[1024];
+  const char *line = cp->line;
+  char command_prefix[256]; /* to hold, e.g. CHANNEL OUTPUT */
 
-  if ((*cp->line == 'x' || *cp->line == 'X') &&
-      (*(cp->line+1) == '\0' || *(cp->line+1) == ' ')) {
-    cp->line++;
-    while (*cp->line == ' ')
-      cp->line++;
-    cmdsptr = mserv_x_cmds;
-  } else if (!strnicmp(cp->line, "set", 3) && (*(cp->line+3) == '\0' ||
-					       *(cp->line+3) == ' ')) {
-    cp->line+= 3;
-    while (*cp->line == ' ')
-      cp->line++;
-    cmdsptr = mserv_set_cmds;
-  } else {
-    cmdsptr = mserv_cmds;
-  }
-
-  if (*cp->line) {
+  command_prefix[0] = '\0';
+  cmdsptr = cmd_cmds;
+again:
+  while (*line == ' ')
+    line++;
+  if (*line) {
     for (; cmdsptr->name; cmdsptr++) {
       if (cmdsptr->authed && !cl->authed)
 	continue;
       if (!mserv_checklevel(cl, cmdsptr->userlevel))
 	continue;
-      if (strnicmp(cp->line, cmdsptr->name, strlen(cmdsptr->name)) == 0) {
-	if (cp->line[strlen(cmdsptr->name)] != '\0')
-	  continue;
+      if (strnicmp(line, cmdsptr->name, strlen(cmdsptr->name)) == 0) {
+        if (line[strlen(cmdsptr->name)] != '\0' &&
+            line[strlen(cmdsptr->name)] != ' ')
+          continue;
+        if (cmdsptr->sub_cmds != NULL) {
+          /* sub-command help required */
+          strcat(command_prefix, " ");
+          strcat(command_prefix, cmdsptr->name);
+          line+= strlen(cmdsptr->name);
+          cmdsptr = cmdsptr->sub_cmds;
+          goto again;
+        }
 	if (cl->mode == mode_human) {
-	  snprintf(buffer, 1024, "[] %s\r\n[] Syntax: %s%s %s\r\n",
-		   cmdsptr->help, (cmdsptr == mserv_x_cmds ? "X " : 
-				   (cmdsptr == mserv_set_cmds ? "SET " : "")),
-		   cmdsptr->name, cmdsptr->syntax);
+	  snprintf(buffer, sizeof(buffer), "[] %s\r\n[] Syntax:%s %s %s\r\n",
+                   cmdsptr->help, command_prefix, cmdsptr->name,
+                   cmdsptr->syntax);
 	  mserv_send(cl, buffer, 0);
 	} else {
 	  mserv_responsent(cl, "HELP", "%s", cmdsptr->name);
-	  snprintf(buffer, 1024, "%s\r\nSyntax: %s%s %s\r\n.\r\n",
-		   cmdsptr->help, (cmdsptr == mserv_x_cmds ? "X " : 
-				   (cmdsptr == mserv_set_cmds ? "SET " : "")),
-		   cmdsptr->name, cmdsptr->syntax);
+	  snprintf(buffer, sizeof(buffer), "%s\r\nSyntax:%s %s %s\r\n.\r\n",
+                   cmdsptr->help, command_prefix, cmdsptr->name,
+                   cmdsptr->syntax);
 	  mserv_send(cl, buffer, 0);
 	}
 	return;
@@ -481,8 +331,8 @@ static void mserv_cmd_help(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, "NOHELP", "%s", cp->line);
     return;
   }
-  if (cmdsptr == mserv_x_cmds)
-    mserv_responsent(cl, "HELPCX", "%s", VERSION);
+  if (command_prefix[0])
+    mserv_responsent(cl, "HELPCX", "%s", command_prefix + 1); /* skip space */
   else
     mserv_responsent(cl, "HELPC", "%s", VERSION);
   if (cl->mode == mode_human) {
@@ -505,25 +355,25 @@ static void mserv_cmd_help(t_client *cl, t_cmdparams *cp)
       i++;
     }
     mserv_send(cl, "\r\n", 0);
-    if (cmdsptr == mserv_cmds) {
+    if (cmdsptr == cmd_cmds) {
       mserv_send(cl, "[] To report bugs in the implementation please "
 		 "send email to james@squish.net\r\n", 0);
       mserv_send(cl, "[] Thanks for using this program.\r\n", 0);
     }
   } else {
-    for (cmdsptr = mserv_cmds; cmdsptr->name; cmdsptr++) {
-      if (cmdsptr->authed && !cl->authed)
+    for (c = cmdsptr; c->name; c++) {
+      if (c->authed && !cl->authed)
 	continue;
-      if (!mserv_checklevel(cl, cmdsptr->userlevel))
+      if (!mserv_checklevel(cl, c->userlevel))
 	continue;
-      mserv_send(cl, cmdsptr->name, 0);
+      mserv_send(cl, c->name, 0);
       mserv_send(cl, "\r\n", 0);
     }
     mserv_send(cl, ".\r\n", 0);
   }
 }
 
-static void mserv_cmd_user(t_client *cl, t_cmdparams *cp)
+static void cmd_user(t_client *cl, t_cmdparams *cp)
 {
   if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
@@ -538,7 +388,7 @@ static void mserv_cmd_user(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "USEROK", NULL);
 }
 
-static void mserv_cmd_pass(t_client *cl, t_cmdparams *cp)
+static void cmd_pass(t_client *cl, t_cmdparams *cp)
 {
   char password[16];
   char *s;
@@ -600,13 +450,14 @@ static void mserv_cmd_pass(t_client *cl, t_cmdparams *cp)
   return;
 }
 
-static void mserv_cmd_status(t_client *cl, t_cmdparams *cp)
+static void cmd_status(t_client *cl, t_cmdparams *cp)
 {
   char token[16];
   char *a;
   int i;
   struct timeval now, ago;
 
+  (void)cp;
   if (mserv_playing.track) {
     if (gettimeofday(&now, NULL) != 0) {
       mserv_response(cl, "SERROR", "%s", "Failed to gettimeofday()");
@@ -652,7 +503,7 @@ static void mserv_cmd_status(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_userinfo(t_client *cl, t_cmdparams *cp)
+static void cmd_userinfo(t_client *cl, t_cmdparams *cp)
 {
   t_acl *acl;
   t_track *track;
@@ -727,13 +578,14 @@ static void mserv_cmd_userinfo(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_who(t_client *cl, t_cmdparams *cp)
+static void cmd_who(t_client *cl, t_cmdparams *cp)
 {
   t_client *clu;
   char tmp[256];
   int total = 0;
   int connected = 0;
 
+  (void)cp;
   mserv_responsent(cl, "WHO", NULL);
 
   if (cl->mode == mode_human) {
@@ -764,7 +616,7 @@ static void mserv_cmd_who(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_password(t_client *cl, t_cmdparams *cp)
+static void cmd_password(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   t_acl *acl;
@@ -786,7 +638,7 @@ static void mserv_cmd_password(t_client *cl, t_cmdparams *cp)
   acl_save();
 }
 
-static void mserv_cmd_level(t_client *cl, t_cmdparams *cp)
+static void cmd_level(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
@@ -817,7 +669,7 @@ static void mserv_cmd_level(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "USERCHG", NULL);
 }
 
-static void mserv_cmd_create(t_client *cl, t_cmdparams *cp)
+static void cmd_create(t_client *cl, t_cmdparams *cp)
 {
   /* usernames must never start _ or have a : in them */
   char linespl[LINEBUFLEN];
@@ -872,7 +724,7 @@ static void mserv_cmd_create(t_client *cl, t_cmdparams *cp)
   acl_save();
 }
 
-static void mserv_cmd_remove(t_client *cl, t_cmdparams *cp)
+static void cmd_remove(t_client *cl, t_cmdparams *cp)
 {
   t_acl *acl, *aclp;
   t_track *track;
@@ -913,11 +765,12 @@ static void mserv_cmd_remove(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "REMOVED", NULL);
 }
 
-static void mserv_cmd_albums(t_client *cl, t_cmdparams *cp)
+static void cmd_albums(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_album *album;
 
+  (void)cp;
   mserv_responsent(cl, "ALBUMS", NULL);
   if (cl->mode == mode_human) {
     for (album = mserv_albums; album; album = album->next) {
@@ -934,7 +787,7 @@ static void mserv_cmd_albums(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_tracks(t_client *cl, t_cmdparams *cp)
+static void cmd_tracks(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_album *album;
@@ -990,7 +843,7 @@ static void mserv_cmd_tracks(t_client *cl, t_cmdparams *cp)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_ratings(t_client *cl, t_cmdparams *cp)
+static void cmd_ratings(t_client *cl, t_cmdparams *cp)
 {
   char linespl[1024];
   char buffer[AUTHORLEN+NAMELEN+64];
@@ -1057,7 +910,7 @@ static void mserv_cmd_ratings(t_client *cl, t_cmdparams *cp)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_unqueue(t_client *cl, t_cmdparams *cp)
+static void cmd_unqueue(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
@@ -1109,7 +962,7 @@ static void mserv_cmd_unqueue(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "NOUNQ", NULL);
 }
 
-static void mserv_cmd_queue(t_client *cl, t_cmdparams *cp)
+static void cmd_queue(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   char bit[32];
@@ -1223,14 +1076,14 @@ static void mserv_cmd_queue(t_client *cl, t_cmdparams *cp)
             break;
           }
           tracktally[k] = 1;
-          mserv_cmd_queue_sub(cl, album, k+1, 0);
+          cmd_queue_sub(cl, album, k+1, 0);
         }
         free(tracktally);
       }
     } else {     
       for (i = 0; i < album->ntracks; i++) {
 	if (album->tracks[i])
-	  mserv_cmd_queue_sub(cl, album, i+1, 0);
+	  cmd_queue_sub(cl, album, i+1, 0);
       }
     }
     if (cl->mode != mode_human)
@@ -1247,7 +1100,7 @@ static void mserv_cmd_queue(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, "NOTRACK", NULL);
     return;
   }
-  if (mserv_cmd_queue_sub(cl, album, n_track, 1) == -1) {
+  if (cmd_queue_sub(cl, album, n_track, 1) == -1) {
     mserv_response(cl, "QNONE", NULL);
     return;
   }
@@ -1255,7 +1108,7 @@ static void mserv_cmd_queue(t_client *cl, t_cmdparams *cp)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static int mserv_cmd_queue_sub(t_client *cl, t_album *album, int n_track,
+static int cmd_queue_sub(t_client *cl, t_album *album, int n_track,
 			       int header)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
@@ -1309,10 +1162,11 @@ static int mserv_cmd_queue_sub(t_client *cl, t_album *album, int n_track,
   return 0;
 }
 
-static void mserv_cmd_play(t_client *cl, t_cmdparams *cp)
+static void cmd_play(t_client *cl, t_cmdparams *cp)
 {
   char error[256];
 
+  (void)cp;
   if (channel_paused(mserv_channel)) {
     mserv_resumeplay(cl);
     if (cl->mode != mode_human) {
@@ -1348,8 +1202,10 @@ static void mserv_cmd_play(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_stop(t_client *cl, t_cmdparams *cp)
+static void cmd_stop(t_client *cl, t_cmdparams *cp)
 {
+  (void)cp;
+
   if (!channel_stopped(mserv_channel)) {
     mserv_broadcast("STOPPED", "%s\t%d\t%d\t%s\t%s", cl->user,
 		    mserv_playing.track->n_album, mserv_playing.track->n_track,
@@ -1367,8 +1223,10 @@ static void mserv_cmd_stop(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_pause(t_client *cl, t_cmdparams *cp)
+static void cmd_pause(t_client *cl, t_cmdparams *cp)
 {
+  (void)cp;
+
   if (channel_paused(mserv_channel)) {
     mserv_response(cl, "APAUSED", NULL);
     return;
@@ -1384,10 +1242,11 @@ static void mserv_cmd_pause(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_next(t_client *cl, t_cmdparams *cp)
+static void cmd_next(t_client *cl, t_cmdparams *cp)
 {
   char error[256];
 
+  (void)cp;
   if (mserv_playing.track)
     mserv_broadcast("SKIP", "%s", cl->user);
   if (mserv_playing.track == mserv_player_playing.track) {
@@ -1412,10 +1271,11 @@ static void mserv_cmd_next(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_clear(t_client *cl, t_cmdparams *cp)
+static void cmd_clear(t_client *cl, t_cmdparams *cp)
 {
   t_queue *q, *n;
 
+  (void)cp;
   if (!mserv_queue) {
     mserv_response(cl, "ACLEAR", NULL);
     return;
@@ -1431,8 +1291,10 @@ static void mserv_cmd_clear(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, "CLEARR", NULL);
 }
 
-static void mserv_cmd_repeat(t_client *cl, t_cmdparams *cp)
+static void cmd_repeat(t_client *cl, t_cmdparams *cp)
 {
+  (void)cp;
+
   if (!mserv_playing.track) {
     mserv_response(cl, "NOTHING", NULL);
     return;
@@ -1455,7 +1317,7 @@ static void mserv_cmd_repeat(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_random(t_client *cl, t_cmdparams *cp)
+static void cmd_random(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
@@ -1495,7 +1357,7 @@ static void mserv_cmd_random(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, "BADPARM", NULL);
 }
 
-static void mserv_cmd_filter(t_client *cl, t_cmdparams *cp)
+static void cmd_filter(t_client *cl, t_cmdparams *cp)
 {
   if (!*cp->line) {
     mserv_response(cl, "CURFILT", "%s\t%s\t%d\t%d", "", mserv_getfilter(),
@@ -1524,7 +1386,7 @@ static void mserv_cmd_filter(t_client *cl, t_cmdparams *cp)
 		   mserv_filter_notok);
 }
 
-static void mserv_cmd_factor(t_client *cl, t_cmdparams *cp)
+static void cmd_factor(t_client *cl, t_cmdparams *cp)
 {
   double f = atof(cp->line);
 
@@ -1546,7 +1408,7 @@ static void mserv_cmd_factor(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, "FACTSET", "%.2f", f);
 }
 
-static void mserv_cmd_top(t_client *cl, t_cmdparams *cp)
+static void cmd_top(t_client *cl, t_cmdparams *cp)
 {
   t_track *track;
   t_rating *rate;
@@ -1629,7 +1491,7 @@ static void mserv_cmd_top(t_client *cl, t_cmdparams *cp)
 
 #if ENGINE != local
 
-static void mserv_cmd_volume(t_client *cl, t_cmdparams *cp)
+static void cmd_volume(t_client *cl, t_cmdparams *cp)
 {
   int val;
 
@@ -1646,23 +1508,24 @@ static void mserv_cmd_volume(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_bass(t_client *cl, t_cmdparams *cp)
+static void cmd_bass(t_client *cl, t_cmdparams *cp)
 {
   mserv_response(cl, "NOTIMPL", NULL);
 }
 
-static void mserv_cmd_treble(t_client *cl, t_cmdparams *cp)
+static void cmd_treble(t_client *cl, t_cmdparams *cp)
 {
   mserv_response(cl, "NOTIMPL", NULL);
 }
 
 #else
 
-static void mserv_cmd_volume(t_client *cl, t_cmdparams *cp)
+static void cmd_volume(t_client *cl, t_cmdparams *cp)
 {
 #ifdef SOUNDCARD
   int val;
 
+  (void)cp;
   if (*cp->line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
   } else if ((val = mserv_setmixer(cl, SOUND_MIXER_PCM, cp->line)) != -1) {
@@ -1675,15 +1538,17 @@ static void mserv_cmd_volume(t_client *cl, t_cmdparams *cp)
     }
   }
 #else
+  (void)cp;
   mserv_response(cl, "NOSCARD", NULL);
 #endif
 }
 
-static void mserv_cmd_bass(t_client *cl, t_cmdparams *cp)
+static void cmd_bass(t_client *cl, t_cmdparams *cp)
 {
 #ifdef SOUNDCARD
   int val;
 
+  (void)cp;
   if (*cp->line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
   } else if ((val = mserv_setmixer(cl, SOUND_MIXER_BASS, cp->line)) != -1) {
@@ -1696,15 +1561,17 @@ static void mserv_cmd_bass(t_client *cl, t_cmdparams *cp)
     }
   }
 #else
+  (void)cp;
   mserv_response(cl, "NOSCARD", NULL);
 #endif
 }
 
-static void mserv_cmd_treble(t_client *cl, t_cmdparams *cp)
+static void cmd_treble(t_client *cl, t_cmdparams *cp)
 {
 #ifdef SOUNDCARD
   int val;
 
+  (void)cp;
   if (*cp->line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
   } else if ((val = mserv_setmixer(cl, SOUND_MIXER_TREBLE, cp->line)) != -1) {
@@ -1717,386 +1584,28 @@ static void mserv_cmd_treble(t_client *cl, t_cmdparams *cp)
     }
   }
 #else
+  (void)cp;
   mserv_response(cl, "NOSCARD", NULL);
 #endif
 }
 
 #endif
 
-static void mserv_cmd_say(t_client *cl, t_cmdparams *cp)
+static void cmd_say(t_client *cl, t_cmdparams *cp)
 {
   mserv_broadcast("SAY", "%s\t%s", cl->user, cp->line);
   if (cl->mode != mode_human)
     mserv_response(cl, "SAY", "%s\t%s", cl->user, cp->line);
 }
 
-static void mserv_cmd_emote(t_client *cl, t_cmdparams *cp)
+static void cmd_emote(t_client *cl, t_cmdparams *cp)
 {
   mserv_broadcast("EMOTE", "%s\t%s", cl->user, cp->line);
   if (cl->mode != mode_human)
     mserv_response(cl, "EMOTE", "%s\t%s", cl->user, cp->line);
 }
 
-static void mserv_cmd_set_author(t_client *cl, t_cmdparams *cp)
-{
-  char linespl[LINEBUFLEN];
-  char *str[4];
-  unsigned int n_album, n_track;
-  char *end;
-  t_track *track;
-  
-  /* <album> <track> <author> */
-
-  strcpy(linespl, cp->line);
-
-  if (mserv_split(str, 3, linespl, " ") != 3) {
-    mserv_response(cl, "BADPARM", NULL);
-    return;
-  }
-  n_album = strtol(str[0], &end, 10);
-  if (!*str[0] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  n_track = strtol(str[1], &end, 10);
-  if (!*str[1] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  if ((track = mserv_gettrack(n_album, n_track)) == NULL) {
-    mserv_response(cl, "NOTRACK", NULL);
-    return;
-  }
-  if (mserv_checkauthor(str[2]) == -1) {
-    mserv_response(cl, "BADAUTH", NULL);
-    return;
-  }
-  /* altertrack invalidates track pointer */
-  if ((track = mserv_altertrack(track, str[2], NULL, NULL, NULL)) == NULL) {
-    if (cl->mode != mode_human)
-      mserv_response(cl, "MEMORYR", NULL);
-    mserv_broadcast("MEMORY", NULL);
-  }
-  mserv_broadcast("AUTH", "%s\t%d\t%d\t%s\t%s\t%s", cl->user, track->n_album,
-		  track->n_track, track->author, track->name, str[2]);
-  if (cl->mode != mode_human)
-    mserv_response(cl, "AUTHR", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		   track->n_album, track->n_track, track->author,
-		   track->name, str[2]);
-}
-
-static void mserv_cmd_set_name(t_client *cl, t_cmdparams *cp)
-{
-  char linespl[LINEBUFLEN];
-  char *str[4];
-  unsigned int n_album, n_track;
-  char *end;
-  t_track *track;
-
-  /* <album> <track> <name> */
-
-  strcpy(linespl, cp->line);
-  if (mserv_split(str, 3, linespl, " ") != 3) {
-    mserv_response(cl, "BADPARM", NULL);
-    return;
-  }
-  n_album = strtol(str[0], &end, 10);
-  if (!*str[0] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  n_track = strtol(str[1], &end, 10);
-  if (!*str[1] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  if ((track = mserv_gettrack(n_album, n_track)) == NULL) {
-    mserv_response(cl, "NOTRACK", NULL);
-    return;
-  }
-  if (mserv_checkname(str[2]) == -1) {
-    mserv_response(cl, "BADNAME", NULL);
-    return;
-  }
-  /* altertrack invalidates track pointer */
-  if ((track = mserv_altertrack(track, NULL, str[2], NULL, NULL)) == NULL) {
-    if (cl->mode != mode_human)
-      mserv_response(cl, "MEMORYR", NULL);
-    mserv_broadcast("MEMORY", NULL);
-  }
-  mserv_broadcast("NAME", "%s\t%d\t%d\t%s\t%s\t%s", cl->user, track->n_album,
-		  track->n_track, track->author, track->name, str[2]);
-  if (cl->mode != mode_human)
-    mserv_response(cl, "NAMER", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		   track->n_album, track->n_track, track->author,
-		   track->name, str[2]);
-}
-
-static void mserv_cmd_set_genre(t_client *cl, t_cmdparams *cp)
-{
-  char linespl[LINEBUFLEN];
-  char *str[4];
-  unsigned int n_album, n_track;
-  char *end;
-  t_track *track;
-  t_album *album;
-  int n;
-  unsigned int ui;
-
-  /* <album> [<track>] <genre>[,genre]* */
-
-  strcpy(linespl, cp->line);
-  n = mserv_split(str, 3, linespl, " ");
-  if (n < 2 || n > 3) {
-    mserv_response(cl, "BADPARM", NULL);
-    return;
-  }
-  n_album = strtol(str[0], &end, 10);
-  if (!*str[0] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  if (mserv_checkgenre(str[n-1]) == -1) {
-    mserv_response(cl, "GENRERR", NULL);
-    return;
-  }
-  if (n == 3) {
-    /* set genre of track */
-    n_track = strtol(str[1], &end, 10);
-    if (!*str[1] || *end) {
-      mserv_response(cl, "NAN", NULL);
-      return;
-    }
-    if ((track = mserv_gettrack(n_album, n_track)) == NULL) {
-      mserv_response(cl, "NOTRACK", NULL);
-      return;
-    }
-    /* altertrack invalidates track pointer */
-    if ((track = mserv_altertrack(track, NULL, NULL, str[n-1],
-				  NULL)) == NULL) {
-      if (cl->mode != mode_human)
-	mserv_response(cl, "MEMORYR", NULL);
-      mserv_broadcast("MEMORY", NULL);
-      return;
-    }
-    mserv_broadcast("GENRE", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		    track->n_album, track->n_track,
-		    track->author, track->name, str[n-1]);
-    if (cl->mode != mode_human)
-      mserv_response(cl, "GENRER", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		     track->n_album, track->n_track, track->author,
-		     track->name, str[n-1]);
-  } else {
-    /* set genre of album */
-    if ((album = mserv_getalbum(n_album)) == NULL) {
-      mserv_response(cl, "NOALBUM", NULL);
-      return;
-    }
-    for (ui = 0; ui < album->ntracks; ui++) {
-      if (album->tracks[ui]) {
-	/* altertrack invalidates track pointer */
-	if (mserv_altertrack(album->tracks[ui], NULL, NULL, str[n-1],
-			     NULL) == NULL) {
-	  if (cl->mode != mode_human)
-	    mserv_response(cl, "MEMORYR", NULL);
-	  mserv_broadcast("MEMORY", NULL);
-	  return;
-	}
-      }
-    }
-    mserv_broadcast("GENREAL", "%s\t%d\t%s\t%s\t%s", cl->user,
-		    n_album, album->author, album->name, str[2]);
-    if (cl->mode != mode_human)
-      mserv_response(cl, "GENRER", NULL);
-  }
-}
-
-static void mserv_cmd_set_year(t_client *cl, t_cmdparams *cp)
-{
-  char linespl[LINEBUFLEN];
-  char *str[4];
-  unsigned int n_album, n_track, year;
-  char *end;
-  t_track *track;
-
-  /* <album> <track> <year> */
-
-  strcpy(linespl, cp->line);
-  if (mserv_split(str, 3, linespl, " ") != 3) {
-    mserv_response(cl, "BADPARM", NULL);
-    return;
-  }
-  n_album = strtol(str[0], &end, 10);
-  if (!*str[0] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  n_track = strtol(str[1], &end, 10);
-  if (!*str[1] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  year = strtol(str[2], &end, 10);
-  if (!*str[2] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  if (year < 100 || year > 10000) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  if ((track = mserv_gettrack(n_album, n_track)) == NULL) {
-    mserv_response(cl, "NOTRACK", NULL);
-    return;
-  }
-  track = mserv_checkdisk_track(track);
-  track->year = year;
-  track->modified = 1;
-  mserv_broadcast("YEAR", "%s\t%d\t%d\t%s\t%s\t%d", cl->user, track->n_album,
-		  track->n_track, track->author, track->name, year);
-  if (cl->mode != mode_human)
-    mserv_response(cl, "YEARR", "%s\t%d\t%d\t%s\t%s\t%d", cl->user,
-		   track->n_album, track->n_track, track->author,
-		   track->name, year);
-  mserv_savechanges();
-}
-
-static void mserv_cmd_set_volume(t_client *cl, t_cmdparams *cp)
-{
-  char linespl[LINEBUFLEN];
-  char *str[4];
-  unsigned int n_album, n_track;
-  int volume;
-  char *end;
-  t_track *track;
-
-  /* <volume> */
-
-  strcpy(linespl, cp->line);
-  if (mserv_split(str, 3, linespl, " ") != 3) {
-    mserv_response(cl, "BADPARM", NULL);
-    return;
-  }
-  n_album = strtol(str[0], &end, 10);
-  if (!*str[0] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  n_track = strtol(str[1], &end, 10);
-  if (!*str[1] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  volume = strtol(str[2], &end, 10);
-  if (!*str[2] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  if (volume < 0 || volume > 1000) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  if ((track = mserv_gettrack(n_album, n_track)) == NULL) {
-    mserv_response(cl, "NOTRACK", NULL);
-    return;
-  }
-  track = mserv_checkdisk_track(track);
-  track->volume = volume;
-  track->modified = 1;
-  mserv_broadcast("VOLUME", "%s\t%d\t%d\t%s\t%s\t%d", cl->user, track->n_album,
-		  track->n_track, track->author, track->name, volume);
-  if (cl->mode != mode_human)
-    mserv_response(cl, "VOLUMER", "%s\t%d\t%d\t%s\t%s\t%d", cl->user,
-		   track->n_album, track->n_track, track->author,
-		   track->name, volume);
-  mserv_savechanges();
-}
-
-static void mserv_cmd_set_albumauthor(t_client *cl, t_cmdparams *cp)
-{
-  char linespl[LINEBUFLEN];
-  char *str[3];
-  unsigned int n_album;
-  char *end;
-  t_album *album;
-
-  /* <album> <author> */
-
-  strcpy(linespl, cp->line);
-
-  if (mserv_split(str, 2, linespl, " ") != 2) {
-    mserv_response(cl, "BADPARM", NULL);
-    return;
-  }
-  n_album = strtol(str[0], &end, 10);
-  if (!*str[0] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  if ((album = mserv_getalbum(n_album)) == NULL) {
-    mserv_response(cl, "NOTRACK", NULL);
-    return;
-  }
-  if (mserv_checkauthor(str[1]) == -1) {
-    mserv_response(cl, "BADAUTH", NULL);
-    return;
-  }
-  /* alteralbum invalidates track pointer */
-  if ((album = mserv_alteralbum(album, str[1], NULL)) == NULL) {
-    if (cl->mode != mode_human)
-      mserv_response(cl, "MEMORYR", NULL);
-    mserv_broadcast("MEMORY", NULL);
-  }
-  mserv_broadcast("ALBAUTH", "%s\t%d\t%s\t%s\t%s", cl->user, n_album,
-		  album->author, album->name, str[1]);
-  if (cl->mode != mode_human)
-    mserv_response(cl, "AUTHR", "%s\t%d\t%s\t%s\t%s", cl->user, n_album,
-		   album->author, album->name, str[1]);
-}
-
-static void mserv_cmd_set_albumname(t_client *cl, t_cmdparams *cp)
-{
-  char linespl[LINEBUFLEN];
-  char *str[3];
-  unsigned int n_album;
-  char *end;
-  t_album *album;
-
-  /* <album> <name> */
-
-  strcpy(linespl, cp->line);
-
-  if (mserv_split(str, 2, linespl, " ") != 2) {
-    mserv_response(cl, "BADPARM", NULL);
-    return;
-  }
-  n_album = strtol(str[0], &end, 10);
-  if (!*str[0] || *end) {
-    mserv_response(cl, "NAN", NULL);
-    return;
-  }
-  if ((album = mserv_getalbum(n_album)) == NULL) {
-    mserv_response(cl, "NOTRACK", NULL);
-    return;
-  }
-  if (mserv_checkname(str[1]) == -1) {
-    mserv_response(cl, "BADAUTH", NULL);
-    return;
-  }
-  /* alteralbum invalidates track pointer */
-  if ((album = mserv_alteralbum(album, NULL, str[1])) == NULL) {
-    if (cl->mode != mode_human)
-      mserv_response(cl, "MEMORYR", NULL);
-    mserv_broadcast("MEMORY", NULL);
-  }
-  mserv_broadcast("ALBNAME", "%s\t%d\t%s\t%s\t%s", cl->user, n_album,
-		  album->author, album->name, str[1]);
-  if (cl->mode != mode_human)
-    mserv_response(cl, "NAMER", "%s\t%d\t%s\t%s\t%s", cl->user, n_album,
-		   album->author, album->name, str[1]);
-}
-
-static void mserv_cmd_history(t_client *cl, t_cmdparams *cp)
+static void cmd_history(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char buffer[AUTHORLEN+NAMELEN+64];
@@ -2166,7 +1675,7 @@ static void mserv_cmd_history(t_client *cl, t_cmdparams *cp)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_rate(t_client *cl, t_cmdparams *cp)
+static void cmd_rate(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char buffer[AUTHORLEN+NAMELEN+64];
@@ -2319,7 +1828,7 @@ static void mserv_cmd_rate(t_client *cl, t_cmdparams *cp)
   mserv_savechanges();
 }
 
-static void mserv_cmd_check(t_client *cl, t_cmdparams *cp)
+static void cmd_check(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   char bit[32];
@@ -2394,7 +1903,7 @@ static void mserv_cmd_check(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_search(t_client *cl, t_cmdparams *cp)
+static void cmd_search(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   char bit[32];
@@ -2447,7 +1956,7 @@ static void mserv_cmd_search(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_asearch(t_client *cl, t_cmdparams *cp)
+static void cmd_asearch(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_album *album;
@@ -2483,7 +1992,7 @@ static void mserv_cmd_asearch(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_searchf(t_client *cl, t_cmdparams *cp)
+static void cmd_searchf(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   char bit[32];
@@ -2540,7 +2049,7 @@ static void mserv_cmd_searchf(t_client *cl, t_cmdparams *cp)
 }
 
 #ifdef IDEA
-static void mserv_cmd_idea(t_client *cl, t_cmdparams *cp)
+static void cmd_idea(t_client *cl, t_cmdparams *cp)
 {
   if (!*cp->line) {
     mserv_response(cl, "BADPARM", NULL);
@@ -2553,7 +2062,7 @@ static void mserv_cmd_idea(t_client *cl, t_cmdparams *cp)
 }
 #endif
 
-static void mserv_cmd_info(t_client *cl, t_cmdparams *cp)
+static void cmd_info(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   t_rating *rate;
@@ -2669,7 +2178,7 @@ static void mserv_cmd_info(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_date(t_client *cl, t_cmdparams *cp)
+static void cmd_date(t_client *cl, t_cmdparams *cp)
 {
   time_t curtime = time(NULL);
   struct tm curtm = *localtime(&curtime);
@@ -2678,6 +2187,7 @@ static void mserv_cmd_date(t_client *cl, t_cmdparams *cp)
   char time[16];
   char ct[32];
 
+  (void)cp;
   strcpy(ct, ctime(&curtime));
   ct[24] = '\0';
   /* Wednesday 1st January 1998 */
@@ -2696,7 +2206,7 @@ static void mserv_cmd_date(t_client *cl, t_cmdparams *cp)
 		 mktime(&curtm), ct, date, time);
 }
 
-static void mserv_cmd_kick(t_client *cl, t_cmdparams *cp)
+static void cmd_kick(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char *str[3];
@@ -2743,10 +2253,11 @@ static void mserv_cmd_kick(t_client *cl, t_cmdparams *cp)
   mserv_close(client);
 }
 
-static void mserv_cmd_reset(t_client *cl, t_cmdparams *cp)
+static void cmd_reset(t_client *cl, t_cmdparams *cp)
 {
   static int timer = 0;
 
+  (void)cp;
   mserv_abortplay();
   acl_save();
   if (mserv_savechanges() && time(NULL) > timer) {
@@ -2763,8 +2274,10 @@ static void mserv_cmd_reset(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, "RESETR", NULL);
 }
 
-static void mserv_cmd_sync(t_client *cl, t_cmdparams *cp)
+static void cmd_sync(t_client *cl, t_cmdparams *cp)
 {
+  (void)cp;
+
   mserv_log("Syncing disks/memory (%s)...", cl->user);
   mserv_savechanges();
   mserv_ensuredisk();
@@ -2772,8 +2285,10 @@ static void mserv_cmd_sync(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "SYNCED", NULL);
 }
 
-static void mserv_cmd_shutdown(t_client *cl, t_cmdparams *cp)
+static void cmd_shutdown(t_client *cl, t_cmdparams *cp)
 {
+  (void)cp;
+
   if (mserv_shutdown) {
     mserv_response(cl, "SHUTALR", NULL);
     return;
@@ -2794,7 +2309,7 @@ static void mserv_cmd_shutdown(t_client *cl, t_cmdparams *cp)
   }
 }
 
-static void mserv_cmd_gap(t_client *cl, t_cmdparams *cp)
+static void cmd_gap(t_client *cl, t_cmdparams *cp)
 {
   double delay;
   char *end;

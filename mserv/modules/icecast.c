@@ -26,8 +26,9 @@
 #include <vorbis/vorbisenc.h>
 
 #include "mserv.h"
+#include "params.h"
 
-static char mserv_rcs_id[] = "$Id: icecast.c,v 1.2 2003/11/11 00:11:43 squish Exp $";
+static char mserv_rcs_id[] = "$Id: icecast.c,v 1.3 2003/11/15 02:38:10 squish Exp $";
 MSERV_MODULE(icecast, "0.01", "Icecast output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -77,6 +78,8 @@ static int icecast_internal_connect(t_channel *c, t_icecast *icecast,
   ogg_packet header;
   ogg_packet header_comm;
   ogg_packet header_code;
+
+  (void)c;
 
   if (icecast->connected)
     return MSERV_SUCCESS;
@@ -136,6 +139,10 @@ failed:
 static int icecast_internal_disconnect(t_channel *c, t_icecast *icecast,
                                        char *error, int errsize)
 {
+  (void)c;
+  (void)error;
+  (void)errsize;
+
   if (!icecast->connected)
     return MSERV_SUCCESS;
 
@@ -145,6 +152,7 @@ static int icecast_internal_disconnect(t_channel *c, t_icecast *icecast,
   vorbis_info_clear(&icecast->vi);
   shout_close(icecast->shout);
   icecast->connected = 0;
+  return MSERV_SUCCESS;
 }
 
 /* create output stream */
@@ -292,6 +300,11 @@ int icecast_output_sync(t_channel *c, void *private, char *error, int errsize)
   t_icecast *icecast = (t_icecast *)private;
   float **vorbbuf;
   unsigned int chan, i, pages, bytes;
+
+  if (!icecast->connected) {
+    snprintf(error, errsize, "not connected");
+    return MSERV_FAILURE;
+  }
 
   /* take one second sample buffer and send to libvorbis */
 

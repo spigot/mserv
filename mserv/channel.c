@@ -30,6 +30,7 @@
 #include "misc.h"
 #include "channel.h"
 #include "module.h"
+#include "params.h"
 
 /*
  *
@@ -53,6 +54,8 @@
  * Stopping or pausing makes the channel routines generate silence.
  *
  */
+
+static t_channel_list *channel_list;
 
 /* initialise */
 
@@ -78,6 +81,7 @@ int channel_create(t_channel **channel, const char *name,
                    char *error, int errsize)
 {
   t_channel *c;
+  t_channel_list *cl, *cl_end;
 
   if (strlen(name) >= sizeof(c->name)) {
     snprintf(error, errsize, "name too long");
@@ -110,6 +114,28 @@ int channel_create(t_channel **channel, const char *name,
   }
   c->buffer_bytes = 0;
   c->lasttime.tv_sec = 0;
+
+  if ((cl = malloc(sizeof(t_channel_list))) == NULL) {
+    free(c->buffer);
+    free(c->buffer_char);
+    free(c);
+    snprintf(error, errsize, "out of memory creating channel list structure");
+    return MSERV_FAILURE;
+  }
+  cl->channel = c;
+  cl->created = time(NULL);
+  cl->next = NULL;
+
+  if (channel_list) {
+    /* find end of module list and append our new entry */
+    for (cl_end = channel_list; cl_end->next; cl_end = cl_end->next) ;
+    cl_end->next = cl;
+  } else {
+    /* start the list */
+    channel_list = cl;
+  }
+  mserv_log("channel %s: created", c->name);
+
   *channel = c;
   return MSERV_SUCCESS;
 }
@@ -138,7 +164,7 @@ int channel_addoutput(t_channel *c, const char *modname, const char *location,
   ol->modinfo = mi;
   strncpy(ol->location, location, sizeof(ol->location));
   ol->location[sizeof(ol->location) - 1] = '\0';
-  if (params_parse(ol->params, params, error, errsize) != MSERV_SUCCESS)
+  if (params_parse(&(ol->params), params, error, errsize) != MSERV_SUCCESS)
     return MSERV_FAILURE;
   if (mi->output_create == NULL) {
     snprintf(error, errsize, "module '%s' has no output creation function",
@@ -236,6 +262,7 @@ int channel_volume(t_channel *c, int *volume, char *error, int errsize)
 int channel_close(t_channel *c, char *error, int errsize)
 {
   int ret;
+  t_channel_list *cl, *cl_last;
 
   /* close all output streams */
   while (c->output) {
@@ -243,9 +270,22 @@ int channel_close(t_channel *c, char *error, int errsize)
     if (ret != MSERV_SUCCESS)
       return ret;
   }
+
   /* stop channel (and clear up inputs) */
   if ((ret = channel_stop(c, error, errsize)) != MSERV_SUCCESS)
     return ret;
+
+  /* remove from list */
+  for (cl_last = NULL, cl = channel_list; cl; cl_last = cl, cl = cl->next) {
+    if (cl->channel == c) {
+      if (cl_last)
+        cl_last->next = cl->next;
+      else
+        channel_list = cl->next;
+      break;
+    }
+  }
+
   /* free up memory */
   free(c->buffer_char);
   free(c->buffer);
@@ -589,4 +629,17 @@ int channel_stopped(t_channel *c)
 int channel_paused(t_channel *c)
 {
   return c->paused;
+}
+
+/* channel_find - find channel structure from name */
+
+t_channel *channel_find(const char *name)
+{
+  t_channel_list *cl;
+
+  for (cl = channel_list; cl; cl = cl->next) {
+    if (stricmp(cl->channel->name, name) == 0)
+      return cl->channel;
+  }
+  return NULL;
 }

@@ -18,82 +18,61 @@
 #define _BSD_SOURCE 1
 #define __EXTENSIONS__ 1
 
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "mserv.h"
+#include "misc.h"
 #include "cmd.h"
 
 /*** file-scope (static) function declarations ***/
 
-void mserv_cmd_x(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_x_authors(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_x_authorid(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_x_authorinfo(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_x_authortracks(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_x_genres(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_x_genreid(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_x_genreinfo(t_client *cl, t_cmdparams *cp);
-static void mserv_cmd_x_genretracks(t_client *cl, t_cmdparams *cp);
+static void cmd_x_authors(t_client *cl, t_cmdparams *cp);
+static void cmd_x_authorid(t_client *cl, t_cmdparams *cp);
+static void cmd_x_authorinfo(t_client *cl, t_cmdparams *cp);
+static void cmd_x_authortracks(t_client *cl, t_cmdparams *cp);
+static void cmd_x_genres(t_client *cl, t_cmdparams *cp);
+static void cmd_x_genreid(t_client *cl, t_cmdparams *cp);
+static void cmd_x_genreinfo(t_client *cl, t_cmdparams *cp);
+static void cmd_x_genretracks(t_client *cl, t_cmdparams *cp);
 
 /*** file-scope (static) globals ***/
 
 /*** externed variables ***/
 
-t_cmds mserv_x_cmds[] = {
+t_cmds cmd_x_cmds[] = {
   /* authed_flag, level, name, command, help, syntax */
-  { 1, level_guest, "AUTHORS", mserv_cmd_x_authors,
+  { 1, level_guest, "AUTHORS", NULL, cmd_x_authors,
     "List all authors on the system",
     "" },
-  { 1, level_guest, "AUTHORID", mserv_cmd_x_authorid,
+  { 1, level_guest, "AUTHORID", NULL, cmd_x_authorid,
     "Given an author returns the corresponding id",
     "<author name>" },
-  { 1, level_guest, "AUTHORINFO", mserv_cmd_x_authorinfo,
+  { 1, level_guest, "AUTHORINFO", NULL, cmd_x_authorinfo,
     "Returns information about the given author id",
     "<author id>" },
-  { 1, level_guest, "AUTHORTRACKS", mserv_cmd_x_authortracks,
+  { 1, level_guest, "AUTHORTRACKS", NULL, cmd_x_authortracks,
     "Displays the tracks written by a given author",
     "<author id>" },
-  { 1, level_guest, "GENRES", mserv_cmd_x_genres,
+  { 1, level_guest, "GENRES", NULL, cmd_x_genres,
     "Display list of existing genres set in tracks",
     "" },
-  { 1, level_guest, "GENREID", mserv_cmd_x_genreid,
+  { 1, level_guest, "GENREID", NULL, cmd_x_genreid,
     "Given a genre returns the corresponding id",
     "<genre name>" },
-  { 1, level_guest, "GENREINFO", mserv_cmd_x_genreinfo,
+  { 1, level_guest, "GENREINFO", NULL, cmd_x_genreinfo,
     "Returns information about the given genre id",
     "<genre id>" },
-  { 1, level_guest, "GENRETRACKS", mserv_cmd_x_genretracks,
+  { 1, level_guest, "GENRETRACKS", NULL, cmd_x_genretracks,
     "Displays the tracks with given genre",
     "<genre id>" },
-  { 0, level_guest, NULL, NULL, NULL, NULL }
+  { 0, level_guest, NULL, NULL, NULL, NULL, NULL }
 };
 
 /*** functions ***/
 
-void mserv_cmd_x(t_client *cl, t_cmdparams *cp)
-{
-  t_cmds *cmdsptr;
-  int len;
-
-  for (cmdsptr = mserv_x_cmds; cmdsptr->name; cmdsptr++) {
-    if (!mserv_checklevel(cl, cmdsptr->userlevel))
-      continue;
-    len = strlen(cmdsptr->name);
-    if (strnicmp(cp->line, cmdsptr->name, len) == 0) {
-      if (cp->line[len] != '\0' && cp->line[len] != ' ')
-	continue;
-      cp->line+= len;
-      while (*cp->line == ' ')
-	cp->line++;
-      if (cmdsptr->authed == 1 && cl->authed == 0)
-	mserv_send(cl, "400 Not authenticated\r\n.\r\n", 0);
-      else
-	cmdsptr->function(cl, cp);
-      return;
-    }
-  }
-  mserv_response(cl, "BADCOM", NULL);
-}
-
-static void mserv_cmd_x_authors(t_client *cl, t_cmdparams *cp)
+static void cmd_x_authors(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_author *author;
@@ -126,7 +105,7 @@ static void mserv_cmd_x_authors(t_client *cl, t_cmdparams *cp)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_x_authorid(t_client *cl, t_cmdparams *cp)
+static void cmd_x_authorid(t_client *cl, t_cmdparams *cp)
 {
   t_author *author;
 
@@ -139,7 +118,7 @@ static void mserv_cmd_x_authorid(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "NOAUTH", NULL);
 }
 
-static void mserv_cmd_x_authorinfo(t_client *cl, t_cmdparams *cp)
+static void cmd_x_authorinfo(t_client *cl, t_cmdparams *cp)
 {
   unsigned int n_author;
   char *end;
@@ -177,7 +156,7 @@ static void mserv_cmd_x_authorinfo(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "NOAUTH", NULL);
 }
 
-static void mserv_cmd_x_authortracks(t_client *cl, t_cmdparams *cp)
+static void cmd_x_authortracks(t_client *cl, t_cmdparams *cp)
 {
   unsigned int n_author;
   char *end;
@@ -226,7 +205,7 @@ static void mserv_cmd_x_authortracks(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "NOAUTH", NULL);
 }
 
-static void mserv_cmd_x_genres(t_client *cl, t_cmdparams *cp)
+static void cmd_x_genres(t_client *cl, t_cmdparams *cp)
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_genre *genre;
@@ -255,7 +234,7 @@ static void mserv_cmd_x_genres(t_client *cl, t_cmdparams *cp)
     mserv_send(cl, ".\r\n", 0);
 }
 
-static void mserv_cmd_x_genreid(t_client *cl, t_cmdparams *cp)
+static void cmd_x_genreid(t_client *cl, t_cmdparams *cp)
 {
   t_genre *genre;
 
@@ -268,7 +247,7 @@ static void mserv_cmd_x_genreid(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "NOGEN", NULL);
 }
 
-static void mserv_cmd_x_genreinfo(t_client *cl, t_cmdparams *cp)
+static void cmd_x_genreinfo(t_client *cl, t_cmdparams *cp)
 {
   unsigned int n_genre;
   char *end;
@@ -302,7 +281,7 @@ static void mserv_cmd_x_genreinfo(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "NOGEN", NULL);
 }
 
-static void mserv_cmd_x_genretracks(t_client *cl, t_cmdparams *cp)
+static void cmd_x_genretracks(t_client *cl, t_cmdparams *cp)
 {
   unsigned int n_genre;
   char *end;

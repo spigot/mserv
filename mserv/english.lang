@@ -9,7 +9,7 @@ USEROK	201	Username ok - now type: PASS <password> [<mode>]
 ACLSUCC	202	Successfully authenticated! Welcome %01.
 HELP	203	Help on command '%01'
 HELPC	203	This is Mserv version %01
-HELPCX	203	Syntax: X <command> <params>
+HELPCX	203	Syntax: %01 <command> <params>
 DATE	204	Local time is %05 on %04
 
 QUIT	220	Goodbye!
@@ -109,6 +109,7 @@ CHECKR	278	These songs are inconsistent:
 SEARCFA	279	These songs match filter:
 ASRCHA	280	Search results:
 VOLUMER	281	Volume changed
+CHANMOD	282	Channel successfully modified
 
 RATETOO	200	You may like to rate these too:
 FPLAY	200	** First play!
@@ -130,6 +131,8 @@ ARANDOM	410	Random setting unchanged
 GENRERR	411	Invalid genre setting
 NOHIST	412	There are no entries in the history
 NOHISTR	412	There are no entries in the history for range specified
+BADCHAN	413	No such channel
+CHANF	414	Failed to modify channel: %01
 
 BADCOM	500	Command not understood
 STATE	501	State error
@@ -172,6 +175,7 @@ SEARCFB	537	No tracks matching filter found
 ASRCHB	538	No albums matching search pattern found
 SERROR	539	System error: '%01'
 NOTIMPL	540	Not implemented
+BADMOD	541	No such module
 
 CONNECT	600	User %01 has connected
 DISCONN	601	User %01 has disconnected

@@ -25,5 +25,6 @@ int channel_pause(t_channel *c, char *error, int errsize);
 int channel_unpause(t_channel *c, char *error, int errsize);
 int channel_stopped(t_channel *c);
 int channel_paused(t_channel *c);
+t_channel *channel_find(const char *name);
 
 #endif

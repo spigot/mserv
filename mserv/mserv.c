@@ -993,7 +993,9 @@ static void mserv_endline(t_client *cl, char *line)
     } else {
       strcpy(ru, cl->user);
     }
-    for (cmdsptr = mserv_cmds; cmdsptr->name; cmdsptr++) {
+    cmdsptr = cmd_cmds;
+again:
+    for (; cmdsptr->name; cmdsptr++) {
       if (!mserv_checklevel(cl, cmdsptr->userlevel))
 	continue;
       len = strlen(cmdsptr->name);
@@ -1006,13 +1008,21 @@ static void mserv_endline(t_client *cl, char *line)
 	while (*p && p[strlen(p)-1] == ' ')
 	  p[strlen(p)-1] = '\0';
 	if (cmdsptr->authed && !cl->authed) {
-	  mserv_response(cl, "NOTAUTH", NULL);
-        } else {
-          memset(&cp, 0, sizeof(cp));
-          cp.ru = ru;
-          cp.line = p;
-          cmdsptr->function(cl, &cp);
+          mserv_response(cl, "NOTAUTH", NULL);
+          break;
         }
+        if (cmdsptr->sub_cmds && cmdsptr->function == NULL) {
+          /* this is not a real command but a command container */
+          cmdsptr = cmdsptr->sub_cmds;
+          goto again;
+        }
+        if (cmdsptr->function == NULL)
+          /* this shouldn't happen */
+          break;
+        memset(&cp, 0, sizeof(cp));
+        cp.ru = ru;
+        cp.line = p;
+        cmdsptr->function(cl, &cp);
 	return;
       }
     }

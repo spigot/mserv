@@ -2857,7 +2857,7 @@ t_track *mserv_gettrack(unsigned int n_album, unsigned int n_track)
   for (album = mserv_albums; album; album = album->next) {
     if (album->id != n_album)
       continue;
-    if (n_track >= album->ntracks)
+    if (n_track > album->ntracks)
       return NULL;
     return album->tracks[n_track - 1];
   }

@@ -13,6 +13,9 @@ via CVS the version of the first entry is the forthcoming version number.
 - Added module entry points for start/stop of channel
 - Icecast module can now (optionally) disconnect from server when channel is
   stopped
+- Fix SET YEAR so that it allows years above 1000! (Thanks to Robin Lee
+  Powell)
+- Fix last track check in some functions (Thanks again to Robin Lee Powell)
 
 0.40 - Nov 1st 2003
 -------------------

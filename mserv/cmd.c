@@ -2001,7 +2001,7 @@ static void mserv_cmd_set_year(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, "NAN", NULL);
     return;
   }
-  if (year < 100 || year > 1000) {
+  if (year < 100 || year > 10000) {
     mserv_response(cl, "NAN", NULL);
     return;
   }

@@ -181,7 +181,7 @@ static void cmd_x_authortracks(t_client *cl, t_cmdparams *cp)
       for (ui = 0; ui < author->ntracks; ui++) {
 	if (author->tracks[ui]) {
 	  rate = mserv_getrate(cp->ru, author->tracks[ui]);
-	  sprintf(bit, "%d/%d", author->tracks[ui]->n_album,
+	  sprintf(bit, "%d/%d", author->tracks[ui]->album->id,
 		  author->tracks[ui]->n_track);
 	  if (cl->mode == mode_human) {
 	    sprintf(buffer, "[] %7.7s %-1.1s %-20.20s %-44.44s\r\n", bit,
@@ -190,7 +190,7 @@ static void cmd_x_authortracks(t_client *cl, t_cmdparams *cp)
 	    mserv_send(cl, buffer, 0);
 	  } else {
 	    sprintf(buffer, "%d\t%d\t%d\t%s\t%s\t%s\r\n", author->id,
-		    author->tracks[ui]->n_album, author->tracks[ui]->n_track,
+		    author->tracks[ui]->album->id, author->tracks[ui]->n_track,
 		    author->tracks[ui]->author, author->tracks[ui]->name,
 		    mserv_ratestr(rate));
 	    mserv_send(cl, buffer, 0);
@@ -306,7 +306,7 @@ static void cmd_x_genretracks(t_client *cl, t_cmdparams *cp)
 		       genre->ntracks);
       for (ui = 0; ui < genre->ntracks; ui++) {
 	rate = mserv_getrate(cp->ru, genre->tracks[ui]);
-	sprintf(bit, "%d/%d", genre->tracks[ui]->n_album,
+	sprintf(bit, "%d/%d", genre->tracks[ui]->album->id,
 		genre->tracks[ui]->n_track);
 	if (cl->mode == mode_human) {
 	  sprintf(buffer, "[] %7.7s %-1.1s %-20.20s %-44.44s\r\n", bit,
@@ -315,7 +315,7 @@ static void cmd_x_genretracks(t_client *cl, t_cmdparams *cp)
 	  mserv_send(cl, buffer, 0);
 	} else {
 	  sprintf(buffer, "%d\t%d\t%d\t%s\t%s\t%s\r\n", genre->id,
-		  genre->tracks[ui]->n_album, genre->tracks[ui]->n_track,
+		  genre->tracks[ui]->album->id, genre->tracks[ui]->n_track,
 		  genre->tracks[ui]->author, genre->tracks[ui]->name,
 		  mserv_ratestr(rate));
 	  mserv_send(cl, buffer, 0);

@@ -164,7 +164,7 @@ int filter_check(const char *filter, t_track *track)
   stack_n = 0;
 
 #ifdef PARSERDEBUG
-  mserv_log("filter_check: checking %d/%d", track->n_album, track->n_track);
+  mserv_log("filter_check: checking %d/%d", track->album->id, track->n_track);
 #endif
 
   if (!*filter)
@@ -293,7 +293,7 @@ int filter_check(const char *filter, t_track *track)
 	    }
 	    val1 = (unsigned int)(time(NULL) - track->lastplay) / 3600;
 	  } else if (ui == 5 && !strnicmp(token, "album", 5)) {
-	    val1 = track->n_album;
+	    val1 = track->album->id;
 	  } else if (ui == 5 && !strnicmp(token, "track", 5)) {
 	    val1 = track->n_track;
 	  } else {

@@ -145,10 +145,11 @@ typedef struct _t_rating {
   time_t when;
 } t_rating;
 
+struct _t_album;
 typedef struct _t_track {
   struct _t_track *next;
   unsigned int id;
-  unsigned int n_album;
+  struct _t_album *album;
   unsigned int n_track;
   unsigned int year;
   unsigned int random;
@@ -169,6 +170,16 @@ typedef struct _t_track {
   t_rating *ratings;
 } t_track;
 
+/* This struct keeps track of a user's average rating of the tracks in
+ * a certain album.  It is used to compute an expected value for
+ * unrated tracks of the same album. */
+typedef struct _t_average {
+  struct _t_average *next;
+  char *user;
+  double sum;
+  int n_ratings;
+} t_average;
+
 typedef struct _t_album {
   struct _t_album *next;
   unsigned int id;
@@ -180,6 +191,7 @@ typedef struct _t_album {
   char *filename;
   time_t mtime;
   t_track **tracks;
+  t_average *averages;
 } t_album;
 
 typedef struct _t_author {

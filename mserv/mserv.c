@@ -108,6 +108,8 @@ static void mserv_scandir(void);
 static void mserv_scandir_recurse(const char *pathname);
 static t_track *mserv_loadtrk(const char *filename);
 static t_album *mserv_loadalbum(const char *filename, int onlyifexists);
+static t_average *mserv_forced_getaverage(t_album *album, const char *user);
+static void album_compute_averages(t_album *album);
 static int album_insertsort(t_album *album);
 static t_author *mserv_authorlist(void);
 static int author_insertsort(t_author **list, t_author *author);
@@ -171,10 +173,6 @@ static void mserv_init(void)
   mserv_nextid_album = 1;
 
   for (album = mserv_albums; album; album = album->next) {
-    for (i = 0; i < album->ntracks; i++) {
-      if (album->tracks[i])
-        album->tracks[i]->n_album = mserv_nextid_album;
-    }
     album->id = mserv_nextid_album++;
   }
 
@@ -668,7 +666,7 @@ static void mserv_checkchild(void)
 	if (WEXITSTATUS(st)) {
 	  mserv_log("Child process exited (%d)", WEXITSTATUS(st));
 	  mserv_broadcast("NOSPAWN", "%d\t%d\t%s\t%s",
-			  playing->track->n_album,
+			  playing->track->album->id,
 			  playing->track->n_track,
 			  playing->track->author,
 			  playing->track->name);
@@ -892,7 +890,7 @@ void mserv_close(t_client *cl)
     while (b) {
       if (!stricmp(b->trkinfo.user, cl->user)) {
 	mserv_broadcast("UNQA", "%d\t%d\t%s\t%s",
-			b->trkinfo.track->n_album, b->trkinfo.track->n_track,
+			b->trkinfo.track->album->id, b->trkinfo.track->n_track,
 			b->trkinfo.track->author, b->trkinfo.track->name);
 	free(b);
 	if (a == NULL)
@@ -1057,34 +1055,62 @@ int mserv_checklevel(t_client *cl, t_userlevel level)
   return 1;
 }
 
-/* 1 <= val <= 5, 0 = heard */
+static void album_updateaverage(t_album *album, const char *user,
+				int oldrating, int newrating)
+{
+  t_average *average;
 
+  if (oldrating == 0 && newrating == 0) {
+    return;
+  }
+  
+  average = mserv_forced_getaverage(album, user);
+  
+  /* Remove the previous rating from the average */
+  if (oldrating > 0) {
+    average->n_ratings--;
+    average->sum -= ((double)(oldrating - 1)) / 4.0;
+  }
+  
+  /* Add the current rating to the average */
+  if (newrating > 0) {
+    average->n_ratings++;
+    average->sum += ((double)(newrating - 1)) / 4.0;
+  }
+}
+
+/* 1 <= val <= 5, 0 = heard */
 t_rating *mserv_ratetrack(t_client *cl, t_track **track, unsigned int val)
 {
   t_rating *rate, *r, *p;
-
+  
   *track = mserv_checkdisk_track(*track);
   (*track)->modified = 1; /* save information */
-
-  if ((rate = mserv_getrate(cl->user, *track)) != NULL) {
-    rate->rating = val;
-    rate->when = time(NULL);
-    return rate;
+  
+  if ((rate = mserv_getrate(cl->user, *track)) == NULL) {
+    if ((rate = malloc(sizeof(t_rating)+strlen(cl->user)+1)) == NULL) {
+      mserv_log("Out of memory creating rating");
+      return NULL;
+    }
+    rate->user = (char *)(rate+1);
+    rate->rating = 0; /* 0 means HEARD */
+    strcpy(rate->user, cl->user);
+    rate->next = NULL;
+    for (p = NULL, r = (*track)->ratings; r; p = r, r = r->next) ;
+    if (p)
+      p->next = rate;
+    else
+      (*track)->ratings = rate;
   }
-  if ((rate = malloc(sizeof(t_rating)+strlen(cl->user)+1)) == NULL) {
-    mserv_log("Out of memory creating rating");
-    return NULL;
-  }
-  rate->user = (char *)(rate+1);
-  strcpy(rate->user, cl->user);
+  
+  /* Invariant: rate->rating can be modified when we get here */
+  album_updateaverage((*track)->album,
+		      cl->user,
+		      rate != NULL ? rate->rating : 0,
+		      val);
   rate->rating = val;
   rate->when = time(NULL);
-  rate->next = NULL;
-  for (p = NULL, r = (*track)->ratings; r; p = r, r = r->next) ;
-  if (p)
-    p->next = rate;
-  else
-    (*track)->ratings = rate;
+  
   return rate;
 }
 
@@ -1185,14 +1211,27 @@ static void mserv_replacetrack(t_track *track, t_track *newtrack)
 
   newtrack->next = track->next;
   newtrack->id = track->id;
-  newtrack->n_album = track->n_album;
+  newtrack->album = track->album;
   newtrack->n_track = track->n_track;
 
   /* change album track pointers */
   for (album = mserv_albums; album; album = album->next) {
     for (ui = 0; ui < album->ntracks; ui++) {
-      if (album->tracks[ui] == track)
+      if (album->tracks[ui] == track) {
+	t_acl *user;
+	
+	/* Keep the album averages up to date */
+	for (user = mserv_acl; user != NULL; user = user->next) {
+	  t_rating *oldrating = mserv_getrate(user->user, track);
+	  t_rating *newrating = mserv_getrate(user->user, newtrack);
+	  
+	  album_updateaverage(album, user->user,
+			      oldrating ? oldrating->rating : 0,
+			      newrating ? newrating->rating : 0);
+	}
+	
 	album->tracks[ui] = newtrack;
+      }
     }
   }
   /* change currently decoding track pointer */
@@ -1241,6 +1280,7 @@ static void mserv_replacealbum(t_album *album, t_album *newalbum)
   newalbum->tracks_size = album->tracks_size;
   newalbum->ntracks = album->ntracks;
   newalbum->tracks = album->tracks;
+  newalbum->averages = album->averages;
 
   /* change album linked list pointer */
   for (al = mserv_albums; al; al = al->next) {
@@ -1740,7 +1780,6 @@ static void mserv_scandir_recurse(const char *pathname)
       continue;
     }
     tracks[ntracks]->id = mserv_nextid_track++;
-    tracks[ntracks]->n_album = mserv_nextid_album;
     tracks[ntracks]->n_track = ntracks + 1; /* 1... */
     tracks[ntracks]->next = mserv_tracks;
     mserv_tracks = tracks[ntracks];
@@ -1755,6 +1794,7 @@ static void mserv_scandir_recurse(const char *pathname)
   /* we've sorted so we need to renumber tracks */
   for (ui = 0; ui < ntracks; ui++) {
     tracks[ui]->n_track = ui+1;
+    tracks[ui]->album = album;
   }
   album->tracks = tracks;
   album->tracks_size = tracks_size;
@@ -1765,7 +1805,107 @@ static void mserv_scandir_recurse(const char *pathname)
     free(album);
     return;
   }
+  album_compute_averages(album);
   return;
+}
+
+static void album_free_averages(t_album *album)
+{
+  while (album->averages != NULL) {
+    t_average *average = album->averages;
+    album->averages = album->averages->next;
+    free(average);
+  }
+}
+
+static t_average *mserv_getaverage(t_album *album, const char *user)
+{
+  t_average *average;
+  
+  for (average = album->averages;
+       average != NULL;
+       average = average->next)
+  {
+    if (strcmp(average->user, user) == 0) {
+      return average;
+    }
+  }
+  
+  return NULL;
+}
+
+/* This function never returns NULL.  If there is no average for this
+ * user, a new one is created */
+static t_average *mserv_forced_getaverage(t_album *album,
+					  const char *user)
+{
+  t_average *average;
+  
+  average = mserv_getaverage(album, user);
+  if (average != NULL) {
+    return average;
+  }
+  
+  /* Allocate space for the struct and the user name in one chunk */
+  average = calloc(1, sizeof(t_average) + strlen(user) + 1);
+  if (average == NULL) {
+    mserv_log("Failed to allocate memory for user average, terminating.");
+    exit(1);
+  }
+  
+  /* Put the user name right after the struct */
+  average->user = (char *)(average + 1);
+  strcpy(average->user, user);
+  
+  average->next = album->averages;
+  album->averages = average;
+  
+  return average;
+}
+
+static void mserv_setaverage(t_album *album,
+			     const char *user,
+			     int n_ratings,
+			     double sum)
+{
+  t_average *average = mserv_forced_getaverage(album, user);
+
+  average->n_ratings = n_ratings;
+  average->sum = sum;
+}
+
+/* Re-compute the per-user average ratings for this album. */
+static void album_compute_averages(t_album *album)
+{
+  t_acl *user;
+  
+  album_free_averages(album);
+
+  /* For all users... */
+  for (user = mserv_acl; user != NULL; user = user->next) {
+    int n_ratings = 0;
+    double sum = 0.0;
+    
+    unsigned int track_number;
+    
+    /* For all tracks of this album... */
+    for (track_number = 0; track_number < album->ntracks; track_number++) {
+      t_track *track = album->tracks[track_number];
+      t_rating *rating = mserv_getrate(user->user, track);
+      
+      /* If the user has rated this track... */
+      if (rating != NULL && rating->rating > 0) {
+	n_ratings++;
+	
+	/* Convert the integer rating 1-5 to 0.0-1.0 */
+	sum += ((double)(rating->rating - 1)) / 4.0;
+      }
+    }
+
+    if (n_ratings > 0) {
+      mserv_setaverage(album, user->user, n_ratings, sum);
+    }
+  }
 }
 
 static int album_insertsort(t_album *album)
@@ -1863,6 +2003,7 @@ static int mserv_trackcompare_rating(const void *a, const void *b)
   }
 }
 
+/* Load album from disk, but don't populate it with tracks */
 static t_album *mserv_loadalbum(const char *filename, int onlyifexists)
 {
   FILE *fd;
@@ -1983,6 +2124,7 @@ static t_album *mserv_loadalbum(const char *filename, int onlyifexists)
   album->id = mserv_nextid_album++;
   album->modified = 0;
   album->mtime = mtime;
+  album->averages = NULL;
   return album;
 }
 
@@ -2340,7 +2482,7 @@ int mserv_player_playnext(void)
     if (track) {
       mserv_player_playing.track = track;
       mserv_log("Randomly picking track %d of %d (%d/%d)", tnum, total,
-		track->n_album, track->n_track);
+		track->album->id, track->n_track);
       strcpy(mserv_player_playing.user, "random");
     } else {
       mserv_log("Could not randomise song");
@@ -2509,10 +2651,85 @@ static void mserv_checkshutdown(void)
   }
 }
 
+/*
+ * Calculate a value 0.0-1.0 that will be used as this user's opinion
+ * when determining what track to play next.
+ *
+ * Called from mserv_recalcratings().
+ */
+static double mserv_getcookedrate(const char *user, t_track *track)
+{
+  t_rating *rate;
+  double fallback;
+  t_average *average;
+  
+  int n_ratings;
+  double ratings_sum;
+  double mean;
+  
+  /* Threshold value for the True Bayesian Estimate (see below) */
+  const int THRESHOLD = 3;
+  
+  rate = mserv_getrate(user, track);
+  
+  /* Simple case, the user has rated the track */
+  if (rate != NULL && rate->rating != 0) {
+    return ((double)(rate->rating - 1)) / 4.0; /* 1-5 -> percentage */
+  }
+  
+  if (rate == NULL) {
+    fallback = opt_rate_unheard;
+  } else {
+    fallback = opt_rate_unrated;
+  }
+  
+  average = mserv_getaverage(track->album,
+			     user);
+  if (average != NULL) {
+    n_ratings = average->n_ratings;
+    ratings_sum = average->sum;
+  } else {
+    n_ratings = 0;
+    ratings_sum = 0.0;
+  }
+  
+  if (n_ratings == 0) {
+    return fallback;
+  }
+  
+  mean = ratings_sum / n_ratings;
+  
+  /* Require at least THRESHOLD ratings before allowing lowering the
+   * default track scores */
+  if (n_ratings < THRESHOLD && mean < fallback) {
+    return fallback;
+  }
+  
+  /* Calculate the True Bayesian Estimate as defined by the Internet
+   * Movie Database's Top 250 list (I mean it!)  What this says is
+   * basically that to get very high or very low values, they have to
+   * be backed by a lot of ratings.  Few ratings will give you values
+   * close to the fallback value.
+   *
+   * To be more specific, the TBE is a weighted average between
+   * fallback and mean.  The weight for fallback is THRESHOLD, and the
+   * weight for mean is n_ratings.
+   *
+   * Thus, the exact meaning of the THRESHOLD value is that if you
+   * have exactly THRESHOLD ratings, the final value will be the
+   * average of the fallback and the average rating. */
+
+  /* Note that "n_ratings * mean" could be replaced by ratings_sum,
+   * but the formula is more readable this way.  I'll leave that to
+   * the C compiler's optimizer if it's interested. */
+  return
+    ((THRESHOLD * fallback) + (n_ratings * mean)) /
+    (THRESHOLD + n_ratings) ;
+}
+
 void mserv_recalcratings(void)
 {
   t_track *track;
-  t_rating *rate;
   double rating;
   t_client *cl;
   time_t off;
@@ -2568,7 +2785,7 @@ void mserv_recalcratings(void)
       mserv_filter_notok++;
     if (totalusers == 0) {
       track->prating = 0;
-    } else if (track->ratings) {
+    } else {
       rating = 0;
       for (cl = mserv_clients; cl; cl = cl->next) {
 	if (!cl->authed || cl->state == st_closed ||
@@ -2577,22 +2794,11 @@ void mserv_recalcratings(void)
 	
 	/* Note that if the experimental fairness is disabled,
 	 * cl->weight will always be 1.0. */
-	if ((rate = mserv_getrate(cl->user, track)) != NULL) {
-	  if (rate->rating == 0) {
-	    rating += cl->weight * opt_rate_unrated; /* 0.50 */
-	  } else {
-	    rating += cl->weight *
-	      ((double)(rate->rating - 1)) / 4.0; /* 1-5 -> percentage */
-	  }
-	} else { /* user has not rated song */
-	  rating += cl->weight * opt_rate_unheard; /* 0.55 */
-	}
+	rating += cl->weight * mserv_getcookedrate(cl->user, track);
       }
       /* If the experimental fairness is disabled, total_weight will
        * be equal to totalusers. */
       track->prating = rating / total_weight;
-    } else {
-      track->prating = opt_rate_unheard;
     }
     track->rating = track->prating;
     off = time(NULL) - track->lastplay;
@@ -3173,6 +3379,7 @@ void mserv_reset(void)
   /* clear albums */
   for (a = mserv_albums; a; a = a_n) {
     a_n = a->next;
+    album_free_averages(a);
     free(a);
   }
   mserv_albums = NULL;
@@ -3485,7 +3692,7 @@ void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
         }
       } else if (cl->mode == mode_rtcomputer) {
         sprintf(buffer, "=%d\t%s\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-                lang->code, nowplaying->user, nowplaying->track->n_album,
+                lang->code, nowplaying->user, nowplaying->track->album->id,
                 nowplaying->track->n_track, nowplaying->track->author,
                 nowplaying->track->name, mserv_ratestr(rate),
                 (nowplaying->track->duration / 100) / 60,
@@ -3543,7 +3750,7 @@ void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
 
   if (info)
     p+= sprintf(p, "%*.*s ", -width_info, TRACKINFO_MAX_INFO, info);
-  sprintf(bit, "%d/%d", track->n_album, track->n_track);
+  sprintf(bit, "%d/%d", track->album->id, track->n_track);
   p+= sprintf(p, "%*.*s ", width_track, TRACKINFO_MAX_TRACK, bit);
   p+= sprintf(p, "%-1.1s ", rate && rate->rating ? mserv_ratestr(rate) : "-");
   if (display_align) {

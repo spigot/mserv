@@ -374,7 +374,7 @@ int channel_addinput(t_channel *c, int fd, t_trkinfo *trkinfo,
   i->announced = 0;
   i->trkinfo = *trkinfo;
   mserv_log("channel %s: added %d/%d to stream", c->name,
-            i->trkinfo.track->n_album, i->trkinfo.track->n_track);
+            i->trkinfo.track->album->id, i->trkinfo.track->n_track);
   /* add on end of linked list */
   for (tail = &c->input; *tail; tail = &(*tail)->next) ;
   *tail = i;
@@ -390,14 +390,14 @@ int channel_inputfinished(t_channel *c)
   if (i == NULL)
     return MSERV_SUCCESS;
   mserv_log("channel %s: decoding of %d/%d finished", c->name,
-            i->trkinfo.track->n_album, i->trkinfo.track->n_track);
+            i->trkinfo.track->album->id, i->trkinfo.track->n_track);
   if (i->fd != -1)
     close(i->fd);
   c->input = i->next;
   free(i);
   if (c->input)
     mserv_log("channel %s: decoding of %d/%d started", c->name,
-              i->trkinfo.track->n_album, i->trkinfo.track->n_track);
+              i->trkinfo.track->album->id, i->trkinfo.track->n_track);
   return MSERV_SUCCESS;
 }
 
@@ -484,7 +484,7 @@ int channel_sync(t_channel *c, char *error, int errsize)
       if (ret == -1) {
         if (errno != EAGAIN || errno != EINTR) {
           mserv_log("channel %s: failure reading on input socket for %d/%d: %s",
-                    c->name, c->input->trkinfo.track->n_album,
+                    c->name, c->input->trkinfo.track->album->id,
                     c->input->trkinfo.track->n_track, strerror(errno));
         }
         break;

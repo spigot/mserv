@@ -107,11 +107,11 @@ static void cmd_set_author(t_client *cl, t_cmdparams *cp)
       mserv_response(cl, "MEMORYR", NULL);
     mserv_broadcast("MEMORY", NULL);
   }
-  mserv_broadcast("AUTH", "%s\t%d\t%d\t%s\t%s\t%s", cl->user, track->n_album,
+  mserv_broadcast("AUTH", "%s\t%d\t%d\t%s\t%s\t%s", cl->user, track->album->id,
 		  track->n_track, track->author, track->name, str[2]);
   if (cl->mode != mode_human)
     mserv_response(cl, "AUTHR", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		   track->n_album, track->n_track, track->author,
+		   track->album->id, track->n_track, track->author,
 		   track->name, str[2]);
 }
 
@@ -154,11 +154,11 @@ static void cmd_set_name(t_client *cl, t_cmdparams *cp)
       mserv_response(cl, "MEMORYR", NULL);
     mserv_broadcast("MEMORY", NULL);
   }
-  mserv_broadcast("NAME", "%s\t%d\t%d\t%s\t%s\t%s", cl->user, track->n_album,
+  mserv_broadcast("NAME", "%s\t%d\t%d\t%s\t%s\t%s", cl->user, track->album->id,
 		  track->n_track, track->author, track->name, str[2]);
   if (cl->mode != mode_human)
     mserv_response(cl, "NAMER", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		   track->n_album, track->n_track, track->author,
+		   track->album->id, track->n_track, track->author,
 		   track->name, str[2]);
 }
 
@@ -210,11 +210,11 @@ static void cmd_set_genre(t_client *cl, t_cmdparams *cp)
       return;
     }
     mserv_broadcast("GENRE", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		    track->n_album, track->n_track,
+		    track->album->id, track->n_track,
 		    track->author, track->name, str[n-1]);
     if (cl->mode != mode_human)
       mserv_response(cl, "GENRER", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		     track->n_album, track->n_track, track->author,
+		     track->album->id, track->n_track, track->author,
 		     track->name, str[n-1]);
   } else {
     /* set genre of album */
@@ -282,11 +282,11 @@ static void cmd_set_year(t_client *cl, t_cmdparams *cp)
   track = mserv_checkdisk_track(track);
   track->year = year;
   track->modified = 1;
-  mserv_broadcast("YEAR", "%s\t%d\t%d\t%s\t%s\t%d", cl->user, track->n_album,
+  mserv_broadcast("YEAR", "%s\t%d\t%d\t%s\t%s\t%d", cl->user, track->album->id,
 		  track->n_track, track->author, track->name, year);
   if (cl->mode != mode_human)
     mserv_response(cl, "YEARR", "%s\t%d\t%d\t%s\t%s\t%d", cl->user,
-		   track->n_album, track->n_track, track->author,
+		   track->album->id, track->n_track, track->author,
 		   track->name, year);
   mserv_savechanges();
 }
@@ -333,11 +333,11 @@ static void cmd_set_volume(t_client *cl, t_cmdparams *cp)
   track = mserv_checkdisk_track(track);
   track->volume = volume;
   track->modified = 1;
-  mserv_broadcast("VOLUME", "%s\t%d\t%d\t%s\t%s\t%d", cl->user, track->n_album,
+  mserv_broadcast("VOLUME", "%s\t%d\t%d\t%s\t%s\t%d", cl->user, track->album->id,
 		  track->n_track, track->author, track->name, volume);
   if (cl->mode != mode_human)
     mserv_response(cl, "VOLUMER", "%s\t%d\t%d\t%s\t%s\t%d", cl->user,
-		   track->n_album, track->n_track, track->author,
+		   track->album->id, track->n_track, track->author,
 		   track->name, volume);
   mserv_savechanges();
 }

@@ -472,7 +472,7 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
     mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d.%d\t%s"
                    "\t%.2f",
 		   mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
-		   playing->track->n_album,
+		   playing->track->album->id,
 		   playing->track->n_track,
 		   playing->track->author,
 		   playing->track->name, start->tv_sec,
@@ -484,7 +484,7 @@ static void cmd_status(t_client *cl, t_cmdparams *cp)
 	mserv_response(cl, token, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d.%d"
 		       "\t%s\t%.2f",
 		       mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
-		       playing->track->n_album, playing->track->n_track,
+		       playing->track->album->id, playing->track->n_track,
                        playing->track->author, playing->track->name, 
                        start->tv_sec,
                        ago.tv_sec/60, ago.tv_sec % 60, ago.tv_usec / 100000,
@@ -818,7 +818,7 @@ static void cmd_tracks(t_client *cl, t_cmdparams *cp)
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
-    id = playing->track->n_album;
+    id = playing->track->album->id;
   } else {
     id = strtol(cp->line, &end, 10);
     if (!*cp->line || *end) {
@@ -839,7 +839,7 @@ static void cmd_tracks(t_client *cl, t_cmdparams *cp)
         mserv_send_trackinfo(cl, album->tracks[i],  rate, 0, NULL);
       } else {
 	sprintf(buffer, "%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-		album->tracks[i]->n_album, album->tracks[i]->n_track,
+		album->tracks[i]->album->id, album->tracks[i]->n_track,
 		album->tracks[i]->author, album->tracks[i]->name,
 		mserv_ratestr(rate),
 		(album->tracks[i]->duration / 100) / 60,
@@ -894,7 +894,7 @@ static void cmd_ratings(t_client *cl, t_cmdparams *cp)
       return;
     }
   }
-  mserv_responsent(cl, "RATINGS", "%d\t%d\t%s\t%s", track->n_album,
+  mserv_responsent(cl, "RATINGS", "%d\t%d\t%s\t%s", track->album->id,
 		   track->n_track, track->author, track->name);
   for (rate = track->ratings; rate; rate = rate->next) {
     if (cl->mode == mode_human) {
@@ -957,11 +957,11 @@ static void cmd_unqueue(t_client *cl, t_cmdparams *cp)
   }
   if (q) {
     mserv_broadcast("UNQ", "%s\t%d\t%d\t%s\t%s", cl->user,
-		    q->trkinfo.track->n_album, q->trkinfo.track->n_track,
+		    q->trkinfo.track->album->id, q->trkinfo.track->n_track,
 		    q->trkinfo.track->author, q->trkinfo.track->name);
     if (cl->mode != mode_human)
       mserv_response(cl, "UNQR", "%d\t%d\t%s\t%s",
-		     q->trkinfo.track->n_album, q->trkinfo.track->n_track,
+		     q->trkinfo.track->album->id, q->trkinfo.track->n_track,
 		     q->trkinfo.track->author, q->trkinfo.track->name);
     if (p)
       p->next = q->next;
@@ -1000,7 +1000,7 @@ static void cmd_queue(t_client *cl, t_cmdparams *cp)
         mserv_send_trackinfo(cl, q->trkinfo.track, rate, 0, q->trkinfo.user);
       } else {
 	sprintf(buffer, "%s\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-		q->trkinfo.user, q->trkinfo.track->n_album,
+		q->trkinfo.user, q->trkinfo.track->album->id,
 		q->trkinfo.track->n_track, q->trkinfo.track->author,
 		q->trkinfo.track->name,	mserv_ratestr(rate),
 		(q->trkinfo.track->duration / 100) / 60,
@@ -1132,7 +1132,7 @@ static int cmd_queue_sub(t_client *cl, t_album *album, int n_track,
   if (cl->mode != mode_human) {
     rate = mserv_getrate(cl->user, album->tracks[i]);
     sprintf(buffer, "%s\t%d\t%d\t%s\t%s\t%s\r\n", cl->user,
-	    album->tracks[i]->n_album, album->tracks[i]->n_track,
+	    album->tracks[i]->album->id, album->tracks[i]->n_track,
 	    album->tracks[i]->author, album->tracks[i]->name,
 	    mserv_ratestr(rate));
     mserv_send(cl, buffer, 0);
@@ -1143,7 +1143,7 @@ static int cmd_queue_sub(t_client *cl, t_album *album, int n_track,
       mserv_send_trackinfo(client, album->tracks[i], rate, 0, cl->user);
     } else if (client->mode == mode_rtcomputer) {
       sprintf(buffer, "=%d\t%s\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-	      lang->code, cl->user, album->tracks[i]->n_album,
+	      lang->code, cl->user, album->tracks[i]->album->id,
 	      album->tracks[i]->n_track, album->tracks[i]->author,
 	      album->tracks[i]->name, mserv_ratestr(rate),
 	      (album->tracks[i]->duration / 100) / 60,
@@ -1157,7 +1157,6 @@ static int cmd_queue_sub(t_client *cl, t_album *album, int n_track,
 static void cmd_play(t_client *cl, t_cmdparams *cp)
 {
   char error[256];
-  t_track *track;
   t_channel *channel = channel_find(cl->channel);
   t_trkinfo *playing = channel_getplaying(channel);
 
@@ -1169,14 +1168,15 @@ static void cmd_play(t_client *cl, t_cmdparams *cp)
       return;
     }
     mserv_broadcast("RESUME", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
-                    playing->track->n_album,
+                    playing->track->album->id,
                     playing->track->n_track,
                     playing->track->author, playing->track->name);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
       if (playing) {
-        mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
-                       track->n_album, track->n_track,
+	t_track *track = playing->track;
+	mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
+                       track->album->id, track->n_track,
                        track->author, track->name);
       } else {
         /* must be resuming silence */
@@ -1187,8 +1187,9 @@ static void cmd_play(t_client *cl, t_cmdparams *cp)
   }
   if (!channel_stopped(channel)) {
     if (playing) {
+      t_track *track = playing->track;
       mserv_response(cl, "ALRPLAY", "%d\t%d\t%s\t%s",
-                     track->n_album, track->n_track,
+                     track->album->id, track->n_track,
                      track->author, track->name);
     } else {
       /* must be in silence */
@@ -1207,9 +1208,10 @@ static void cmd_play(t_client *cl, t_cmdparams *cp)
   } else {
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
-      track = playing->track ? playing->track : mserv_player_playing.track;
+      t_track *track =
+	playing->track ? playing->track : mserv_player_playing.track;
       mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
-                     track->n_album, track->n_track,
+                     track->album->id, track->n_track,
                      track->author, track->name);
     }
   }
@@ -1221,14 +1223,14 @@ static void cmd_stop(t_client *cl, t_cmdparams *cp)
   t_trkinfo *playing = channel_getplaying(channel);
 
   (void)cp;
-  if (!channel_stopped(channel)) {
+  if (playing != NULL && !channel_stopped(channel)) {
     mserv_broadcast("STOPPED", "%s\t%d\t%d\t%s\t%s", cl->user,
-		    playing->track->n_album, playing->track->n_track,
+		    playing->track->album->id, playing->track->n_track,
 		    playing->track->author, playing->track->name);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
       mserv_response(cl, "STOP", "%d\t%d\t%s\t%s",
-		     playing->track->n_album, playing->track->n_track,
+		     playing->track->album->id, playing->track->n_track,
 		     playing->track->author, playing->track->name);
     }
     mserv_abortplay();
@@ -1255,7 +1257,7 @@ static void cmd_pause(t_client *cl, t_cmdparams *cp)
       return;
     }
     mserv_broadcast("PAUSE", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
-                    playing->track->n_album,
+                    playing->track->album->id,
                     playing->track->n_track,
                     playing->track->author, playing->track->name);
     if (cl->mode != mode_human) {
@@ -1274,6 +1276,10 @@ static void cmd_next(t_client *cl, t_cmdparams *cp)
   char error[256];
 
   (void)cp;
+  if (playing == NULL || playing->track == NULL) {
+    mserv_response(cl, "NOTHING", NULL);
+    return;
+  }
   if (playing && playing->track)
     mserv_broadcast("SKIP", "%s", cl->user);
   if (playing && playing->track == mserv_player_playing.track) {
@@ -1292,7 +1298,7 @@ static void cmd_next(t_client *cl, t_cmdparams *cp)
   if (playing && cl->mode != mode_human) {
     /* humans will already have seen broadcast */
     mserv_response(cl, "NEXT", "%d\t%d\t%s\t%s",
-                   playing->track->n_album, /* TODO: mserv_player_playing */
+                   playing->track->album->id, /* TODO: mserv_player_playing */
                    playing->track->n_track, playing->track->author,
                    playing->track->name);
   }
@@ -1334,11 +1340,11 @@ static void cmd_repeat(t_client *cl, t_cmdparams *cp)
   }
   if (!mserv_addqueue(cl, playing->track)) {
     mserv_broadcast("REPEAT", "%s\t%d\t%d\t%s\t%s", cl->user,
-		    playing->track->n_album, playing->track->n_track,
+		    playing->track->album->id, playing->track->n_track,
 		    playing->track->author, playing->track->name);
     if (cl->mode != mode_human)
       mserv_response(cl, "REPEAT", "%s\t%d\t%d\t%s\t%s", cl->user,
-		     playing->track->n_album, playing->track->n_track,
+		     playing->track->album->id, playing->track->n_track,
 		     playing->track->author, playing->track->name);
   } else {
     mserv_response(cl, "QNONE", NULL);
@@ -1498,7 +1504,7 @@ static void cmd_top(t_client *cl, t_cmdparams *cp)
       mserv_send_trackinfo(cl, track,  rate, 0, bit);
     } else {
       sprintf(buffer, "%2.2f\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n", 100*prob,
-	      track->n_album, track->n_track, track->author, track->name,
+	      track->album->id, track->n_track, track->author, track->name,
 	      mserv_ratestr(rate),
 	      (track->duration / 100) / 60,
 	      (track->duration / 100) % 60);
@@ -1610,7 +1616,7 @@ static void cmd_history(t_client *cl, t_cmdparams *cp)
                            mserv_history[i]->user);
     } else {
       sprintf(buffer, "%s\t%d\t%d\t%s\t%s\t%s\r\n",
-	      mserv_history[i]->user, mserv_history[i]->track->n_album,
+	      mserv_history[i]->user, mserv_history[i]->track->album->id,
 	      mserv_history[i]->track->n_track,
 	      mserv_history[i]->track->author, mserv_history[i]->track->name,
 	      mserv_ratestr(rate));
@@ -1655,7 +1661,7 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
       mserv_response(cl, "NOTHING", NULL);
       return;
     }
-    n_album = playing->track->n_album;
+    n_album = playing->track->album->id;
     n_track = playing->track->n_track;
   } else {
     n_album = strtol(str[0], &end, 10);
@@ -1684,15 +1690,15 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
 	mserv_response(cl, "MEMORYR", NULL);
       return;
     }
-    if (playing && playing->track && n_album == playing->track->n_album &&
+    if (playing && playing->track && n_album == playing->track->album->id &&
 	n_track == playing->track->n_track) {
       mserv_broadcast("RATECUR", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		      playing->track->n_album,
+		      playing->track->album->id,
 		      playing->track->n_track, track->author,
 		      track->name, mserv_ratestr(rate));
       if (cl->mode != mode_human)
 	mserv_response(cl, "RATED", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
-		       playing->track->n_album,
+		       playing->track->album->id,
 		       playing->track->n_track, track->author,
 		       track->name, mserv_ratestr(rate));
     } else {
@@ -1801,14 +1807,14 @@ static void cmd_check(t_client *cl, t_cmdparams *cp)
             mserv_send_trackinfo(cl, track2, rate2, 0, "");
 	  } else {
 	    sprintf(buffer, "%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-		    track1->n_album, track1->n_track,
+		    track1->album->id, track1->n_track,
 		    track1->author, track1->name,
 		    mserv_ratestr(rate1),
 		    (track1->duration / 100) / 60,
 		    (track1->duration / 100) % 60);
 	    mserv_send(cl, buffer, 0);
 	    sprintf(buffer, "%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-		    track2->n_album, track2->n_track,
+		    track2->album->id, track2->n_track,
 		    track2->author, track2->name,
 		    mserv_ratestr(rate2),
 		    (track2->duration / 100) / 60,
@@ -1854,7 +1860,7 @@ static void cmd_search(t_client *cl, t_cmdparams *cp)
             mserv_send_trackinfo(cl, track, rate, 0, "");
 	  } else {
 	    sprintf(buffer, "%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-		    track->n_album, track->n_track,
+		    track->album->id, track->n_track,
 		    track->author, track->name, mserv_ratestr(rate),
 		    (track->duration / 100) / 60,
 		    (track->duration / 100) % 60);
@@ -1938,7 +1944,7 @@ static void cmd_searchf(t_client *cl, t_cmdparams *cp)
             mserv_send_trackinfo(cl, track, rate, 0, "");
 	  } else {
 	    sprintf(buffer, "%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
-		    track->n_album, track->n_track,
+		    track->album->id, track->n_track,
 		    track->author, track->name, mserv_ratestr(rate),
 		    (track->duration / 100) / 60,
 		    (track->duration / 100) % 60);
@@ -2041,7 +2047,7 @@ static void cmd_info(t_client *cl, t_cmdparams *cp)
       return;
     }
   }
-  if ((album = mserv_getalbum(track->n_album)) == NULL) {
+  if ((album = mserv_getalbum(track->album->id)) == NULL) {
     mserv_response(cl, "NOALBUM", NULL);
     return;
   }
@@ -2062,7 +2068,7 @@ static void cmd_info(t_client *cl, t_cmdparams *cp)
   mserv_response(cl, "INFT",
 		 "%d\t%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%.1f\t%.1f\t"
 		 "%s\t%s\t%s\t%d:%02d.%d\t%s\t%d",
-		 track->n_album, track->n_track, album->author, album->name,
+		 track->album->id, track->n_track, album->author, album->name,
 		 track->author, track->name, track->year ? year : "unknown",
 		 track->lastplay, ago, 100*track->prating, 100*track->rating,
 		 mserv_ratestr(rate), track->genres,
@@ -2075,7 +2081,7 @@ static void cmd_info(t_client *cl, t_cmdparams *cp)
       mserv_response(cl, token,
 		     "%d\t%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%.1f\t%.1f\t"
 		     "%s\t%s\t%s\t%d:%02d.%d\t%s\t%d",
-		     track->n_album, track->n_track, album->author,
+		     track->album->id, track->n_track, album->author,
 		     album->name, track->author, track->name,
 		     track->year ? year : "unknown", track->lastplay,
 		     ago, 100*track->prating, 100*track->rating,

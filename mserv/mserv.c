@@ -701,6 +701,8 @@ static void mserv_checkchild(void)
   
   /* Invariant: player has terminated */
   mserv_player_pid = 0;
+  mserv_player_playing.track->lastplay = time(NULL);
+  mserv_player_playing.track->modified = 1;
   mserv_player_playing.track = NULL;
   
   if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {

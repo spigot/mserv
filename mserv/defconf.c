@@ -14,13 +14,14 @@ const char defconf_file[] = "# Mserv configuration file for 0.35 and later\n\
 # path_language=" DATADIR "/english.lang\n\
 \n\
 # default_icecast_output=http://source:password@localhost:8000/mserv.ogg\n\
+# default_icecast_bitrate=48000\n\
 \n\
 # Define player invokation methods\n\
 # mservplay is our special wrapper, the first parameter is a 'nice' level\n\
 # prog_freeamp=freeamp -ui mpg123\n\
 # prog_sox=sox %s -r 44100 -s -w -c 2 -t raw -\n\
 # prog_mservplay=mservplay 0 mpg123 -s -b 1024\n\
-prog_mpg123=mpg123 -s -b 1024\n\
+prog_mpg123=mpg123 --stereo --rate 44100 -s -b 1024\n\
 prog_ogg123=ogg123 --device=raw -f-\n\
 \n\
 # Set streaming players for each file extension we want to support, unknown\n\

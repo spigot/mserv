@@ -50,6 +50,7 @@ met:
 #include "opt.h"
 
 const char *opt_default_icecast_output = NULL;
+const char *opt_default_icecast_bitrate = NULL;
 const char *opt_path_acl = NULL;
 const char *opt_path_webacl = NULL;
 const char *opt_path_logfile = NULL;
@@ -60,7 +61,7 @@ const char *opt_path_idea = NULL;
 const char *opt_path_mixer = NULL;
 const char *opt_path_language = NULL;
 unsigned int opt_port = 4444;
-unsigned int opt_gap = 1;
+double opt_gap = 1;
 unsigned int opt_play = 0;
 unsigned int opt_random = 0;
 double opt_factor = 0.6;
@@ -77,6 +78,8 @@ typedef struct {
 t_opts opt_opts[] = {
   { "default_icecast_output", "string", &opt_default_icecast_output,
     "http://source:password@localhost:8000/mserv.ogg" },
+  { "default_icecast_bitrate", "string", &opt_default_icecast_bitrate,
+    "48000" },
   { "path_acl",       "path",    &opt_path_acl,       "acl" },
   { "path_webacl",    "path",    &opt_path_webacl,    "webacl" },
   { "path_logfile",   "path",    &opt_path_logfile,   "log" },
@@ -85,9 +88,9 @@ t_opts opt_opts[] = {
   { "path_playout",   "path",    &opt_path_playout,   "player.out" },
   { "path_idea",      "path",    &opt_path_idea,      "idea" },
   { "path_mixer",     "path",    &opt_path_mixer,     "/dev/mixer" },
-  { "path_language",  "path",    &opt_path_language, DATADIR "/english.lang"},
+  { "path_language",  "path",    &opt_path_language,  DATADIR "/english.lang"},
   { "port",           "int",     &opt_port,           "4444" },
-  { "gap",            "int",     &opt_gap,            "1" },
+  { "gap",            "double",  &opt_gap,            "1" },
   { "play",           "switch",  &opt_play,           "off" },
   { "random",         "switch",  &opt_random,         "off" },
   { "factor",         "double",  &opt_factor,         "0.60" },

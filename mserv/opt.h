@@ -1,4 +1,5 @@
 extern const char *opt_default_icecast_output;
+extern const char *opt_default_icecast_bitrate;
 extern const char *opt_path_acl;
 extern const char *opt_path_webacl;
 extern const char *opt_path_logfile;
@@ -9,7 +10,7 @@ extern const char *opt_path_idea;
 extern const char *opt_path_mixer;
 extern const char *opt_path_language;
 extern unsigned int opt_port;
-extern unsigned int opt_gap;
+extern double opt_gap;
 extern unsigned int opt_random;
 extern unsigned int opt_play;
 extern double opt_factor;

@@ -256,12 +256,14 @@ expect "404 There are no tracks in the queue"
 expect "\n.\n"
 send "queue 1 1\n"
 expect "247 The following tracks have been added to the queue"
+expect -i $humanjohan "The following tracks have been added to the queue"
 
 send "queue\n"
 expect "225 The following tracks are in the queue"
 expect "\n.\n"
 send "unqueue 1 1\n"
 expect "254 Track"
+expect -i $humanjohan "unqueued by johan"
 
 send "next\n"
 expect "401 Nothing playing"
@@ -280,6 +282,7 @@ expect "246 Album 1, track 1"
 send "play\n"
 expect "230 Play commenced"
 expect "\n.\n"
+expect -i $humanjohan "Playing:"
 
 send "status\n"
 expect "222 Playing"
@@ -295,6 +298,7 @@ expect "\n.\n"
 
 send "pause\n"
 expect "232 Play paused"
+expect -i $humanjohan "paused by johan"
 
 send "pause\n"
 expect "406 Already paused"
@@ -302,9 +306,12 @@ expect "406 Already paused"
 send "play\n"
 expect "230 Play commenced"
 expect "\n.\n"
+expect -i $humanjohan "resumed by johan"
 
 send "next\n"
 expect "240 Moved to next track"
+expect -i $humanjohan "Track skipped"
+expect -i $humanjohan "Playing: "
 
 send "info\n"
 expect "246 Album"
@@ -315,10 +322,12 @@ expect "402 Already playing"
 send "stop\n"
 expect "231 Play stopped"
 expect "\n.\n"
+expect -i $humanjohan "stopped by johan"
 
 send "quit\n"
 expect "220 Goodbye"
 wait
+expect -i $humanjohan "johan has disconnected"
 
 # Log the computer johan back in so he can be kicked off by root
 spawn telnet localhost 4444
@@ -339,6 +348,8 @@ send "user root\n"
 expect "PASS"
 send "pass root\n"
 expect "Welcome root"
+expect -i $humanjohan "root has connected"
+expect -i $computerjohan "=600\troot"
 
 # Verify that both Johans are still logged in
 send "who\n"

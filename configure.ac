@@ -3,7 +3,7 @@ dnl Mserv configure.in file - process with autoconf
   AC_INIT(mserv/mserv.c)
   AC_PREREQ(2.52)
   AC_CANONICAL_SYSTEM
-  AM_INIT_AUTOMAKE(mserv, 0.40)
+  AM_INIT_AUTOMAKE(mserv, 0.41)
   AM_CONFIG_HEADER(config.h)
   AC_CONFIG_SUBDIRS(libltdl)
 
@@ -49,8 +49,8 @@ dnl Options
     AC_HELP_STRING([--with-ossaudio-mixer=PATH], [path to ossaudio mixer]),,
     with_mixer="/dev/mixer")
 
-  AC_ARG_WITH(module-icecast,
-    AC_HELP_STRING([--with-engine-icecast], [build icecast module]),,
+  AC_ARG_ENABLE(module-icecast,
+    AC_HELP_STRING([--enable-engine-icecast], [build icecast module]),,
     enable_module_icecast="yes")
 
   AC_ARG_WITH(warnings,

@@ -1037,6 +1037,7 @@ Optional Features:
                           build ossaudio module
   --with-ossaudio-mixer=PATH
                           path to ossaudio mixer
+  --enable-engine-icecast build icecast module
   --disable-server        do not compile server
   --disable-client        do not compile client libs/utils
   --disable-vorbistest       Do not try to compile and run a test Vorbis program
@@ -1049,7 +1050,6 @@ Optional Packages:
                           both]
   --with-tags[=TAGS]
                           include additional configurations [automatic]
-  --with-engine-icecast   build icecast module
   --with-warnings         turn on gcc warnings
   --with-debug            turn debugging options on
   --with-libsamplerate=DIR
@@ -1834,7 +1834,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=mserv
- VERSION=0.40
+ VERSION=0.41
 
 
 cat >>confdefs.h <<_ACEOF
@@ -20093,10 +20093,9 @@ else
   with_mixer="/dev/mixer"
 fi;
 
-
-# Check whether --with-module-icecast or --without-module-icecast was given.
-if test "${with_module_icecast+set}" = set; then
-  withval="$with_module_icecast"
+  # Check whether --enable-module-icecast or --disable-module-icecast was given.
+if test "${enable_module_icecast+set}" = set; then
+  enableval="$enable_module_icecast"
 
 else
   enable_module_icecast="yes"

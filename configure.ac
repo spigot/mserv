@@ -3,7 +3,7 @@ dnl Mserv configure.in file - process with autoconf
   AC_INIT(mserv/mserv.c)
   AC_PREREQ(2.52)
   AC_CANONICAL_SYSTEM
-  AM_INIT_AUTOMAKE(mserv, 0.37)
+  AM_INIT_AUTOMAKE(mserv, 0.38)
   AM_CONFIG_HEADER(config.h)
 
 dnl Engine selection

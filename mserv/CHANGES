@@ -4,6 +4,20 @@ Changes
 This documents changes as they are made.  Note that if you received this file
 via CVS the version of the first entry is the forthcoming version number.
 
+0.33 - Jul 13th 2000
+--------------------
+- Applied patch from Joseph Heenan <joseph@ping.demon.co.uk> to provide
+  better logging of duplicate albums
+- Applied patch from <unknown> to give a new 'play' option in the config file
+  to get mserv to automatically start on start-up.
+- Applied patch from Joseph Heenan <joseph@ping.demon.co.uk> that improves
+  the CDDB splitting of track/author names in mservripcd.
+
+0.32 - Jun 6th 2000
+-------------------
+- Fixed bug in RATE <album> <string> which rated the songs in an album that
+  had been rated, instead of the ones that weren't.
+
 0.31 - Jan 25th 2000
 --------------------
 - Fixed mserv.cgi so that there is no sub next() as this conflicts with some
@@ -14,6 +28,7 @@ via CVS the version of the first entry is the forthcoming version number.
 - Bug fix in set genre for an album, so that it doesn't segv.
 - Incorporated patch from Jan Hecking <jhecking@informatik.uni-rostock.de>
   which cleans up the initialisation code.
+- Added mservripcd to distribution, a script for ripping CDs for mserv use.
 
 0.30 - Jan 2nd 2000
 -------------------

@@ -1297,10 +1297,12 @@ static void cmd_next(t_client *cl, t_cmdparams *cp)
               error);
   if (playing && cl->mode != mode_human) {
     /* humans will already have seen broadcast */
+    t_track *track =
+      (playing && playing->track) ? playing->track : mserv_player_playing.track;
     mserv_response(cl, "NEXT", "%d\t%d\t%s\t%s",
-                   playing->track->album->id, /* TODO: mserv_player_playing */
-                   playing->track->n_track, playing->track->author,
-                   playing->track->name);
+                   track->album->id, /* TODO: mserv_player_playing */
+                   track->n_track, track->author,
+                   track->name);
   }
 }
 

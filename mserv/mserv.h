@@ -20,6 +20,7 @@
 void mserv_log(const char *text, ...);
 void mserv_response(t_client *cl, const char *token, const char *fmt, ...);
 void mserv_responsent(t_client *cl, const char *token, const char *fmt, ...);
+void mserv_informnt(t_client *cl, const char *token, const char *fmt, ...);
 void mserv_broadcast(const char *token, const char *fmt, ...);
 void mserv_send(t_client *cl, const char *data, unsigned int len);
 t_lang *mserv_gettoken(const char *token);

@@ -102,7 +102,10 @@ static void mserv_pollwrite(t_client *cl);
 static void mserv_pollclient(t_client *cl);
 static void mserv_endline(t_client *cl, char *line);
 static int mserv_loadlang(const char *pathname);
-static void mserv_vresponse(t_client *cl, const char *token, const char *fmt,
+static void mserv_vresponse(int asynchronous,
+			    t_client *cl,
+			    const char *token,
+			    const char *fmt,
 			    va_list ap);
 static void mserv_scandir(void);
 static void mserv_scandir_recurse(const char *pathname);
@@ -1489,7 +1492,7 @@ void mserv_response(t_client *cl, const char *token, const char *fmt, ...)
   va_list ap;
 
   va_start(ap, fmt);
-  mserv_vresponse(cl, token, fmt, ap);
+  mserv_vresponse(0, cl, token, fmt, ap);
   va_end(ap);
   if (cl->mode != mode_human)
     mserv_send(cl, ".\r\n", 0);
@@ -1500,13 +1503,25 @@ void mserv_responsent(t_client *cl, const char *token, const char *fmt, ...)
   va_list ap;
 
   va_start(ap, fmt);
-  mserv_vresponse(cl, token, fmt, ap);
+  mserv_vresponse(0, cl, token, fmt, ap);
   va_end(ap);
 }
 
+/* Inform a user about something that was caused by somebody else */
+void mserv_informnt(t_client *cl, const char *token, const char *fmt, ...)
+{
+  va_list ap;
 
-static void mserv_vresponse(t_client *cl, const char *token, const char *fmt,
-		     va_list ap)
+  va_start(ap, fmt);
+  mserv_vresponse(1, cl, token, fmt, ap);
+  va_end(ap);
+}
+
+static void mserv_vresponse(int asynchronous,
+			    t_client *cl,
+			    const char *token,
+			    const char *fmt,
+			    va_list ap)
 {
   t_lang *lang;
   char outputcomp[1024];
@@ -1527,6 +1542,15 @@ static void mserv_vresponse(t_client *cl, const char *token, const char *fmt,
     }
   } else {
     params = 0;
+  }
+  if (asynchronous && cl->mode == mode_computer) {
+    /* mode_computer clients aren't interested in asynchronous
+     * messages.  If they were, they'd be mode_rtcomputer clients. */
+    return;
+  }
+  if (cl->mode == mode_rtcomputer && asynchronous) {
+    /* Asynchronous messages to rtcomputer clients are prefixed with "=" */
+    mserv_send(cl, "=", 0);
   }
   if (cl->mode == mode_rtcomputer || cl->mode == mode_computer) {
     snprintf(output, 1024, "%d ", lang->code);

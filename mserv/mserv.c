@@ -1648,6 +1648,7 @@ static void mserv_scandir_recurse(const char *pathname)
     if ((unsigned int)snprintf(fullpath, 1024, "%s/%s%s", opt_path_tracks,
 			       pathname, ent->d_name) >= 1024) {
       mserv_log("fullpath buffer too small");
+      closedir(dir);
       return;
     }
     /* get details about this file */
@@ -2011,12 +2012,14 @@ static t_track *mserv_loadtrk(const char *filename)
       line++;
       alen = strlen(buffer);
       if (buffer[alen-1] != '\n') {
-	mserv_log("Line %d too long in '%s'", line, fullpath_trk);
+        mserv_log("Line %d too long in '%s'", line, fullpath_trk);
+        fclose(fd);
 	return NULL;
       }
       buffer[--alen] = '\0';
       if (!(l = strcspn(buffer, "=")) || l >= 64) {
 	mserv_log("Invalid track line %d in '%s'", line, fullpath_trk);
+        fclose(fd);
 	return NULL;
       }
       strncpy(token, buffer, l);
@@ -2054,6 +2057,7 @@ static t_track *mserv_loadtrk(const char *filename)
 	}
 	if ((arate = malloc(sizeof(t_rating)+strlen(token)+1)) == NULL) {
 	  mserv_log("Out of memory creating ratings for '%s'", fullpath_trk);
+          fclose(fd);
 	  return NULL;
 	}
 	memset(arate, 0, sizeof(t_rating));
@@ -2075,6 +2079,14 @@ static t_track *mserv_loadtrk(const char *filename)
 	ratingsl = arate;
       }
     }
+    if (fstat(fileno(fd), &buf) == -1) {
+      perror("fstat");
+      mserv_log("Unable to stat '%s': %s", filename, strerror(errno));
+      fclose(fd);
+      return NULL;
+    }
+    mtime = buf.st_mtime;
+    fclose(fd);
     if (!*author) {
       mserv_log("No author specified in '%s'", fullpath_trk);
       return NULL;
@@ -2083,13 +2095,6 @@ static t_track *mserv_loadtrk(const char *filename)
       mserv_log("No name specified in '%s'", fullpath_trk);
       return NULL;
     }
-    if (fstat(fileno(fd), &buf) == -1) {
-      perror("fstat");
-      mserv_log("Unable to stat '%s': %s", filename, strerror(errno));
-      return NULL;
-    }
-    mtime = buf.st_mtime;
-    fclose(fd);
   }
   if (duration == 0 && !*miscinfo) {
     len = strlen(fullpath_file);
@@ -2478,7 +2483,7 @@ void mserv_recalcratings(void)
       }
       track->prating = rating/totalusers;
     } else {
-      track->prating = RATE_NOTHEARD;
+      track->prating = opt_rate_unheard;
     }
     track->rating = track->prating;
     off = time(NULL) - track->lastplay;

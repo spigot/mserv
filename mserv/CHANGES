@@ -4,7 +4,7 @@ Changes
 This documents changes as they are made.  Note that if you received this file
 via CVS the version of the first entry is the forthcoming version number.
 
-0.33 - Jul 13th 2000
+0.33 - Jul 15th 2000
 --------------------
 - Applied patch from Joseph Heenan <joseph@ping.demon.co.uk> to provide
   better logging of duplicate albums

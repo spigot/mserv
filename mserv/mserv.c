@@ -4420,14 +4420,12 @@ static void mserv_adjustfactor(void)
   if (lowestsatisfaction < satisfaction_goal) {
     if (satisfactiondelta > 0.0) {
       /*
-       * Don't raise the factor if the lowest satisfaction is moving in
-       * the right direction.  Factor control is intentionally assymetric
-       * in that we will always lower the factor if satisfaction is too high,
-       * but we will only raise the factor if the satisfaction isn't moving
+       * Don't raise the factor if the lowest satisfaction is moving
        * in the right direction.
        * 
        * This should hopefully make us converge on a factor value
-       * somewhere near the optimal value.
+       * somewhere near the optimal value, rather than fluctuating
+       * around it.
        */
       mserv_log("Autofactor: not raising factor from %.2f since lowest satisfaction (currently %.2f for user %s) is moving towards the goal of %.2f",
 		mserv_factor,
@@ -4447,6 +4445,23 @@ static void mserv_adjustfactor(void)
 	      lowestsatisfaction,
 	      satisfaction_goal);
   } else if (lowestsatisfaction > satisfaction_goal) {
+    if (satisfactiondelta < 0.0) {
+      /*
+       * Don't lower the factor if the lowest satisfaction is moving
+       * in the right direction.
+       * 
+       * This should hopefully make us converge on a factor value
+       * somewhere near the optimal value, rather than fluctuating
+       * around it.
+       */
+      mserv_log("Autofactor: not lowering factor from %.2f since lowest satisfaction (currently %.2f for user %s) is moving towards the goal of %.2f",
+		mserv_factor,
+		lowestsatisfaction,
+		most_dissatisfied_user,
+		satisfaction_goal);
+      return;
+    }
+    
     mserv_factor -= 0.1;
     if (mserv_factor < 0.51) {
       mserv_factor = 0.51;

@@ -9,17 +9,18 @@ This package includes:
 
 You should be able to:
 
-  ./configure --enable-engine-icecast --disable-engine-local
+  ./configure --enable-module-icecast --disable-module-local
   make
   make install
 
 Unless you specify a different --prefix, Mserv will install in to /usr/local
 by default.
 
-You need to specify which engine to use (this release only supports icecast)
+You need to specify which modules to compile (this release only supports
+icecast)
 
-  --enable-engine-local    Compile the local output engine (default)
-  --enable-engine-icecast  Compile the icecast output engine
+  --enable-module-local    Compile the local output module (default)
+  --enable-module-icecast  Compile the icecast output module
 
 Once you have installed Mserv with icecast support, run mserv once to
 generate the ~/.mserv directory with the configuration file ~/.mserv/config.

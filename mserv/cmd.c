@@ -2182,8 +2182,8 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
     total = 0;
     for (i = 0; i < TRACKSPERALBUM; i++) {
       if (album->tracks[i]) {
-	if ((rate = mserv_getrate(cl->user, album->tracks[i])) == NULL ||
-	    rate->rating == 0) { /* 0 means heard, not rated */
+	if ((rate2 = mserv_getrate(cl->user, album->tracks[i])) == NULL ||
+	    rate2->rating == 0) { /* 0 means heard, not rated */
 	  if ((rate = mserv_ratetrack(cl, &album->tracks[i], val)) == NULL) {
 	    mserv_broadcast("MEMORY", NULL);
 	    if (cl->mode != mode_human)

@@ -9,6 +9,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Define to 1 if you have the <shout/shout.h> header file. */
+#undef HAVE_SHOUT_SHOUT_H
+
 /* Define to 1 if you have the <soundcard.h> header file. */
 #undef HAVE_SOUNDCARD_H
 

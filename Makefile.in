@@ -72,7 +72,11 @@ LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
-MY_LIBS = @MY_LIBS@
+MSERVCLI_LIBS = @MSERVCLI_LIBS@
+MSERVCMD_LIBS = @MSERVCMD_LIBS@
+MSERV_CFLAGS = @MSERV_CFLAGS@
+MSERV_CPPFLAGS = @MSERV_CPPFLAGS@
+MSERV_LIBS = @MSERV_LIBS@
 MY_SUBDIRS = @MY_SUBDIRS@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
@@ -82,11 +86,17 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKGCONFIG = @PKGCONFIG@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SHOUTCONFIG = @SHOUTCONFIG@
 STRIP = @STRIP@
 VERSION = @VERSION@
+VORBISENC_LIBS = @VORBISENC_LIBS@
+VORBISFILE_LIBS = @VORBISFILE_LIBS@
+VORBIS_CFLAGS = @VORBIS_CFLAGS@
+VORBIS_LIBS = @VORBIS_LIBS@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
@@ -147,9 +157,9 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	installdirs-recursive install-recursive uninstall-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = README AUTHORS COPYING ChangeLog INSTALL Makefile.am \
-	Makefile.in NEWS aclocal.m4 config.guess config.h.in config.sub \
-	configure configure.ac depcomp install-sh ltmain.sh missing \
-	mkinstalldirs
+	Makefile.in NEWS aclocal.m4 compile config.guess config.h.in \
+	config.sub configure configure.ac depcomp install-sh ltmain.sh \
+	missing mkinstalldirs
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

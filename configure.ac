@@ -3,8 +3,18 @@ dnl Mserv configure.in file - process with autoconf
   AC_INIT(mserv/mserv.c)
   AC_PREREQ(2.52)
   AC_CANONICAL_SYSTEM
-  AM_INIT_AUTOMAKE(mserv, 0.35)
+  AM_INIT_AUTOMAKE(mserv, 0.36)
   AM_CONFIG_HEADER(config.h)
+
+dnl Engine selection
+
+  ENGINE="local"
+  AC_ARG_WITH(engine-local, AC_HELP_STRING([--with-engine-local],
+              [Use local engine (default)]),
+              ENGINE="local")
+  AC_ARG_WITH(engine-icecast, AC_HELP_STRING([--with-engine-icecast],
+              [Use icecast engine]),
+              ENGINE="icecast")
 
 dnl Checks for programs.
 
@@ -55,11 +65,23 @@ dnl Checks for libraries - mserv
 
   AC_MSG_RESULT(Checking libraries for mserv)
   MSERV_LIBS=""
-  AC_CHECK_LIB(m, pow, MY_LIBS="$MY_LIBS -lm")
-  AC_CHECK_LIB(socket, main, MY_LIBS="$MY_LIBS -lsocket")
-  AC_CHECK_LIB(malloc, main, MY_LIBS="$MY_LIBS -lmalloc")
-  AC_CHECK_LIB(crypt, crypt, MY_LIBS="$MY_LIBS -lcrypt")
-  AC_CHECK_LIB(ossaudio, _oss_ioctl, MY_LIBS="$MY_LIBS -lossaudio")
+  AC_CHECK_LIB(m, pow, MSERV_LIBS="$MSERV_LIBS -lm")
+  AC_CHECK_LIB(socket, main, MSERV_LIBS="$MSERV_LIBS -lsocket")
+  AC_CHECK_LIB(malloc, main, MSERV_LIBS="$MSERV_LIBS -lmalloc")
+  AC_CHECK_LIB(crypt, crypt, MSERV_LIBS="$MSERV_LIBS -lcrypt")
+  AC_CHECK_LIB(ossaudio, _oss_ioctl, MSERV_LIBS="$MSERV_LIBS -lossaudio")
+
+  if [[ "x$ENGINE" = "xicecast" ]]; then
+    XIPH_PATH_SHOUT(, AC_MSG_ERROR([must have libshout installed!]))
+    AC_CHECK_LIB(pthread, pthread_create, MSERV_LIBS="$MSERV_LIBS -lpthread")
+    if test "$SHOUT_THREADSAFE" != "yes"; then
+      AC_MSG_ERROR([This libshout isn't threadsafe])
+    fi
+    XIPH_PATH_VORBIS(, AC_MSG_ERROR([must have Ogg Vorbis v1.0 installed!]))
+    MSERV_LIBS="$MSERV_LIBS $SHOUT_LIBS $VORBISENC_LIBS $VORBIS_LIBS"
+    MSERV_CPPFLAGS="$MSERV_CPPFLAGS $SHOUT_CPPFLAGS $VORBIS_CPPFLAGS"
+    MSERV_CFLAGS="$MSERV_CFLAGS $SHOUT_CFLAGS $VORBIS_CFLAGS"
+  fi
 
 dnl Checks for libraries - mservcli
 
@@ -92,20 +114,14 @@ dnl Checks for functions
 
   AC_CHECK_FUNCS(strsep)
 
-dnl Engine selection
-
-  ENGINE="local"
-  AC_ARG_WITH(engine-local, AC_HELP_STRING([--with-engine-local],
-              [Use local engine (default)]),
-              ENGINE="local")
-#  AC_ARG_WITH(engine-icecast, AC_HELP_STRING([--with-engine-icecast],
-#              [Use icecast engine]),
-#              ENGINE="icecast")
-
 dnl Makefile substitutions
 
   AC_SUBST(DEPFLAGS)
-  AC_SUBST(MY_LIBS)
+  AC_SUBST(MSERV_LIBS)
+  AC_SUBST(MSERV_CFLAGS)
+  AC_SUBST(MSERV_CPPFLAGS)
+  AC_SUBST(MSERVCLI_LIBS)
+  AC_SUBST(MSERVCMD_LIBS)
   AC_SUBST(MY_SUBDIRS)
 
 dnl Final stuff
@@ -127,12 +143,13 @@ dnl Final stuff
   fi
 
   if [[ "x$ENGINE" = "xlocal" ]]; then
-#    AC_MSG_RESULT([  Local output engine selected]);
+    AC_MSG_ERROR([  Local output engine not support in this release])
+    AC_MSG_RESULT([  Local output engine selected]);
     if [[ "x$FOUND_SOUNDCARD" = "xno" ]]; then
       echo "WARNING: no soundcard.h! VOLUME/BASS/TREBLE controls disabled!";
     fi
-#  elif [[ "x$ENGINE" = "icecast" ]]; then
-#    AC_MSG_RESULT([  Icecast output engine selected])
+  elif [[ "x$ENGINE" = "xicecast" ]]; then
+    AC_MSG_RESULT([  Icecast output engine selected])
   fi
   AC_MSG_RESULT()
 

@@ -467,7 +467,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE am__leading_dot CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE RANLIB ac_ct_RANLIB LN_S ECHO CPP EGREP LIBTOOL make DEPFLAGS MY_LIBS MY_SUBDIRS LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE am__leading_dot CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE RANLIB ac_ct_RANLIB LN_S ECHO CPP EGREP LIBTOOL make PKGCONFIG SHOUTCONFIG VORBIS_CFLAGS VORBIS_LIBS VORBISFILE_LIBS VORBISENC_LIBS DEPFLAGS MSERV_LIBS MSERV_CFLAGS MSERV_CPPFLAGS MSERVCLI_LIBS MSERVCMD_LIBS MY_SUBDIRS LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1016,15 +1016,20 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --disable-server        Do not compile server
   --disable-client        Do not compile client libs/utils
+  --disable-vorbistest       Do not try to compile and run a test Vorbis program
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-engine-local     Use local engine (default)
+  --with-engine-icecast   Use icecast engine
   --with-gnu-ld           assume the C compiler uses GNU ld default=no
   --with-pic              try to use only PIC/non-PIC objects default=use both
   --with-warnings         Turn on gcc warnings
   --with-debug            Turn debugging options on
-  --with-engine-local     Use local engine (default)
+  --with-vorbis=PFX   Prefix where libvorbis is installed (optional)
+  --with-vorbis-libraries=DIR   Directory where libvorbis library is installed (optional)
+  --with-vorbis-includes=DIR   Directory where libvorbis header files are installed (optional)
 
 Some influential environment variables:
   CC          C compiler command
@@ -1797,7 +1802,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=mserv
- VERSION=0.35
+ VERSION=0.36
 
 
 cat >>confdefs.h <<_ACEOF
@@ -1925,6 +1930,21 @@ INSTALL_STRIP_PROGRAM="\${SHELL} \$(install_sh) -c -s"
 
             ac_config_headers="$ac_config_headers config.h"
 
+
+
+  ENGINE="local"
+
+# Check whether --with-engine-local or --without-engine-local was given.
+if test "${with_engine_local+set}" = set; then
+  withval="$with_engine_local"
+  ENGINE="local"
+fi;
+
+# Check whether --with-engine-icecast or --without-engine-icecast was given.
+if test "${with_engine_icecast+set}" = set; then
+  withval="$with_engine_icecast"
+  ENGINE="icecast"
+fi;
 
 
   ac_ext=c
@@ -4918,7 +4938,7 @@ test "x$enable_libtool_lock" != xno && enable_libtool_lock=yes
 case $host in
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 4921 "configure"' > conftest.$ac_ext
+  echo '#line 4941 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -5447,7 +5467,7 @@ chmod -w .
 save_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -o out/conftest2.$ac_objext"
 compiler_c_o=no
-if { (eval echo configure:5450: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>out/conftest.err; } && test -s out/conftest2.$ac_objext; then
+if { (eval echo configure:5470: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>out/conftest.err; } && test -s out/conftest2.$ac_objext; then
   # The compiler can only warn and ignore the option if not recognized
   # So say no if there are warnings
   if test -s out/conftest.err; then
@@ -7292,7 +7312,7 @@ else
     lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 7295 "configure"
+#line 7315 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -7390,7 +7410,7 @@ else
     lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 7393 "configure"
+#line 7413 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -8266,7 +8286,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_m_pow" >&5
 echo "${ECHO_T}$ac_cv_lib_m_pow" >&6
 if test $ac_cv_lib_m_pow = yes; then
-  MY_LIBS="$MY_LIBS -lm"
+  MSERV_LIBS="$MSERV_LIBS -lm"
 fi
 
   echo "$as_me:$LINENO: checking for main in -lsocket" >&5
@@ -8318,7 +8338,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_socket_main" >&5
 echo "${ECHO_T}$ac_cv_lib_socket_main" >&6
 if test $ac_cv_lib_socket_main = yes; then
-  MY_LIBS="$MY_LIBS -lsocket"
+  MSERV_LIBS="$MSERV_LIBS -lsocket"
 fi
 
   echo "$as_me:$LINENO: checking for main in -lmalloc" >&5
@@ -8370,7 +8390,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_malloc_main" >&5
 echo "${ECHO_T}$ac_cv_lib_malloc_main" >&6
 if test $ac_cv_lib_malloc_main = yes; then
-  MY_LIBS="$MY_LIBS -lmalloc"
+  MSERV_LIBS="$MSERV_LIBS -lmalloc"
 fi
 
   echo "$as_me:$LINENO: checking for crypt in -lcrypt" >&5
@@ -8428,7 +8448,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_crypt_crypt" >&5
 echo "${ECHO_T}$ac_cv_lib_crypt_crypt" >&6
 if test $ac_cv_lib_crypt_crypt = yes; then
-  MY_LIBS="$MY_LIBS -lcrypt"
+  MSERV_LIBS="$MSERV_LIBS -lcrypt"
 fi
 
   echo "$as_me:$LINENO: checking for _oss_ioctl in -lossaudio" >&5
@@ -8486,9 +8506,660 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_ossaudio__oss_ioctl" >&5
 echo "${ECHO_T}$ac_cv_lib_ossaudio__oss_ioctl" >&6
 if test $ac_cv_lib_ossaudio__oss_ioctl = yes; then
-  MY_LIBS="$MY_LIBS -lossaudio"
+  MSERV_LIBS="$MSERV_LIBS -lossaudio"
 fi
 
+
+  if [ "x$ENGINE" = "xicecast" ]; then
+    xt_have_shout="no"
+SHOUT_THREADSAFE="no"
+SHOUT_CPPFLAGS=""
+SHOUT_CFLAGS=""
+SHOUT_LIBS=""
+
+# NB: PKG_CHECK_MODULES exits if pkg-config is unavailable on the targe
+# system, so we can't use it.
+
+# seed pkg-config with the default libshout location
+PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/usr/local/lib/pkgconfig}
+export PKG_CONFIG_PATH
+
+# Step 1: Use pkg-config if available
+# Extract the first word of "pkg-config", so it can be a program name with args.
+set dummy pkg-config; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_PKGCONFIG+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $PKGCONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PKGCONFIG="$PKGCONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_PKGCONFIG="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  test -z "$ac_cv_path_PKGCONFIG" && ac_cv_path_PKGCONFIG="no"
+  ;;
+esac
+fi
+PKGCONFIG=$ac_cv_path_PKGCONFIG
+
+if test -n "$PKGCONFIG"; then
+  echo "$as_me:$LINENO: result: $PKGCONFIG" >&5
+echo "${ECHO_T}$PKGCONFIG" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+if test "$PKGCONFIG" != "no" && `$PKGCONFIG --exists shout`
+then
+  SHOUT_CFLAGS=`$PKGCONFIG --variable=cflags_only shout`
+  SHOUT_CPPFLAGS=`$PKGCONFIG --variable=cppflags shout`
+  SHOUT_LIBS=`$PKGCONFIG --libs shout`
+  xt_have_shout="maybe"
+else
+  if test "$PKGCONFIG" != "no"
+  then
+    { echo "$as_me:$LINENO: $PKGCONFIG couldn't find libshout. Try adjusting PKG_CONFIG_PATH." >&5
+echo "$as_me: $PKGCONFIG couldn't find libshout. Try adjusting PKG_CONFIG_PATH." >&6;}
+  fi
+  # pkg-config unavailable, try shout-config
+  # Extract the first word of "shout-config", so it can be a program name with args.
+set dummy shout-config; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_SHOUTCONFIG+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $SHOUTCONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_SHOUTCONFIG="$SHOUTCONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_SHOUTCONFIG="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  test -z "$ac_cv_path_SHOUTCONFIG" && ac_cv_path_SHOUTCONFIG="no"
+  ;;
+esac
+fi
+SHOUTCONFIG=$ac_cv_path_SHOUTCONFIG
+
+if test -n "$SHOUTCONFIG"; then
+  echo "$as_me:$LINENO: result: $SHOUTCONFIG" >&5
+echo "${ECHO_T}$SHOUTCONFIG" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  if test "$SHOUTCONFIG" != "no" && test `$SHOUTCONFIG --package` = "libshout"
+  then
+    SHOUT_CPPFLAGS=`$SHOUTCONFIG --cppflags`
+    SHOUT_CFLAGS=`$SHOUTCONFIG --cflags-only`
+    SHOUT_LIBS=`$SHOUTCONFIG --libs`
+    xt_have_shout="maybe"
+  fi
+fi
+
+# Now try actually using libshout
+if test "$xt_have_shout" != "no"
+then
+  ac_save_CPPFLAGS="$CPPFLAGS"
+  ac_save_CFLAGS="$CFLAGS"
+  ac_save_LIBS="$LIBS"
+  CPPFLAGS="$CPPFLAGS $SHOUT_CPPFLAGS"
+  CFLAGS="$CFLAGS $SHOUT_CFLAGS"
+  LIBS="$SHOUT_LIBS $LIBS"
+
+for ac_header in shout/shout.h
+do
+as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
+if eval "test \"\${$as_ac_Header+set}\" = set"; then
+  echo "$as_me:$LINENO: checking for $ac_header" >&5
+echo $ECHO_N "checking for $ac_header... $ECHO_C" >&6
+if eval "test \"\${$as_ac_Header+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_Header'}'`" >&6
+else
+  # Is the header compilable?
+echo "$as_me:$LINENO: checking $ac_header usability" >&5
+echo $ECHO_N "checking $ac_header usability... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <$ac_header>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_header_compiler=no
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6
+
+# Is the header present?
+echo "$as_me:$LINENO: checking $ac_header presence" >&5
+echo $ECHO_N "checking $ac_header presence... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <$ac_header>
+_ACEOF
+if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
+  (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null; then
+  if test -s conftest.err; then
+    ac_cpp_err=$ac_c_preproc_warn_flag
+  else
+    ac_cpp_err=
+  fi
+else
+  ac_cpp_err=yes
+fi
+if test -z "$ac_cpp_err"; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc in
+  yes:no )
+    { echo "$as_me:$LINENO: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
+    (
+      cat <<\_ASBOX
+## ------------------------------------ ##
+## Report this to bug-autoconf@gnu.org. ##
+## ------------------------------------ ##
+_ASBOX
+    ) |
+      sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+  no:yes )
+    { echo "$as_me:$LINENO: WARNING: $ac_header: present but cannot be compiled" >&5
+echo "$as_me: WARNING: $ac_header: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: $ac_header: check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
+    (
+      cat <<\_ASBOX
+## ------------------------------------ ##
+## Report this to bug-autoconf@gnu.org. ##
+## ------------------------------------ ##
+_ASBOX
+    ) |
+      sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+echo "$as_me:$LINENO: checking for $ac_header" >&5
+echo $ECHO_N "checking for $ac_header... $ECHO_C" >&6
+if eval "test \"\${$as_ac_Header+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  eval "$as_ac_Header=$ac_header_preproc"
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_Header'}'`" >&6
+
+fi
+if test `eval echo '${'$as_ac_Header'}'` = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+    echo "$as_me:$LINENO: checking for shout_new" >&5
+echo $ECHO_N "checking for shout_new... $ECHO_C" >&6
+if test "${ac_cv_func_shout_new+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char shout_new (); below.
+    Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+    <limits.h> exists even on freestanding compilers.  */
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char shout_new ();
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_shout_new) || defined (__stub___shout_new)
+choke me
+#else
+char (*f) () = shout_new;
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+int
+main ()
+{
+return f != shout_new;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_func_shout_new=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_func_shout_new=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_func_shout_new" >&5
+echo "${ECHO_T}$ac_cv_func_shout_new" >&6
+if test $ac_cv_func_shout_new = yes; then
+
+      :
+      xt_have_shout="yes"
+
+fi
+
+    cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <shout/shout.h>
+#if SHOUT_THREADSAFE
+yes
+#endif
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "yes" >/dev/null 2>&1; then
+  SHOUT_THREADSAFE="yes"
+fi
+rm -f conftest*
+
+
+fi
+
+done
+
+  CPPFLAGS="$ac_save_CPPFLAGS"
+  CFLAGS="$ac_save_CFLAGS"
+  LIBS="$ac_save_LIBS"
+fi
+
+if test "$xt_have_shout" != "yes"
+then
+  { { echo "$as_me:$LINENO: error: must have libshout installed!" >&5
+echo "$as_me: error: must have libshout installed!" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+    echo "$as_me:$LINENO: checking for pthread_create in -lpthread" >&5
+echo $ECHO_N "checking for pthread_create in -lpthread... $ECHO_C" >&6
+if test "${ac_cv_lib_pthread_pthread_create+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpthread  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char pthread_create ();
+int
+main ()
+{
+pthread_create ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_pthread_pthread_create=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_pthread_pthread_create=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_pthread_pthread_create" >&5
+echo "${ECHO_T}$ac_cv_lib_pthread_pthread_create" >&6
+if test $ac_cv_lib_pthread_pthread_create = yes; then
+  MSERV_LIBS="$MSERV_LIBS -lpthread"
+fi
+
+    if test "$SHOUT_THREADSAFE" != "yes"; then
+      { { echo "$as_me:$LINENO: error: This libshout isn't threadsafe" >&5
+echo "$as_me: error: This libshout isn't threadsafe" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+# Check whether --with-vorbis or --without-vorbis was given.
+if test "${with_vorbis+set}" = set; then
+  withval="$with_vorbis"
+  vorbis_prefix="$withval"
+else
+  vorbis_prefix=""
+fi;
+
+# Check whether --with-vorbis-libraries or --without-vorbis-libraries was given.
+if test "${with_vorbis_libraries+set}" = set; then
+  withval="$with_vorbis_libraries"
+  vorbis_libraries="$withval"
+else
+  vorbis_libraries=""
+fi;
+
+# Check whether --with-vorbis-includes or --without-vorbis-includes was given.
+if test "${with_vorbis_includes+set}" = set; then
+  withval="$with_vorbis_includes"
+  vorbis_includes="$withval"
+else
+  vorbis_includes=""
+fi;
+# Check whether --enable-vorbistest or --disable-vorbistest was given.
+if test "${enable_vorbistest+set}" = set; then
+  enableval="$enable_vorbistest"
+
+else
+  enable_vorbistest=yes
+fi;
+
+  if test "x$vorbis_libraries" != "x" ; then
+    VORBIS_LIBS="-L$vorbis_libraries"
+  elif test "x$vorbis_prefix" != "x" ; then
+    VORBIS_LIBS="-L$vorbis_prefix/lib"
+  elif test "x$prefix" != "xNONE"; then
+    VORBIS_LIBS="-L$prefix/lib"
+  fi
+
+  VORBIS_LIBS="$VORBIS_LIBS -lvorbis -lm"
+  VORBISFILE_LIBS="-lvorbisfile"
+  VORBISENC_LIBS="-lvorbisenc"
+
+  if test "x$vorbis_includes" != "x" ; then
+    VORBIS_CFLAGS="-I$vorbis_includes"
+  elif test "x$vorbis_prefix" != "x" ; then
+    VORBIS_CFLAGS="-I$vorbis_prefix/include"
+  elif test "x$prefix" != "xNONE"; then
+    VORBIS_CFLAGS="-I$prefix/include"
+  fi
+
+
+  echo "$as_me:$LINENO: checking for Vorbis" >&5
+echo $ECHO_N "checking for Vorbis... $ECHO_C" >&6
+  no_vorbis=""
+
+
+  if test "x$enable_vorbistest" = "xyes" ; then
+    ac_save_CFLAGS="$CFLAGS"
+    ac_save_LIBS="$LIBS"
+    CFLAGS="$CFLAGS $VORBIS_CFLAGS $OGG_CFLAGS"
+    LIBS="$LIBS $VORBIS_LIBS $VORBISENC_LIBS $OGG_LIBS"
+      rm -f conf.vorbistest
+      if test "$cross_compiling" = yes; then
+  echo $ac_n "cross compiling; assumed OK... $ac_c"
+else
+  cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <vorbis/codec.h>
+
+int main ()
+{
+    vorbis_block 	vb;
+    vorbis_dsp_state	vd;
+    vorbis_info		vi;
+
+    vorbis_info_init (&vi);
+    vorbis_encode_init (&vi, 2, 44100, -1, 128000, -1);
+    vorbis_analysis_init (&vd, &vi);
+    vorbis_block_init (&vd, &vb);
+    /* this function was added in 1.0rc3, so this is what we're testing for */
+    vorbis_bitrate_addblock (&vb);
+
+    system("touch conf.vorbistest");
+    return 0;
+}
+
+
+_ACEOF
+rm -f conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  :
+else
+  echo "$as_me: program exited with status $ac_status" >&5
+echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+( exit $ac_status )
+no_vorbis=yes
+fi
+rm -f core core.* *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi
+       CFLAGS="$ac_save_CFLAGS"
+       LIBS="$ac_save_LIBS"
+  fi
+
+  if test "x$no_vorbis" = "x" ; then
+     echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+     :
+  else
+     echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+     if test -f conf.vorbistest ; then
+       :
+     else
+       echo "*** Could not run Vorbis test program, checking why..."
+       CFLAGS="$CFLAGS $VORBIS_CFLAGS"
+       LIBS="$LIBS $VORBIS_LIBS $OGG_LIBS"
+       cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <stdio.h>
+#include <vorbis/codec.h>
+
+int
+main ()
+{
+ return 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+   echo "*** The test program compiled, but did not run. This usually means"
+       echo "*** that the run-time linker is not finding Vorbis or finding the wrong"
+       echo "*** version of Vorbis. If it is not finding Vorbis, you'll need to set your"
+       echo "*** LD_LIBRARY_PATH environment variable, or edit /etc/ld.so.conf to point"
+       echo "*** to the installed location  Also, make sure you have run ldconfig if that"
+       echo "*** is required on your system"
+       echo "***"
+       echo "*** If you have an old version installed, it is best to remove it, although"
+       echo "*** you may also be able to get things to work by modifying LD_LIBRARY_PATH"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ echo "*** The test program failed to compile or link. See the file config.log for the"
+       echo "*** exact error that occured. This usually means Vorbis was incorrectly installed"
+       echo "*** or that you have moved Vorbis since it was installed."
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+       CFLAGS="$ac_save_CFLAGS"
+       LIBS="$ac_save_LIBS"
+     fi
+     VORBIS_CFLAGS=""
+     VORBIS_LIBS=""
+     VORBISFILE_LIBS=""
+     VORBISENC_LIBS=""
+     { { echo "$as_me:$LINENO: error: must have Ogg Vorbis v1.0 installed!" >&5
+echo "$as_me: error: must have Ogg Vorbis v1.0 installed!" >&2;}
+   { (exit 1); exit 1; }; }
+  fi
+
+
+
+
+  rm -f conf.vorbistest
+
+    MSERV_LIBS="$MSERV_LIBS $SHOUT_LIBS $VORBISENC_LIBS $VORBIS_LIBS"
+    MSERV_CPPFLAGS="$MSERV_CPPFLAGS $SHOUT_CPPFLAGS $VORBIS_CPPFLAGS"
+    MSERV_CFLAGS="$MSERV_CFLAGS $SHOUT_CFLAGS $VORBIS_CFLAGS"
+  fi
 
 
   echo "$as_me:$LINENO: result: Checking libraries for libmservcli" >&5
@@ -9401,16 +10072,8 @@ done
 
 
 
-  ENGINE="local"
 
-# Check whether --with-engine-local or --without-engine-local was given.
-if test "${with_engine_local+set}" = set; then
-  withval="$with_engine_local"
-  ENGINE="local"
-fi;
-#  AC_ARG_WITH(engine-icecast, AC_HELP_STRING([--with-engine-icecast],
-#              [Use icecast engine]),
-#              ENGINE="icecast")
+
 
 
 
@@ -10113,8 +10776,18 @@ s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
 s,@LIBTOOL@,$LIBTOOL,;t t
 s,@make@,$make,;t t
+s,@PKGCONFIG@,$PKGCONFIG,;t t
+s,@SHOUTCONFIG@,$SHOUTCONFIG,;t t
+s,@VORBIS_CFLAGS@,$VORBIS_CFLAGS,;t t
+s,@VORBIS_LIBS@,$VORBIS_LIBS,;t t
+s,@VORBISFILE_LIBS@,$VORBISFILE_LIBS,;t t
+s,@VORBISENC_LIBS@,$VORBISENC_LIBS,;t t
 s,@DEPFLAGS@,$DEPFLAGS,;t t
-s,@MY_LIBS@,$MY_LIBS,;t t
+s,@MSERV_LIBS@,$MSERV_LIBS,;t t
+s,@MSERV_CFLAGS@,$MSERV_CFLAGS,;t t
+s,@MSERV_CPPFLAGS@,$MSERV_CPPFLAGS,;t t
+s,@MSERVCLI_LIBS@,$MSERVCLI_LIBS,;t t
+s,@MSERVCMD_LIBS@,$MSERVCMD_LIBS,;t t
 s,@MY_SUBDIRS@,$MY_SUBDIRS,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
@@ -10767,12 +11440,17 @@ echo "${ECHO_T}  Client components will not be compiled" >&6
   fi
 
   if [ "x$ENGINE" = "xlocal" ]; then
-#    AC_MSG_RESULT([  Local output engine selected]);
+    { { echo "$as_me:$LINENO: error:   Local output engine not support in this release" >&5
+echo "$as_me: error:   Local output engine not support in this release" >&2;}
+   { (exit 1); exit 1; }; }
+    echo "$as_me:$LINENO: result:   Local output engine selected" >&5
+echo "${ECHO_T}  Local output engine selected" >&6;
     if [ "x$FOUND_SOUNDCARD" = "xno" ]; then
       echo "WARNING: no soundcard.h! VOLUME/BASS/TREBLE controls disabled!";
     fi
-#  elif [[ "x$ENGINE" = "icecast" ]]; then
-#    AC_MSG_RESULT([  Icecast output engine selected])
+  elif [ "x$ENGINE" = "xicecast" ]; then
+    echo "$as_me:$LINENO: result:   Icecast output engine selected" >&5
+echo "${ECHO_T}  Icecast output engine selected" >&6
   fi
   echo "$as_me:$LINENO: result: " >&5
 echo "${ECHO_T}" >&6

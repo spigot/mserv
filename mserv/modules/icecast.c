@@ -28,7 +28,7 @@
 #include "mserv.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: icecast.c,v 1.5 2004/03/20 18:26:06 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: icecast.c,v 1.6 2004/03/27 14:53:55 johanwalles Exp $";
 MSERV_MODULE(icecast, "0.01", "Icecast output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -208,10 +208,10 @@ int icecast_output_create(t_channel *c, t_channel_outputstream *os,
     goto failed;
   }
   p = splitbuf + strlen("http://");
-  user = p; while (*p && *p != ':') p++; if (!*p) goto badurl; *p++ = '\0'
-  pass = p; while (*p && *p != '@') p++; if (!*p) goto badurl; *p++ = '\0'
-  host = p; while (*p && *p != ':') p++; if (!*p) goto badurl; *p++ = '\0'
-  port = p; while (*p && *p != '/') p++; if (!*p) goto badurl; *p++ = '\0'
+  user = p; while (*p && *p != ':') p++; if (!*p) goto badurl; *p++ = '\0';
+  pass = p; while (*p && *p != '@') p++; if (!*p) goto badurl; *p++ = '\0';
+  host = p; while (*p && *p != ':') p++; if (!*p) goto badurl; *p++ = '\0';
+  port = p; while (*p && *p != '/') p++; if (!*p) goto badurl; *p++ = '\0';
   if ((strlen(p) + 1) >= sizeof(mount)) {
     snprintf(error, errsize, "icecast: mount portion of URL too long");
     goto failed;

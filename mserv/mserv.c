@@ -657,41 +657,51 @@ static void mserv_checkchild(void)
   int st, pid;
   t_trkinfo *playing = channel_getplaying(mserv_channel);
 
-  if ((pid = waitpid(mserv_player_pid, &st,
-		     WNOHANG | WUNTRACED)) == mserv_player_pid) {
-    if (WIFSTOPPED(st)) {
-      mserv_log("Child process stopped");
-    } else {
-      if (WIFEXITED(st)) {
-	if (WEXITSTATUS(st)) {
-	  mserv_log("Child process exited (%d)", WEXITSTATUS(st));
-	  if (playing) {
-	    mserv_broadcast("NOSPAWN", "%d\t%d\t%s\t%s",
-			    playing->track->album->id,
-			    playing->track->n_track,
-			    playing->track->author,
-			    playing->track->name);
-	  } else {
-	    mserv_broadcast("NOSPAWN", "");
-	  }
-	  mserv_player_pid = 0;
-	  mserv_checkshutdown();
-	  return;
-	}
-      } else if (WIFSIGNALED(st)) {
-	mserv_log("Child process received signal %d%s",
-		  WTERMSIG(st), WCOREDUMP(st) ? " (core dumped)" : "");
-      }
-      mserv_player_pid = 0;
-      mserv_player_playing.track = NULL;
-      mserv_player_playnext(); /* may or may not start a new track */
-      /* if nothing playing, output stream will run out of input and print
-       * the finished message */
-    }
-  } else if (pid == -1) {
+  pid = waitpid(mserv_player_pid, &st, WNOHANG | WUNTRACED);
+
+  if (pid == -1) {
     mserv_log("waitpid failure (%d): %s", errno, strerror(errno));
     exit(1);
   }
+
+  if (pid == 0) {
+    /* Nothing's happened */
+    return;
+  }
+
+  /* Invariant: pid is now mserv_player_pid */
+  
+  if (WIFSTOPPED(st)) {
+    mserv_log("Child process stopped");
+    return;
+  }
+
+  if (WIFEXITED(st) && WEXITSTATUS(st) != 0) {
+    mserv_log("Child process exited (%d)", WEXITSTATUS(st));
+    if (playing) {
+      mserv_broadcast("NOSPAWN", "%d\t%d\t%s\t%s",
+		      playing->track->album->id,
+		      playing->track->n_track,
+		      playing->track->author,
+		      playing->track->name);
+    } else {
+      mserv_broadcast("NOSPAWN", "");
+    }
+    mserv_player_pid = 0;
+    mserv_checkshutdown();
+    return;
+  }
+  
+  if (WIFSIGNALED(st)) {
+    mserv_log("Child process received signal %d%s",
+	      WTERMSIG(st), WCOREDUMP(st) ? " (core dumped)" : "");
+  }
+
+  mserv_player_pid = 0;
+  mserv_player_playing.track = NULL;
+  mserv_player_playnext(); /* may or may not start a new track */
+  /* if nothing playing, output stream will run out of input and print
+   * the finished message */
 }
 
 static void mserv_pollwrite(t_client *cl)

@@ -3932,6 +3932,7 @@ void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
   t_rating *rate;
   char buffer[USERNAMELEN+AUTHORLEN+NAMELEN+64];
   (void)c;
+  int recalculate = 0;
 
   if (wasplaying) {
     mserv_checkdisk_track(wasplaying->track);
@@ -3945,8 +3946,7 @@ void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
         }
       }
     }
-    mserv_recalcratings(); /* recalc ratings due to being marked as heard */
-    mserv_savechanges();
+    recalculate = 1; /* recalc ratings due to being marked as heard */
     mserv_checkshutdown();
   }
   if (nowplaying) {
@@ -3991,13 +3991,17 @@ void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
     mserv_addtohistory(nowplaying);
     nowplaying->track->lastplay = time(NULL);
     nowplaying->track->modified = 1;
-    mserv_recalcratings(); /* recalc ratings now lastplay has changed */
-    mserv_savechanges();
+    recalculate = 1; /* recalc ratings now lastplay has changed */
   } else {
     if (mserv_player_playing.track == NULL) {
       /* reached end of input stream, and no more upcoming tracks... */
       mserv_broadcast("FINISH", NULL);
     }
+  }
+  if (recalculate) {
+    /* Stuff has changed, recalculate the ratings */
+    mserv_recalcratings(); 
+    mserv_savechanges();
   }
 }
 

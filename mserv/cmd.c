@@ -814,7 +814,7 @@ static void cmd_tracks(t_client *cl, t_cmdparams *cp)
   t_trkinfo *playing = channel_getplaying(channel);
 
   if (!*cp->line) {
-    if (playing->track == NULL) {
+    if (playing == NULL || playing->track == NULL) {
       mserv_response(cl, "NOTHING", NULL);
       return;
     }

@@ -40,6 +40,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
+@WANT_MODULE_ICECAST_TRUE@am__append_1 = icecast.la
+@WANT_MODULE_OSSAUDIO_TRUE@am__append_2 = ossaudio.la
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
@@ -61,7 +63,6 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
-DEPFLAGS = @DEPFLAGS@
 ECHO = @ECHO@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
@@ -86,6 +87,9 @@ MAKEINFO = @MAKEINFO@
 MODULE_ICECAST_CFLAGS = @MODULE_ICECAST_CFLAGS@
 MODULE_ICECAST_CPPFLAGS = @MODULE_ICECAST_CPPFLAGS@
 MODULE_ICECAST_LIBS = @MODULE_ICECAST_LIBS@
+MODULE_OSSAUDIO_CFLAGS = @MODULE_OSSAUDIO_CFLAGS@
+MODULE_OSSAUDIO_CPPFLAGS = @MODULE_OSSAUDIO_CPPFLAGS@
+MODULE_OSSAUDIO_LIBS = @MODULE_OSSAUDIO_LIBS@
 MSERVCLI_LIBS = @MSERVCLI_LIBS@
 MSERVCMD_LIBS = @MSERVCMD_LIBS@
 MSERV_CFLAGS = @MSERV_CFLAGS@
@@ -111,6 +115,10 @@ VORBISENC_LIBS = @VORBISENC_LIBS@
 VORBISFILE_LIBS = @VORBISFILE_LIBS@
 VORBIS_CFLAGS = @VORBIS_CFLAGS@
 VORBIS_LIBS = @VORBIS_LIBS@
+WANT_MODULE_ICECAST_FALSE = @WANT_MODULE_ICECAST_FALSE@
+WANT_MODULE_ICECAST_TRUE = @WANT_MODULE_ICECAST_TRUE@
+WANT_MODULE_OSSAUDIO_FALSE = @WANT_MODULE_OSSAUDIO_FALSE@
+WANT_MODULE_OSSAUDIO_TRUE = @WANT_MODULE_OSSAUDIO_TRUE@
 ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
@@ -161,12 +169,18 @@ target_vendor = @target_vendor@
 INCLUDES = -I..
 CTAGSFLAGS = -t -d
 
-pkglib_LTLIBRARIES = icecast.la
+pkglib_LTLIBRARIES = $(am__append_1) $(am__append_2)
 
 icecast_la_SOURCES = icecast.c
 icecast_la_LDFLAGS = -module -avoid-version
 icecast_la_LIBADD = @MODULE_ICECAST_LIBS@ @MODULE_ICECAST_CPPFLAGS@ \
                      @MODULE_ICECAST_CFLAGS@
+
+
+ossaudio_la_SOURCES = ossaudio.c
+ossaudio_la_LDFLAGS = -module -avoid-version
+ossaudio_la_LIBADD = @MODULE_OSSAUDIO_LIBS@ @MODULE_OSSAUDIO_CPPFLAGS@ \
+                      @MODULE_OSSAUDIO_CFLAGS@
 
 subdir = mserv/modules
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -178,11 +192,14 @@ LTLIBRARIES = $(pkglib_LTLIBRARIES)
 icecast_la_DEPENDENCIES =
 am_icecast_la_OBJECTS = icecast.lo
 icecast_la_OBJECTS = $(am_icecast_la_OBJECTS)
+ossaudio_la_DEPENDENCIES =
+am_ossaudio_la_OBJECTS = ossaudio.lo
+ossaudio_la_OBJECTS = $(am_ossaudio_la_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/icecast.Plo
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/icecast.Plo ./$(DEPDIR)/ossaudio.Plo
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
@@ -190,9 +207,9 @@ LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(icecast_la_SOURCES)
+DIST_SOURCES = $(icecast_la_SOURCES) $(ossaudio_la_SOURCES)
 DIST_COMMON = $(srcdir)/Makefile.in Makefile.am
-SOURCES = $(icecast_la_SOURCES)
+SOURCES = $(icecast_la_SOURCES) $(ossaudio_la_SOURCES)
 
 all: all-am
 
@@ -233,6 +250,8 @@ clean-pkglibLTLIBRARIES:
 	done
 icecast.la: $(icecast_la_OBJECTS) $(icecast_la_DEPENDENCIES) 
 	$(LINK) -rpath $(pkglibdir) $(icecast_la_LDFLAGS) $(icecast_la_OBJECTS) $(icecast_la_LIBADD) $(LIBS)
+ossaudio.la: $(ossaudio_la_OBJECTS) $(ossaudio_la_DEPENDENCIES) 
+	$(LINK) -rpath $(pkglibdir) $(ossaudio_la_LDFLAGS) $(ossaudio_la_OBJECTS) $(ossaudio_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core
@@ -241,6 +260,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/icecast.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ossaudio.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \

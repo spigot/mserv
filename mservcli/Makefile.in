@@ -45,6 +45,7 @@ depend:
 
 clean:		
 		rm -f *.o *~ \#* config.cache config.log Makefile config.h config.status libmservcli.a libmservplus.a
+		rm -rf autom4te.cache
 
 cleaner:	clean
 		rm -f configure

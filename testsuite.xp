@@ -34,8 +34,10 @@ send "history\n"
 expect "no entries"
 
 send "userinfo\n"
+expect "User johan"
 expect "Satisfaction:"
 send "userinfo root\n"
+expect "User root"
 expect "Satisfaction:"
 
 send "tracks\n"
@@ -101,6 +103,9 @@ expect "Track name"
 
 send "pause\n"
 expect "paused"
+
+send "pause\n"
+expect "Already paused"
 
 send "play\n"
 expect "resumed by johan"

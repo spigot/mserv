@@ -8,8 +8,8 @@ via CVS the version of the first entry is the forthcoming version number.
 --------------------
 - Switched volume setting from global mixer to PCM, from Conrad Wood
   <cnw@conradwood.net>
-- Applied patch from Paul Hampson <Paul.Hampson@anu.edu.au> to read the
-  ID3v2 header
+- Applied patch from NetBSD distribution (unknown author) to read contents
+  of ID3v2 header (and thanks to Paul Hampson for his related patch)
 - Fixed header include bugs (time, random errors, etc.)
 - Fix mservedit so it handles an editor with arguments, patch from
   Nick <nwp@lemon-computing.com>
@@ -21,6 +21,7 @@ via CVS the version of the first entry is the forthcoming version number.
 - Fix volume on some platform so it correctly moves up and down minimum value
 - Fix descriptor leak when changing volume
 - If exec of player fails, do not try again - display error instead
+- Add filter of 'rated', e.g. "filter james=RATED" to play only rated songs
 - A whole bunch of things from this release come from David Kimdon's work
   on the debian port, and David Brownlee's work on the NetBSD port.  Thank
   you guys!

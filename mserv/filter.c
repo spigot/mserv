@@ -239,6 +239,17 @@ int filter_check(const char *filter, t_track *track)
 	    /* there can only be a rate if it's been rated or
 	       heard (which is a rating of 0) */
 	    ok = 1;
+	} else if ((p = strchr(token, '=')) != NULL &&
+		   !stricmp(p+1, "rated")) {
+	  /* user=heard - matches if user has rated this song */
+	  if (p-token > USERNAMELEN)
+	    goto error;
+	  strncpy(user, token, p-token);
+	  user[p-token] = '\0';
+	  rate = mserv_getrate(user, track);
+	  if (rate && rate->rating > 0)
+            /* rating of 0 means heard, anything greater means rated */
+	    ok = 1;
 	} else if (!strnicmp(token, "genre=", 6)) {
 	  p = token+6;
 	  if (!track->genres[0]) {
@@ -344,6 +355,18 @@ int filter_check(const char *filter, t_track *track)
 	    if (rate) {
 	      /* there can only be a rate (in *rate) if it's been rated or
 		 heard (which is a rating of 0) */
+	      ok = 1;
+	      break;
+	    }
+	  }
+	} else if (!stricmp(token, "rated")) {
+	  /* track matches if someone has rated it */
+	  for (cl = mserv_clients; cl; cl = cl->next) {
+	    if (!cl->authed || cl->mode == mode_computer)
+	      continue;
+	    rate = mserv_getrate(cl->user, track);
+	    if (rate && rate->rating > 0) {
+              /* rating of 0 means heard, anything greater means rated */
 	      ok = 1;
 	      break;
 	    }

@@ -1699,8 +1699,6 @@ static void mserv_scandir_recurse(const char *pathname)
   if (mserv_verbose)
     mserv_log("Added album: '%s' by %s", album->name, album->author);
   if (album_insertsort(album)) {
-    mserv_log("Duplicate album for author '%s' name '%s' (%s)", album->author,
-	      album->name, fullpath);
     free(album);
     return;
   }
@@ -1718,8 +1716,11 @@ static int album_insertsort(t_album *album)
     if (a == 0) {
       if ((a = strcmp(al->name, album->name)) > 0)
         break;
-      if (a == 0)
+      if (a == 0) {
+	mserv_log("Duplicate album for author '%s' name '%s' (%s and %s)",
+		  album->author, album->name, album->filename, al->filename);
         return 1;
+      }
     }
     p = al;
   }

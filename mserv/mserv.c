@@ -4312,15 +4312,62 @@ static double mserv_getlowestsatisfaction(const char **most_dissatisfied_user)
   return lowestsatisfaction;
 }
 
+/* Keep track of when everybody last heard an unrated track */
+static void mserv_update_lastunrated(const t_trkinfo *most_recent_track)
+{
+  t_client *cl;
+  time_t now = time(NULL);
+  
+  for (cl = mserv_clients; cl; cl = cl->next) {
+    t_rating *rating = mserv_getrate(cl->user,
+				     most_recent_track->track);
+    if (rating == NULL || rating->rating == 0) {
+      cl->last_unrated = now;
+    }
+  }
+}
+
 /* Used if automatic factor adjustment is in effect.  Adjust the
  * factor up or down depending on the satisfaction of the most
- * dissatisfied user. */
+ * dissatisfied user.
+ *
+ * Also, if any user hasn't heard anything new for the last hour, set
+ * the factor to 0.51 to prevent boredom.
+ */
 static void mserv_adjustfactor(void)
 {
   const char *most_dissatisfied_user;
-  double lowestsatisfaction =
-    mserv_getlowestsatisfaction(&most_dissatisfied_user);
+  double lowestsatisfaction;
+  t_client *cl;
+  time_t now = time(NULL);
+  time_t last_unrated = now;
+  const char *bored_user = NULL;
+
+  /* Keep track of when everybody last heard an unrated track */
+  for (cl = mserv_clients; cl; cl = cl->next) {
+    if (cl->last_unrated < last_unrated) {
+      last_unrated = cl->last_unrated;
+      bored_user = cl->user;
+    }
+  }
+  if (now - last_unrated > 3600) {
+    /* At least one user hasn't heard an unrated song for the last
+     * hour */
+    mserv_factor = 0.51;
+    mserv_log("Autofactor: %s hasn't heard anything new in an hour, factor set to %.2f to fend off boredom",
+	      bored_user,
+	      mserv_factor);
+
+    /* We only try once per hour, if we fail then so be it */
+    for (cl = mserv_clients; cl; cl = cl->next) {
+      cl->last_unrated = now;
+    }
+    
+    return;
+  }
   
+  lowestsatisfaction =
+    mserv_getlowestsatisfaction(&most_dissatisfied_user);
   if (most_dissatisfied_user == NULL) {
     /* Nobody is logged in / most dissatisfied, no adjustment
      * necessary. */
@@ -4378,6 +4425,7 @@ void mserv_addtohistory(const t_trkinfo *addme)
   }
   mserv_n_songs_started++;
 
+  mserv_update_lastunrated(addme);
   if (mserv_autofactor) {
     mserv_adjustfactor();
   }

@@ -445,6 +445,7 @@ static void cmd_pass(t_client *cl, t_cmdparams *cp)
   cl->authed = 1;
   cl->userlevel = acl->userlevel;
   cl->loggedinatsong = mserv_n_songs_started;
+  cl->last_unrated = time(NULL);
   mserv_response(cl, "ACLSUCC", "%s", cl->user);
   if (cl->userlevel != level_guest && cl->mode != mode_computer)
     mserv_recalcratings();

@@ -12,6 +12,7 @@ via CVS the version of the first entry is the forthcoming version number.
   display
 - Added xmp to default configuration
 - Implemented volume control for Icecast output
+- Make TREBLE/BASS return error for Icecast output mode (not implemented)
 
 0.37 - Aug 24th 2003
 --------------------

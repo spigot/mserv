@@ -2,8 +2,8 @@
 
 AUTOMAKE_OPTIONS = 1.5
 
-SUBDIRS = @MY_SUBDIRS@
-DIST_SUBDIRS = mserv mservcli mservutils
+SUBDIRS = libltdl @MY_SUBDIRS@
+DIST_SUBDIRS = libltdl mserv mservcli mservutils
 CTAGSFLAGS = -t -d
 
 EXTRA_DIST = ChangeLog README NEWS AUTHORS COPYING LICENSE

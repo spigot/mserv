@@ -612,7 +612,7 @@ static void mserv_cmd_status(t_client *cl, const char *ru, const char *line)
       return;
     }
     mserv_timersub(&now, &mserv_playing_start, &ago);
-    a = output_paused(mserv_output) ? "STATPAU" : "STATPLA";
+    a = output_paused(mserv_channel) ? "STATPAU" : "STATPLA";
     mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d.%d\t%s"
                    "\t%.2f",
 		   mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
@@ -1321,7 +1321,7 @@ static void mserv_cmd_play(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
-  if (output_paused(mserv_output)) {
+  if (output_paused(mserv_channel)) {
     mserv_resumeplay();
     mserv_broadcast("RESUME", "%s\t%d\t%d\t%s\t%s", cl->user,
 		    mserv_playing.track->n_album,
@@ -1348,7 +1348,7 @@ static void mserv_cmd_play(t_client *cl, const char *ru, const char *line)
   if (mserv_player_playnext()) {
     mserv_response(cl, "NOMORE", NULL);
   } else {
-    output_start(mserv_output);
+    output_start(mserv_channel);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
       mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
@@ -1363,7 +1363,7 @@ static void mserv_cmd_stop(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
-  if (!output_stopped(mserv_output)) {
+  if (!output_stopped(mserv_channel)) {
     mserv_broadcast("STOPPED", "%s\t%d\t%d\t%s\t%s", cl->user,
 		    mserv_playing.track->n_album, mserv_playing.track->n_track,
 		    mserv_playing.track->author, mserv_playing.track->name);
@@ -1384,7 +1384,7 @@ static void mserv_cmd_pause(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
-  if (output_paused(mserv_output)) {
+  if (output_paused(mserv_channel)) {
     mserv_response(cl, "APAUSED", NULL);
     return;
   }
@@ -1413,7 +1413,7 @@ static void mserv_cmd_next(t_client *cl, const char *ru, const char *line)
       mserv_response(cl, "NOMORE", NULL);
     return;
   }
-  output_start(mserv_output);
+  output_start(mserv_channel);
   if (cl->mode != mode_human) {
     /* humans will already have seen broadcast */
     mserv_response(cl, "NEXT", "%d\t%d\t%s\t%s",
@@ -1654,7 +1654,7 @@ static void mserv_cmd_volume(t_client *cl, const char *ru, const char *line)
   (void)ru;
   if (*line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_outputvolume(cl, line)) != -1) {
+  } else if ((val = mserv_channelvolume(cl, line)) != -1) {
     if (!*line) {
       mserv_response(cl, "VOLCUR", "%d", val);
     } else {

@@ -5,6 +5,7 @@ dnl Mserv configure.in file - process with autoconf
   AC_CANONICAL_SYSTEM
   AM_INIT_AUTOMAKE(mserv, 0.40)
   AM_CONFIG_HEADER(config.h)
+  AC_CONFIG_SUBDIRS(libltdl)
 
 dnl Engine selection
 
@@ -25,7 +26,6 @@ dnl Checks for programs.
   AC_ISC_POSIX
   AC_PROG_INSTALL
   AC_TYPE_SIGNAL
-  AC_PROG_LIBTOOL 
 
   AC_CHECK_PROG(make, gmake, gmake, make)
 
@@ -35,16 +35,6 @@ dnl Checks for programs.
   AC_ARG_WITH(debug, AC_HELP_STRING([--with-debug],
                                     [Turn debugging options on]),
               DEBUG=$withval, DEBUG=no)
-
-  if [[ "x$WARN" != "xno" ]]; then
-    CFLAGS="$CFLAGS -W -Wall -Wstrict-prototypes -Wformat -Wunused -Wsign-compar
-e -Wunreachable-code -Winline -Wdisabled-optimization"
-  fi
-
-  if [[ "x$DEBUG" != "xno" ]]; then
-    AC_MSG_RESULT(Turning on debug flags)
-    CFLAGS="$CFLAGS -g"
-  fi
 
   AC_ARG_ENABLE(server,
                 AC_HELP_STRING([--disable-server], [Do not compile server]),
@@ -79,9 +69,9 @@ dnl Checks for libraries - mserv
       AC_MSG_ERROR([This libshout isn't threadsafe])
     fi
     XIPH_PATH_VORBIS(, AC_MSG_ERROR([must have Ogg Vorbis v1.0 installed!]))
-    MSERV_LIBS="$MSERV_LIBS $SHOUT_LIBS $VORBISENC_LIBS $VORBIS_LIBS"
-    MSERV_CPPFLAGS="$MSERV_CPPFLAGS $SHOUT_CPPFLAGS $VORBIS_CPPFLAGS"
-    MSERV_CFLAGS="$MSERV_CFLAGS $SHOUT_CFLAGS $VORBIS_CFLAGS"
+    MODULE_ICECAST_LIBS="$SHOUT_LIBS $VORBISENC_LIBS $VORBIS_LIBS"
+    MODULE_ICECAST_CPPFLAGS="$SHOUT_CPPFLAGS $VORBIS_CPPFLAGS"
+    MODULE_ICECAST_CFLAGS="$SHOUT_CFLAGS $VORBIS_CFLAGS"
   fi
 
 dnl Checks for libraries - mservcli
@@ -115,6 +105,17 @@ dnl Checks for functions
 
   AC_CHECK_FUNCS(strsep)
 
+dnl libtool / libltdl
+
+  AC_LIBTOOL_DLOPEN
+  AC_LIBLTDL_CONVENIENCE
+  AC_PROG_LIBTOOL 
+
+dnl Makefile substitutions - libltdl
+
+  AC_SUBST(INCLTDL)
+  AC_SUBST(LIBLTDL)
+
 dnl Makefile substitutions
 
   AC_SUBST(DEPFLAGS)
@@ -124,11 +125,25 @@ dnl Makefile substitutions
   AC_SUBST(MSERVCLI_LIBS)
   AC_SUBST(MSERVCMD_LIBS)
   AC_SUBST(MY_SUBDIRS)
+  AC_SUBST(MODULE_ICECAST_LIBS)
+  AC_SUBST(MODULE_ICECAST_CPPFLAGS)
+  AC_SUBST(MODULE_ICECAST_CFLAGS)
+
+dnl C flags etc.
+
+  if [[ "x$WARN" != "xno" ]]; then
+    CFLAGS="$CFLAGS -W -Wall -Wstrict-prototypes -Wformat -Wunused -Wsign-compare -Wunreachable-code -Winline -Wdisabled-optimization -Werror"
+  fi
+
+  if [[ "x$DEBUG" != "xno" ]]; then
+    AC_MSG_RESULT(Turning on debug flags)
+    CFLAGS="$CFLAGS -g"
+  fi
 
 dnl Final stuff
 
   AC_OUTPUT([Makefile mserv/Makefile mservcli/Makefile
-             mservutils/Makefile])
+             mservutils/Makefile mserv/modules/Makefile])
 
   AC_MSG_RESULT()
   if [[ "x$COMPILE_SERVER" = "xyes" ]]; then

@@ -72,7 +72,8 @@ met:
 #include "conf.h"
 #include "opt.h"
 #include "filter.h"
-#include "output-icecast.h"
+#include "channel.h"
+#include "module.h"
 
 #define MAXFD 64
 
@@ -114,7 +115,7 @@ t_author *mserv_authors = NULL;
 t_genre *mserv_genres = NULL;
 unsigned int mserv_filter_ok = 0;
 unsigned int mserv_filter_notok = 0;
-t_output *mserv_output = NULL;
+t_channel *mserv_channel = NULL;
 
 /*** file-scope (static) function declarations ***/
 
@@ -171,9 +172,9 @@ static RETSIGTYPE mserv_sighandler(int signum)
 
 /* General initialisiation to be done after
    starting mserv and also after a reset */
-static void mserv_init()
+static void mserv_init(void)
 {
-  int i;
+  unsigned int i;
   t_album *album;
 
   /* load up defaults */
@@ -229,7 +230,7 @@ int main(int argc, char *argv[])
   int populate;
   struct stat statbuf;
   char *m = NULL;
-  char *error = NULL;
+  char error[128];
   int badparams = 0;
 
   progname = argv[0];
@@ -472,29 +473,42 @@ int main(int argc, char *argv[])
 
   mserv_log("*** Server started!");
 
-  /* do initialization */
-  mserv_init();
-  
-  if (output_init() != 0) {
-    mserv_log("Failed to initialise output sub-system");
+  /* init module part */
+  if (module_init(error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to initialise module sub-system: %s", error);
     mserv_closedown(1);
   }
-  error = NULL;
+
+  /* do initialization */
+  mserv_init();
+
+  if (channel_init(error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to initialise channel sub-system: %s", error);
+    mserv_closedown(1);
+  }
+  if (channel_create(&mserv_channel, "default",
+                     error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to create default channel: %s", error);
+    mserv_closedown(1);
+  }
 #if ENGINE == icecast
-  mserv_output = output_create(opt_default_icecast_output,
-                               opt_default_icecast_bitrate, &error);
+  if (channel_addoutput(mserv_channel, "icecast", opt_default_icecast_output,
+                        opt_default_icecast_bitrate,
+                        error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to add initial output stream to default channel: %s",
+              error);
+    mserv_closedown(1);
+  }
 #elif ENGINE == local
-  mserv_output = output_create(opt_default_local_output,
-                               NULL, &error);
+  if (channel_addoutput(mserv_channel, "local", opt_default_local_output,
+                        NULL, error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to add initial output stream to default channel: %s",
+              error);
+    mserv_closedown(1);
+  }
 #else
 #error unknown engine
 #endif
-  if (mserv_output == NULL) {
-    if (!error)
-      error = "Unknown";
-    mserv_log("Failed to create output channel: %s", error);
-    mserv_closedown(1);
-  }
 
   signal(SIGINT, mserv_sighandler);
   signal(SIGPIPE, SIG_IGN);
@@ -509,23 +523,26 @@ int main(int argc, char *argv[])
 
   mserv_mainloop();
 
-  output_final();
+  if (channel_final(error, sizeof(error)) != MSERV_SUCCESS)
+    mserv_log("Failed to finalise channel channel: %s", error);
+  if (module_final(error, sizeof(error)) != MSERV_SUCCESS)
+    mserv_log("Failed to finalise module sub-system: %s", error);
 
   return(0);
 }
 
 static void mserv_mainloop(void)
 {
+  char error[256];
   t_client *cl, *last;
   fd_set fd_reads, fd_writes;
   int client_socket;
   int maxfd;
-  struct timeval timeout, now;
+  struct timeval timeout;
   struct sockaddr_in sin_client;
   int sin_client_len = sizeof(sin_client);
   int flags;
   int i;
-  int delay;
 
   for(;;) {
     /* check all connections */
@@ -572,20 +589,13 @@ static void mserv_mainloop(void)
 	  maxfd = cl->socket+1;
       }
     }
-    /* work out delay in milliseconds until next output due */
-    delay = output_delay(mserv_output);
-    if (mserv_debug >= 2)
-      mserv_log("Output engine requested %d millisecond delay", delay);
-    if (delay < 0 || delay > 200)
-      delay = 200; /* infinite delay wanted (-1) or out of bounds (max 200) */
     timeout.tv_sec = 0;
-    timeout.tv_usec = (delay % 1000) * 1000;
-    /* wait for something to happen or for a second to ellapse */
+    timeout.tv_usec = 100000;
     /* mserv_log("SELECT %d %d", timeout.tv_sec, timeout.tv_usec); */
     select(maxfd, &fd_reads, &fd_writes, NULL, &timeout);
     /* mserv_log("END SELECT"); */
     /* output any sound that needs to be */
-    output_sync(mserv_output);
+    channel_sync(mserv_channel, error, sizeof(error));
     /* check for incoming connections */
     client_socket = accept(mserv_socket, (struct sockaddr *)&sin_client,
 			   &sin_client_len);
@@ -649,8 +659,6 @@ static void mserv_mainloop(void)
 static void mserv_checkchild(void)
 {
   int st, pid;
-  t_rating *rate;
-  t_client *cl;
 
   if ((pid = waitpid(mserv_player_pid, &st,
 		     WNOHANG | WUNTRACED)) == mserv_player_pid) {
@@ -1207,7 +1215,7 @@ static void mserv_replacetrack(t_track *track, t_track *newtrack)
   }
   if (mserv_tracks == track)
     mserv_tracks = newtrack;
-  output_replacetrack(mserv_output, track, newtrack);
+  channel_replacetrack(mserv_channel, track, newtrack);
 }
 
 static void mserv_replacealbum(t_album *album, t_album *newalbum)
@@ -1554,8 +1562,8 @@ void mserv_log(const char *text, ...)
   timeptr = localtime(&tv.tv_sec);
 
   strftime(timetmp, 63, "%m/%d %H:%M:%S", timeptr);
-  snprintf(tmp2, 1023, "%s.%03d [%06d] %s\n", timetmp, tv.tv_usec / 1000,
-           getpid(), tmp);
+  snprintf(tmp2, 1023, "%s.%03d [%06d] %s\n", timetmp,
+           (int)(tv.tv_usec / 1000), getpid(), tmp);
 
   fputs(tmp2, mserv_logfile);
   if (mserv_verbose || !mserv_started)
@@ -1636,7 +1644,6 @@ static void mserv_scandir_recurse(const char *pathname)
   char *filename;
   int llen;
   struct stat buf;
-  int i;
   t_album *album;
   t_track **tracks;
   unsigned int ntracks;
@@ -1733,8 +1740,8 @@ static void mserv_scandir_recurse(const char *pathname)
     return;
   qsort(tracks, ntracks, sizeof(t_track *), mserv_trackcompare_filename);
   /* we've sorted so we need to renumber tracks */
-  for (i = 0; i < ntracks; i++) {
-    tracks[i]->n_track = i+1;
+  for (ui = 0; ui < ntracks; ui++) {
+    tracks[ui]->n_track = ui+1;
   }
   album->tracks = tracks;
   album->tracks_size = tracks_size;
@@ -2291,7 +2298,7 @@ int mserv_player_playnext(void)
 
   if (mserv_queue == NULL) { /* no more tracks to play! */
     if (!mserv_random) {
-      output_stop(mserv_output);
+      channel_stop(mserv_channel);
       return 1;
     }
     total = 0;
@@ -2384,7 +2391,7 @@ int mserv_player_playnext(void)
   close(playerpipe[1]);
   mserv_player_pipe = playerpipe[0];
   mserv_player_pid = pid;
-  output_addinput(mserv_output, mserv_player_pipe, &mserv_player_playing,
+  output_addinput(mserv_channel, mserv_player_pipe, &mserv_player_playing,
                   44100, 2, 1, 0, mserv_gap);
   return 0;
 }
@@ -2412,7 +2419,7 @@ void mserv_abortplay(void)
   int vol = -1;
   int x;
 
-  output_stop(mserv_output); /* should cause a SIGPIPE in child */
+  output_stop(mserv_channel); /* should cause a SIGPIPE in child */
   if (mserv_player_playing.track) {
     if (kill(mserv_player_pid, 0) == 0) {
       /* our process exists */
@@ -2481,9 +2488,9 @@ static void mserv_checkshutdown(void)
 
 void mserv_pauseplay(t_client *cl)
 {
-  if (output_paused(mserv_output))
+  if (output_paused(mserv_channel))
     return;
-  output_pause(mserv_output, 1);
+  output_pause(mserv_channel, 1);
   mserv_broadcast("PAUSE", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
                   mserv_playing.track->n_album,
                   mserv_playing.track->n_track,
@@ -2492,9 +2499,9 @@ void mserv_pauseplay(t_client *cl)
 
 void mserv_resumeplay(void)
 {
-  if (!output_paused(mserv_output))
+  if (!output_paused(mserv_channel))
     return;
-  output_pause(mserv_output, 0);
+  output_pause(mserv_channel, 0);
 }
 
 void mserv_recalcratings(void)
@@ -3426,7 +3433,7 @@ const char *mserv_clientmodetext(t_client *cl)
   return "unknown";
 }
 
-int mserv_outputvolume(t_client *cl, const char *line)
+int mserv_channelvolume(t_client *cl, const char *line)
 {
   int curval, param, newval;
   int mixer_fd;
@@ -3434,7 +3441,7 @@ int mserv_outputvolume(t_client *cl, const char *line)
   const char *p;
   int type;
 
-  curval = output_getvolume(mserv_output);
+  curval = output_getvolume(mserv_channel);
   if (!*line)
     return curval;
   if (*line == '+' || *line == '-') {
@@ -3470,7 +3477,7 @@ int mserv_outputvolume(t_client *cl, const char *line)
     newval = 100;
   if (newval < 0)
     newval = 0;
-  newval = output_setvolume(mserv_output, newval);
+  newval = output_setvolume(mserv_channel, newval);
   return newval;
  badnumber:
   close(mixer_fd);

@@ -9,6 +9,8 @@
 #include "config.h"
 #include "defines.h"
 
+#define MSERV_APIVER 1
+
 /* timercmp() is broken on Solaris, and isn't particularly standard */
 #define mserv_timercmp(a, b, CMP)                                       \
   (((a)->tv_sec == (b)->tv_sec) ?                                       \
@@ -28,6 +30,20 @@
 
 #define mserv_MIN(a,b) ( ((a) < (b)) ? (a) : (b) )
 #define mserv_MAX(a,b) ( ((a) > (b)) ? (a) : (b) )
+
+#define MSERV_MODULE(name, version, desc, flags) \
+  t_module name ## _module = { \
+    MSERV_APIVER, flags, #name, desc, version, mserv_rcs_id \
+  }; \
+  static t_module *this_module = &name ## _module;
+
+#define MSERV_FAILURE -1
+#define MSERV_SUCCESS 0
+
+#define MSERV_STRUCTOFFSET(s,m) ((unsigned int)(&(((s*)(0))->m)))
+
+#define MSERV_MODFLAG_OUTPUT 1
+#define MSERV_MODFLAG_OUTPUT_VOLUME_PRIMARY 2
 
 typedef enum {
   st_wait,
@@ -174,5 +190,82 @@ typedef struct _t_queue {
   struct _t_queue *next;
   t_supinfo supinfo;
 } t_queue;
+
+/* input stream structure */
+
+typedef struct _t_output_inputstream {
+  struct _t_output_inputstream *next; /* next input in stream */
+  int fd;                  /* input file descriptor */
+  t_supinfo supinfo;       /* track sup. info. */
+  int zeros_start;         /* number of zero bytes left for delay */
+  int zeros_end;           /* number of zero bytes left for delay */
+  int announced;           /* have we announced the play of this track? */
+} t_output_inputstream;
+
+typedef struct _t_module {
+  int apiver;
+  int flags;
+  char *name;
+  char *desc;
+  char *version;
+  char *rcs_id;
+} t_module;
+
+struct _t_channel;
+typedef struct _t_channel t_channel;
+
+typedef int (*t_module_init)(char *error, int errsize);
+typedef int (*t_module_final)(char *error, int errsize);
+typedef int (*t_module_output_create)(t_channel *c, const char *uri,
+                                      const char *params, void **private,
+                                      char *error, int errsize);
+typedef int (*t_module_output_destroy)(t_channel *c, void *private,
+                                       char *error, int errsize);
+typedef int (*t_module_output_poll)(t_channel *c, void *private,
+                                    char *error, int errsize);
+typedef int (*t_module_output_sync)(t_channel *c, void *private,
+                                    char *error, int errsize);
+typedef int (*t_module_output_volume)(t_channel *c, void *private, int volume,
+                                      char *error, int errsize);
+
+typedef struct _t_modinfo {
+  struct _t_modinfo *next;
+  void *dlh;
+  t_module *module;
+  int flags;
+  t_module_init init;
+  t_module_final final;
+  t_module_output_create output_create;
+  t_module_output_destroy output_destroy;
+  t_module_output_poll output_poll;
+  t_module_output_sync output_sync;
+  t_module_output_volume output_volume;
+} t_modinfo;
+
+/* output stream structure */
+
+typedef struct _t_outputstream {
+  struct _t_outputstream *next; /* next output stream */
+  char uri[256];                /* http://user:pass@hostname:port/thing */
+  char params[256];             /* parameters (bitrate, etc.) */
+  t_modinfo *modinfo;           /* the module itself */
+  void *private;                /* private module info for this stream */
+} t_output_list;
+
+struct _t_channel {
+  char name[16];               /* channel name */
+  struct timeval lasttime;     /* interval timer */
+  unsigned int paused;         /* are we currently paused? */
+  unsigned int stopped;        /* are we currently stopped? */
+  t_output_inputstream *input; /* stream of inputs */
+  t_output_list *output;       /* outputs (simultaneous) */
+  unsigned int channels;       /* 1 for mono, 2 for stereo, etc. */
+  unsigned int samplerate;     /* samples per second (16 bit) */
+  unsigned int buffer_size;    /* samplerate * channels * bytes per sample */
+  unsigned int buffer_bytes;   /* bytes we have so far */
+  char *buffer_char;           /* one second input buffer */
+  unsigned int buffer_samples; /* samples in buffer and buffer_char (16 bit) */
+  float *buffer;               /* same as buffer_char, but float and volume'd */
+};
 
 #endif

@@ -1,4 +1,4 @@
-# generated automatically by aclocal 1.7.6 -*- Autoconf -*-
+# generated automatically by aclocal 1.7.7 -*- Autoconf -*-
 
 # Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002
 # Free Software Foundation, Inc.
@@ -163,7 +163,7 @@ AC_DEFUN([AM_AUTOMAKE_VERSION],[am__api_version="1.7"])
 # Call AM_AUTOMAKE_VERSION so it can be traced.
 # This function is AC_REQUIREd by AC_INIT_AUTOMAKE.
 AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
-	 [AM_AUTOMAKE_VERSION([1.7.6])])
+	 [AM_AUTOMAKE_VERSION([1.7.7])])
 
 # Helper functions for option handling.                    -*- Autoconf -*-
 
@@ -885,6 +885,208 @@ AC_DEFUN([AC_ISC_POSIX],
     AC_CHECK_LIB(cposix, strerror, [LIBS="$LIBS -lcposix"])
   ]
 )
+
+dnl XIPH_PATH_SHOUT
+dnl Jack Moffitt <jack@icecast.org> 08-06-2001
+dnl Rewritten for libshout 2
+dnl Brendan Cully <brendan@xiph.org> 20030612
+dnl 
+dnl $Id: aclocal.m4,v 1.7 2003/09/29 22:37:29 squish Exp $
+
+# XIPH_PATH_SHOUT([ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
+# Test for libshout, and define SHOUT_CPPFLAGS SHOUT_CFLAGS SHOUT_LIBS, and
+# SHOUT_THREADSAFE
+AC_DEFUN([XIPH_PATH_SHOUT],
+[dnl
+xt_have_shout="no"
+SHOUT_THREADSAFE="no"
+SHOUT_CPPFLAGS=""
+SHOUT_CFLAGS=""
+SHOUT_LIBS=""
+
+# NB: PKG_CHECK_MODULES exits if pkg-config is unavailable on the targe
+# system, so we can't use it.
+
+# seed pkg-config with the default libshout location
+PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/usr/local/lib/pkgconfig}
+export PKG_CONFIG_PATH
+
+# Step 1: Use pkg-config if available
+AC_PATH_PROG([PKGCONFIG], [pkg-config], [no])
+if test "$PKGCONFIG" != "no" && `$PKGCONFIG --exists shout`
+then
+  SHOUT_CFLAGS=`$PKGCONFIG --variable=cflags_only shout`
+  SHOUT_CPPFLAGS=`$PKGCONFIG --variable=cppflags shout`
+  SHOUT_LIBS=`$PKGCONFIG --libs shout`
+  xt_have_shout="maybe"
+else
+  if test "$PKGCONFIG" != "no"
+  then
+    AC_MSG_NOTICE([$PKGCONFIG couldn't find libshout. Try adjusting PKG_CONFIG_PATH.])
+  fi
+  # pkg-config unavailable, try shout-config
+  AC_PATH_PROG([SHOUTCONFIG], [shout-config], [no])
+  if test "$SHOUTCONFIG" != "no" && test `$SHOUTCONFIG --package` = "libshout"
+  then
+    SHOUT_CPPFLAGS=`$SHOUTCONFIG --cppflags`
+    SHOUT_CFLAGS=`$SHOUTCONFIG --cflags-only`
+    SHOUT_LIBS=`$SHOUTCONFIG --libs`
+    xt_have_shout="maybe"
+  fi
+fi
+
+# Now try actually using libshout
+if test "$xt_have_shout" != "no"
+then
+  ac_save_CPPFLAGS="$CPPFLAGS"
+  ac_save_CFLAGS="$CFLAGS"
+  ac_save_LIBS="$LIBS"
+  CPPFLAGS="$CPPFLAGS $SHOUT_CPPFLAGS"
+  CFLAGS="$CFLAGS $SHOUT_CFLAGS"
+  LIBS="$SHOUT_LIBS $LIBS"
+  AC_CHECK_HEADERS([shout/shout.h], [
+    AC_CHECK_FUNC([shout_new], [
+      ifelse([$1], , :, [$1])
+      xt_have_shout="yes"
+    ])
+    AC_EGREP_CPP([yes], [#include <shout/shout.h>
+#if SHOUT_THREADSAFE
+yes
+#endif
+], [SHOUT_THREADSAFE="yes"])
+  ])
+  CPPFLAGS="$ac_save_CPPFLAGS"
+  CFLAGS="$ac_save_CFLAGS"
+  LIBS="$ac_save_LIBS"
+fi
+
+if test "$xt_have_shout" != "yes"
+then
+  ifelse([$2], , :, [$2])
+fi
+])dnl XIPH_PATH_SHOUT
+
+# Configure paths for libvorbis
+# Jack Moffitt <jack@icecast.org> 10-21-2000
+# Shamelessly stolen from Owen Taylor and Manish Singh
+# thomasvs added check for vorbis_bitrate_addblock which is new in rc3
+
+dnl XIPH_PATH_VORBIS([ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
+dnl Test for libvorbis, and define VORBIS_CFLAGS and VORBIS_LIBS
+dnl
+AC_DEFUN(XIPH_PATH_VORBIS,
+[dnl 
+dnl Get the cflags and libraries
+dnl
+AC_ARG_WITH(vorbis,[  --with-vorbis=PFX   Prefix where libvorbis is installed (optional)], vorbis_prefix="$withval", vorbis_prefix="")
+AC_ARG_WITH(vorbis-libraries,[  --with-vorbis-libraries=DIR   Directory where libvorbis library is installed (optional)], vorbis_libraries="$withval", vorbis_libraries="")
+AC_ARG_WITH(vorbis-includes,[  --with-vorbis-includes=DIR   Directory where libvorbis header files are installed (optional)], vorbis_includes="$withval", vorbis_includes="")
+AC_ARG_ENABLE(vorbistest, [  --disable-vorbistest       Do not try to compile and run a test Vorbis program],, enable_vorbistest=yes)
+
+  if test "x$vorbis_libraries" != "x" ; then
+    VORBIS_LIBS="-L$vorbis_libraries"
+  elif test "x$vorbis_prefix" != "x" ; then
+    VORBIS_LIBS="-L$vorbis_prefix/lib"
+  elif test "x$prefix" != "xNONE"; then
+    VORBIS_LIBS="-L$prefix/lib"
+  fi
+
+  VORBIS_LIBS="$VORBIS_LIBS -lvorbis -lm"
+  VORBISFILE_LIBS="-lvorbisfile"
+  VORBISENC_LIBS="-lvorbisenc"
+
+  if test "x$vorbis_includes" != "x" ; then
+    VORBIS_CFLAGS="-I$vorbis_includes"
+  elif test "x$vorbis_prefix" != "x" ; then
+    VORBIS_CFLAGS="-I$vorbis_prefix/include"
+  elif test "x$prefix" != "xNONE"; then
+    VORBIS_CFLAGS="-I$prefix/include"
+  fi
+
+
+  AC_MSG_CHECKING(for Vorbis)
+  no_vorbis=""
+
+
+  if test "x$enable_vorbistest" = "xyes" ; then
+    ac_save_CFLAGS="$CFLAGS"
+    ac_save_LIBS="$LIBS"
+    CFLAGS="$CFLAGS $VORBIS_CFLAGS $OGG_CFLAGS"
+    LIBS="$LIBS $VORBIS_LIBS $VORBISENC_LIBS $OGG_LIBS"
+dnl
+dnl Now check if the installed Vorbis is sufficiently new.
+dnl
+      rm -f conf.vorbistest
+      AC_TRY_RUN([
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <vorbis/codec.h>
+
+int main ()
+{
+    vorbis_block 	vb;
+    vorbis_dsp_state	vd;
+    vorbis_info		vi;
+
+    vorbis_info_init (&vi);
+    vorbis_encode_init (&vi, 2, 44100, -1, 128000, -1);
+    vorbis_analysis_init (&vd, &vi);
+    vorbis_block_init (&vd, &vb);
+    /* this function was added in 1.0rc3, so this is what we're testing for */
+    vorbis_bitrate_addblock (&vb);
+
+    system("touch conf.vorbistest");
+    return 0;
+}
+
+],, no_vorbis=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+       CFLAGS="$ac_save_CFLAGS"
+       LIBS="$ac_save_LIBS"
+  fi
+
+  if test "x$no_vorbis" = "x" ; then
+     AC_MSG_RESULT(yes)
+     ifelse([$1], , :, [$1])     
+  else
+     AC_MSG_RESULT(no)
+     if test -f conf.vorbistest ; then
+       :
+     else
+       echo "*** Could not run Vorbis test program, checking why..."
+       CFLAGS="$CFLAGS $VORBIS_CFLAGS"
+       LIBS="$LIBS $VORBIS_LIBS $OGG_LIBS"
+       AC_TRY_LINK([
+#include <stdio.h>
+#include <vorbis/codec.h>
+],     [ return 0; ],
+       [ echo "*** The test program compiled, but did not run. This usually means"
+       echo "*** that the run-time linker is not finding Vorbis or finding the wrong"
+       echo "*** version of Vorbis. If it is not finding Vorbis, you'll need to set your"
+       echo "*** LD_LIBRARY_PATH environment variable, or edit /etc/ld.so.conf to point"
+       echo "*** to the installed location  Also, make sure you have run ldconfig if that"
+       echo "*** is required on your system"
+       echo "***"
+       echo "*** If you have an old version installed, it is best to remove it, although"
+       echo "*** you may also be able to get things to work by modifying LD_LIBRARY_PATH"],
+       [ echo "*** The test program failed to compile or link. See the file config.log for the"
+       echo "*** exact error that occured. This usually means Vorbis was incorrectly installed"
+       echo "*** or that you have moved Vorbis since it was installed." ])
+       CFLAGS="$ac_save_CFLAGS"
+       LIBS="$ac_save_LIBS"
+     fi
+     VORBIS_CFLAGS=""
+     VORBIS_LIBS=""
+     VORBISFILE_LIBS=""
+     VORBISENC_LIBS=""
+     ifelse([$2], , :, [$2])
+  fi
+  AC_SUBST(VORBIS_CFLAGS)
+  AC_SUBST(VORBIS_LIBS)
+  AC_SUBST(VORBISFILE_LIBS)
+  AC_SUBST(VORBISENC_LIBS)
+  rm -f conf.vorbistest
+])
 
 # libtool.m4 - Configure libtool for the host system. -*-Shell-script-*-
 
@@ -4518,207 +4720,5 @@ else
   SED=$lt_cv_path_SED
 fi
 AC_MSG_RESULT([$SED])
-])
-
-dnl XIPH_PATH_SHOUT
-dnl Jack Moffitt <jack@icecast.org> 08-06-2001
-dnl Rewritten for libshout 2
-dnl Brendan Cully <brendan@xiph.org> 20030612
-dnl 
-dnl $Id: aclocal.m4,v 1.6 2003/09/13 11:42:43 squish Exp $
-
-# XIPH_PATH_SHOUT([ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
-# Test for libshout, and define SHOUT_CPPFLAGS SHOUT_CFLAGS SHOUT_LIBS, and
-# SHOUT_THREADSAFE
-AC_DEFUN([XIPH_PATH_SHOUT],
-[dnl
-xt_have_shout="no"
-SHOUT_THREADSAFE="no"
-SHOUT_CPPFLAGS=""
-SHOUT_CFLAGS=""
-SHOUT_LIBS=""
-
-# NB: PKG_CHECK_MODULES exits if pkg-config is unavailable on the targe
-# system, so we can't use it.
-
-# seed pkg-config with the default libshout location
-PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/usr/local/lib/pkgconfig}
-export PKG_CONFIG_PATH
-
-# Step 1: Use pkg-config if available
-AC_PATH_PROG([PKGCONFIG], [pkg-config], [no])
-if test "$PKGCONFIG" != "no" && `$PKGCONFIG --exists shout`
-then
-  SHOUT_CFLAGS=`$PKGCONFIG --variable=cflags_only shout`
-  SHOUT_CPPFLAGS=`$PKGCONFIG --variable=cppflags shout`
-  SHOUT_LIBS=`$PKGCONFIG --libs shout`
-  xt_have_shout="maybe"
-else
-  if test "$PKGCONFIG" != "no"
-  then
-    AC_MSG_NOTICE([$PKGCONFIG couldn't find libshout. Try adjusting PKG_CONFIG_PATH.])
-  fi
-  # pkg-config unavailable, try shout-config
-  AC_PATH_PROG([SHOUTCONFIG], [shout-config], [no])
-  if test "$SHOUTCONFIG" != "no" && test `$SHOUTCONFIG --package` = "libshout"
-  then
-    SHOUT_CPPFLAGS=`$SHOUTCONFIG --cppflags`
-    SHOUT_CFLAGS=`$SHOUTCONFIG --cflags-only`
-    SHOUT_LIBS=`$SHOUTCONFIG --libs`
-    xt_have_shout="maybe"
-  fi
-fi
-
-# Now try actually using libshout
-if test "$xt_have_shout" != "no"
-then
-  ac_save_CPPFLAGS="$CPPFLAGS"
-  ac_save_CFLAGS="$CFLAGS"
-  ac_save_LIBS="$LIBS"
-  CPPFLAGS="$CPPFLAGS $SHOUT_CPPFLAGS"
-  CFLAGS="$CFLAGS $SHOUT_CFLAGS"
-  LIBS="$SHOUT_LIBS $LIBS"
-  AC_CHECK_HEADERS([shout/shout.h], [
-    AC_CHECK_FUNC([shout_new], [
-      ifelse([$1], , :, [$1])
-      xt_have_shout="yes"
-    ])
-    AC_EGREP_CPP([yes], [#include <shout/shout.h>
-#if SHOUT_THREADSAFE
-yes
-#endif
-], [SHOUT_THREADSAFE="yes"])
-  ])
-  CPPFLAGS="$ac_save_CPPFLAGS"
-  CFLAGS="$ac_save_CFLAGS"
-  LIBS="$ac_save_LIBS"
-fi
-
-if test "$xt_have_shout" != "yes"
-then
-  ifelse([$2], , :, [$2])
-fi
-])dnl XIPH_PATH_SHOUT
-
-# Configure paths for libvorbis
-# Jack Moffitt <jack@icecast.org> 10-21-2000
-# Shamelessly stolen from Owen Taylor and Manish Singh
-# thomasvs added check for vorbis_bitrate_addblock which is new in rc3
-
-dnl XIPH_PATH_VORBIS([ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
-dnl Test for libvorbis, and define VORBIS_CFLAGS and VORBIS_LIBS
-dnl
-AC_DEFUN(XIPH_PATH_VORBIS,
-[dnl 
-dnl Get the cflags and libraries
-dnl
-AC_ARG_WITH(vorbis,[  --with-vorbis=PFX   Prefix where libvorbis is installed (optional)], vorbis_prefix="$withval", vorbis_prefix="")
-AC_ARG_WITH(vorbis-libraries,[  --with-vorbis-libraries=DIR   Directory where libvorbis library is installed (optional)], vorbis_libraries="$withval", vorbis_libraries="")
-AC_ARG_WITH(vorbis-includes,[  --with-vorbis-includes=DIR   Directory where libvorbis header files are installed (optional)], vorbis_includes="$withval", vorbis_includes="")
-AC_ARG_ENABLE(vorbistest, [  --disable-vorbistest       Do not try to compile and run a test Vorbis program],, enable_vorbistest=yes)
-
-  if test "x$vorbis_libraries" != "x" ; then
-    VORBIS_LIBS="-L$vorbis_libraries"
-  elif test "x$vorbis_prefix" != "x" ; then
-    VORBIS_LIBS="-L$vorbis_prefix/lib"
-  elif test "x$prefix" != "xNONE"; then
-    VORBIS_LIBS="-L$prefix/lib"
-  fi
-
-  VORBIS_LIBS="$VORBIS_LIBS -lvorbis -lm"
-  VORBISFILE_LIBS="-lvorbisfile"
-  VORBISENC_LIBS="-lvorbisenc"
-
-  if test "x$vorbis_includes" != "x" ; then
-    VORBIS_CFLAGS="-I$vorbis_includes"
-  elif test "x$vorbis_prefix" != "x" ; then
-    VORBIS_CFLAGS="-I$vorbis_prefix/include"
-  elif test "x$prefix" != "xNONE"; then
-    VORBIS_CFLAGS="-I$prefix/include"
-  fi
-
-
-  AC_MSG_CHECKING(for Vorbis)
-  no_vorbis=""
-
-
-  if test "x$enable_vorbistest" = "xyes" ; then
-    ac_save_CFLAGS="$CFLAGS"
-    ac_save_LIBS="$LIBS"
-    CFLAGS="$CFLAGS $VORBIS_CFLAGS $OGG_CFLAGS"
-    LIBS="$LIBS $VORBIS_LIBS $VORBISENC_LIBS $OGG_LIBS"
-dnl
-dnl Now check if the installed Vorbis is sufficiently new.
-dnl
-      rm -f conf.vorbistest
-      AC_TRY_RUN([
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <vorbis/codec.h>
-
-int main ()
-{
-    vorbis_block 	vb;
-    vorbis_dsp_state	vd;
-    vorbis_info		vi;
-
-    vorbis_info_init (&vi);
-    vorbis_encode_init (&vi, 2, 44100, -1, 128000, -1);
-    vorbis_analysis_init (&vd, &vi);
-    vorbis_block_init (&vd, &vb);
-    /* this function was added in 1.0rc3, so this is what we're testing for */
-    vorbis_bitrate_addblock (&vb);
-
-    system("touch conf.vorbistest");
-    return 0;
-}
-
-],, no_vorbis=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
-       CFLAGS="$ac_save_CFLAGS"
-       LIBS="$ac_save_LIBS"
-  fi
-
-  if test "x$no_vorbis" = "x" ; then
-     AC_MSG_RESULT(yes)
-     ifelse([$1], , :, [$1])     
-  else
-     AC_MSG_RESULT(no)
-     if test -f conf.vorbistest ; then
-       :
-     else
-       echo "*** Could not run Vorbis test program, checking why..."
-       CFLAGS="$CFLAGS $VORBIS_CFLAGS"
-       LIBS="$LIBS $VORBIS_LIBS $OGG_LIBS"
-       AC_TRY_LINK([
-#include <stdio.h>
-#include <vorbis/codec.h>
-],     [ return 0; ],
-       [ echo "*** The test program compiled, but did not run. This usually means"
-       echo "*** that the run-time linker is not finding Vorbis or finding the wrong"
-       echo "*** version of Vorbis. If it is not finding Vorbis, you'll need to set your"
-       echo "*** LD_LIBRARY_PATH environment variable, or edit /etc/ld.so.conf to point"
-       echo "*** to the installed location  Also, make sure you have run ldconfig if that"
-       echo "*** is required on your system"
-       echo "***"
-       echo "*** If you have an old version installed, it is best to remove it, although"
-       echo "*** you may also be able to get things to work by modifying LD_LIBRARY_PATH"],
-       [ echo "*** The test program failed to compile or link. See the file config.log for the"
-       echo "*** exact error that occured. This usually means Vorbis was incorrectly installed"
-       echo "*** or that you have moved Vorbis since it was installed." ])
-       CFLAGS="$ac_save_CFLAGS"
-       LIBS="$ac_save_LIBS"
-     fi
-     VORBIS_CFLAGS=""
-     VORBIS_LIBS=""
-     VORBISFILE_LIBS=""
-     VORBISENC_LIBS=""
-     ifelse([$2], , :, [$2])
-  fi
-  AC_SUBST(VORBIS_CFLAGS)
-  AC_SUBST(VORBIS_LIBS)
-  AC_SUBST(VORBISFILE_LIBS)
-  AC_SUBST(VORBISENC_LIBS)
-  rm -f conf.vorbistest
 ])
 

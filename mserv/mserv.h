@@ -1,5 +1,5 @@
 #include "global.h"
-#include "output-icecast.h"
+#include "channel.h"
 
 void mserv_log(const char *text, ...);
 void mserv_response(t_client *cl, const char *token, const char *fmt, ...);
@@ -29,7 +29,7 @@ t_userlevel *mserv_strtolevel(const char *level);
 const char *mserv_levelstr(t_userlevel userlevel);
 const char *mserv_stndrdth(int day);
 int mserv_setmixer(t_client *cl, int what, const char *line);
-int mserv_outputvolume(t_client *cl, const char *line);
+int mserv_channelvolume(t_client *cl, const char *line);
 int mserv_flush(void);
 void mserv_closedown(int exitcode);
 char *mserv_idletxt(time_t idletime);
@@ -76,7 +76,7 @@ extern t_genre *mserv_genres;
 extern unsigned int mserv_filter_ok;
 extern unsigned int mserv_filter_notok;
 
-extern t_output *mserv_output;
+extern t_channel *mserv_channel;
 
 extern char *mserv_path_acl;
 extern char *mserv_path_webacl;

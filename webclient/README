@@ -1,0 +1,12 @@
+Mserv's web client has been written assuming that the line:
+
+AddHandler cgi-script .cgi
+
+Is in your httpd.conf file of apache.  This makes it possible to run cgi
+scripts outside of the cgi-bin directory.
+
+You can either move all the .cgi files into your /cgi-bin/ directory, and
+then re-link the html files to point to the right place, or add the line
+above.  Both methods are pretty painless.
+
+-squish

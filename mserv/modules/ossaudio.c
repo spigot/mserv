@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.7 2004/03/28 21:27:38 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.8 2004/04/12 13:42:02 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -177,7 +177,7 @@ int ossaudio_output_volume(t_channel *c, t_channel_outputstream *os,
   int is_getter = (*volume == -1);
   
   if ((mixer_fd = open(ossaudio->mixer_name,
-		       is_getter ? O_RDONLY : O_WRONLY,
+		       O_NONBLOCK | is_getter ? O_RDONLY : O_WRONLY,
 		       0)) == -1)
   {
     snprintf(error, errsize,
@@ -259,10 +259,9 @@ int ossaudio_output_start(t_channel *c, t_channel_outputstream *os,
     return MSERV_SUCCESS;
   }
   
-  // FIXME: Set an alarm() that times out unless the open() call has
-  // returned within a couple of seconds
-  
-  if ((output_fd = open(ossaudio->device_name, O_WRONLY, 0)) == -1) {
+  if ((output_fd =
+       open(ossaudio->device_name, O_NONBLOCK | O_WRONLY, 0)) == -1)
+  {
     snprintf(error, errsize,
 	     "failed opening audio device '%s' for output: %s",
 	     ossaudio->device_name,
@@ -270,10 +269,18 @@ int ossaudio_output_start(t_channel *c, t_channel_outputstream *os,
     return MSERV_FAILURE;
   }
 
-  // Set the sample format
+  // We used the O_NONBLOCK flag to get notified if the audio device
+  // was busy.  We now know it wasn't, and from now on O_NONBLOCK will
+  // only mess up our output.  Turn it off.
+  if (fcntl(output_fd, F_SETFL, 0) != 0) {
+    snprintf(error, errsize,
+	     "failed switching to blocking audio output: %s",
+	     strerror(errno));
+    goto failed;
+  }
   
-  // FIXME: What should we set it to?  Until I have a good answer to
-  // that question I'll be using sixteen bits signed data.
+  // Set the sample format to 16 bits signed data.  We support nothing
+  // else.
   format = AFMT_S16_NE;
   if (ioctl(output_fd, SNDCTL_DSP_SETFMT, &format) == -1) {
     snprintf(error, errsize,

@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.6 2004/03/28 21:18:32 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.7 2004/03/28 21:27:38 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -104,21 +104,6 @@ int ossaudio_output_create(t_channel *c, t_channel_outputstream *os,
   *privateP = ossaudio;
   
   return MSERV_SUCCESS;
-}
-
-/* destroy output stream */
-
-int ossaudio_output_destroy(t_channel *c, t_channel_outputstream *os,
-                           void *private, char *error, int errsize)
-{
-  t_ossaudio *ossaudio = (t_ossaudio *)private;
-  (void)ossaudio;
-  (void)c;
-  (void)os;
-  
-  snprintf(error, errsize, "%s() unimplemented", __FUNCTION__);
-  
-  return MSERV_FAILURE;
 }
 
 /* synchronise output stream */
@@ -370,5 +355,25 @@ int ossaudio_output_stop(t_channel *c, t_channel_outputstream *os,
   }
   
   ossaudio->playing = 0;
+  return MSERV_SUCCESS;
+}
+
+/* destroy output stream */
+
+int ossaudio_output_destroy(t_channel *c, t_channel_outputstream *os,
+                           void *private, char *error, int errsize)
+{
+  t_ossaudio *ossaudio = (t_ossaudio *)private;
+  (void)ossaudio;
+  (void)c;
+  (void)os;
+
+  // Stop before destroying so that we don't leak any resources
+  ossaudio_output_stop(c, os, private, error, errsize);
+  
+  free(ossaudio->device_name);
+  free(ossaudio->mixer_name);
+  free(ossaudio);
+  
   return MSERV_SUCCESS;
 }

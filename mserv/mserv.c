@@ -2025,6 +2025,10 @@ static int mserv_trackcompare_name(const void *a, const void *b)
 		 (*(const t_track * const *)b)->name);
 }
 
+/*
+ * This function accepts a value in the range 0.0-0.1 and returns the
+ * same value +-0.05.
+ */
 static double mserv_fuzz_rating(double rating)
 {
   /* A resolution of 1000 really means 1 / 1000 or 0.001. */
@@ -2034,9 +2038,12 @@ static double mserv_fuzz_rating(double rating)
    * percent. */
   const int amount = 5;
   
-  const double nvalues = amount * resolution + 1;
+  const double nvalues = 2 * amount * resolution + 1;
   
-  /* From the NOTES section of the rand() man page */
+  /* From the NOTES section of the rand() man page.
+   *
+   * Construct a random number in the range -amount*resolution to
+   * +amount*resolution, end points included. */
   const int intfuzz =
     ((int)(nvalues * rand() / (RAND_MAX + 1.0))) - (amount * resolution);
   
@@ -2045,14 +2052,13 @@ static double mserv_fuzz_rating(double rating)
   /* The doublefuzz is between -amount and +amount.  The rating is
    * between 0.0 and 1.0.  Thus, the fuzz value has to be scaled down
    * by a factor 100.0 to fit the rating. */
-  return rating; //FIXME: This line means the fuzzing is disabled
   return rating + doublefuzz / 100.0;
 }
 
 static int mserv_trackcompare_rating(const void *a, const void *b)
 {
-  const t_track *atrack = *(const t_track **)a;
-  const t_track *btrack = *(const t_track **)b;
+  const t_track *atrack = *(const t_track * const *)a;
+  const t_track *btrack = *(const t_track * const *)b;
   
   double fuzzed_arating;
   
@@ -2069,7 +2075,16 @@ static int mserv_trackcompare_rating(const void *a, const void *b)
     return -1;
   
   /* Invariant: Both tracks have a rating each */
-  
+
+  /* When comparing the ratings of two songs, we do a fuzzy compare.
+   * The fuzziness consists of that if the ratings are close enough
+   * (determined by mserv_fuzz_rating()), the songs will sometimes be
+   * considered to be in the wrong order.
+   *
+   * So at the time of writing, 0.55 will often be considered to be
+   * larger than 0.56, seldom be considered to be larger than 0.59,
+   * and never considered to be larger than 0.6.
+   */
   fuzzed_arating = mserv_fuzz_rating(atrack->rating);
   if (fuzzed_arating < btrack->rating) {
     return 1;

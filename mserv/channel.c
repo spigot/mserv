@@ -469,14 +469,6 @@ int channel_sync(t_channel *c, char *error, int errsize)
       /* we may have only had a bit of silence and can fill with some data */
       continue;
     }
-    if (!c->input->announced) {
-      /* announce this song to users in channel, if we haven't already */
-      mserv_setplaying(c, c->playing.track ? &c->playing : NULL,
-                       &c->input->trkinfo);
-      c->playing = c->input->trkinfo;
-      gettimeofday(&c->playing_start, NULL);
-      c->input->announced = 1;
-    }
     if (c->input->fd != -1) {
       /* read PCM data from input stream */
       ret = read(c->input->fd, c->buffer_char + c->buffer_bytes,

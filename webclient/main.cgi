@@ -15,7 +15,7 @@ Content-Type: text/html
 <head>
   <title>Mserv web interface</title>
 </head>
-<frameset cols="90,*" border=0>
+<frameset cols="95,*" border=0>
   <frame src="margin.cgi?user=$user&pass=$pass" frameborder=0 scrolling=auto>
   <frame name=main src="mserv.cgi?user=$user&pass=$pass&page=status" frameborder=0 scrolling=auto>
   <noframes>

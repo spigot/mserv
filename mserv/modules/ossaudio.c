@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.10 2004/06/24 18:46:36 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.11 2004/06/26 12:08:17 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -366,6 +366,8 @@ int ossaudio_output_stop(t_channel *c, t_channel_outputstream *os,
   }
   
   ossaudio->playing = 0;
+  os->bytesLeft = 0; /* We don't want to output anything else from
+  		      * this stream */
   return MSERV_SUCCESS;
 }
 

@@ -1,11 +1,5 @@
 #!/usr/bin/perl
 
-# Written by James Ponder, Jan-Feb 1999
-# Modified by Joesph Heenan, Feb 1999
-# Incorporated back into mserv, 3rd March 1999
-# Modified to not look at mp3 files by default by James, 22nd April 1999
-# Modified for genres by James, 25th April 1999
-
 # Use this program to alter or generate the .trk files for an album,
 # note that mserv usually has a 'tracks' directory and a 'trackinfo'
 # directory, so running this on the 'tracks' directory with the mp3s in it
@@ -105,13 +99,15 @@ foreach $file (@files) {
 print TEMP ('-'x40)."  ".('-'x37)."\n";
 close(TEMP);
 
-$editor = $ENV{'EDITOR'};
+($editor,@editorargs) = split / /, $ENV{'EDITOR'};
 $editor = '/usr/bin/vi' if ($editor eq '');
+
+push @editorargs, $tempfile;
 
 $again = 1;
 
 while ($again) {
-    while (system($editor, $tempfile)) {
+    while (system($editor, @editorargs)) {
 	print "Press return to edit again, or ctrl-c to exit: ";
 	<STDIN>;
     }

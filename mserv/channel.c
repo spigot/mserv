@@ -718,6 +718,7 @@ int channel_start(t_channel *c, char *error, int errsize)
   }
   mserv_log("channel %s: started playing", c->name);
   c->stopped = 0;
+  c->playing = c->input->trkinfo;
   return MSERV_SUCCESS;
 }
 

@@ -2230,7 +2230,7 @@ static void cmd_shutdown(t_client *cl, t_cmdparams *cp)
     return;
   }
   mserv_log("Shutdown initiated by %s", cl->user);
-  mserv_shutdown = 1;
+  mserv_shutdown = 1; /* 1 = shutdown requested */
   if (playing && playing->track) {
     mserv_broadcast("SHUTEND", cl->user);
   } else {

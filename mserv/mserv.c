@@ -1359,8 +1359,10 @@ static void mserv_replacealbum(t_album *album, t_album *newalbum)
 void mserv_closedown(int exitcode)
 {
   signal(SIGINT, SIG_IGN); /* ignore bad signals */
+  mserv_shutdown = 2; /* 2 = shutdown in progress */
   if (mserv_logfile)
     fclose(mserv_logfile);
+  mserv_abortplay();
   exit(exitcode);
 }
 
@@ -2847,14 +2849,17 @@ void mserv_abortplay()
   }
   
   /* recalc ratings now lastplay has changed */
-  mserv_recalcrating(stop_me);
+  if (stop_me != NULL) {
+    mserv_recalcrating(stop_me);
+  }
   mserv_savechanges();
   mserv_checkshutdown();
 }
 
 static void mserv_checkshutdown(void)
 {
-  if (mserv_shutdown) {
+  /* 1 == shutdown requested, 2 == shutdown in progress */
+  if (mserv_shutdown == 1) {
     mserv_flush();
     sleep(1);
     mserv_flush();

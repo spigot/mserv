@@ -418,6 +418,18 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
   (void)error;
   (void)errsize;
   
+  if (mserv_debug) {
+    /* Fill the sound buffer with marker data.  Before we return from
+     * this function, we'll warn the user if any marker data is still
+     * left in the buffer.  The point is to avoid leaving part of the
+     * buffer un-touched, which this function's callers doesn't
+     * expect. */
+    unsigned int i;
+    for (i = 0; i < c->buffer_samples; i++) {
+      c->buffer[i] = 4711.f;
+    }
+  }
+  
   /* if we haven't got a full buffer, read in more from the player */
   while (c->buffer_bytes < (c->buffer_samples * 2)) {
     /* try and read more from the input stream */
@@ -437,6 +449,9 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
       /* no available input stream at the moment, this is different to being
        * stopped or paused, this usually means we've run out of input and a
        * new player hasn't been spawned yet */
+      if (mserv_debug) {
+        mserv_log("no input available");
+      }
       break;
     }
     if (c->input->silence_start > 0) {
@@ -494,8 +509,10 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
                     c->input->trkinfo.track->n_track, strerror(errno));
 	  break;
         }
-	
-	/* Wait 5ms, then try again */
+
+	if (mserv_debug) {
+	  mserv_log("Got EAGAIN/EINTR when reading audio from player, trying again...");
+	}
 	usleep(5000);
       } else if (ret == 0) {
         /* end of song */
@@ -610,6 +627,40 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
       // Signal the output plugin that new data has been written to
       // the output buffer
       os->bytesLeft = -1;
+    }
+  }
+  
+  if (mserv_debug) {
+    /* Verify that no marker data is still in the buffer. */
+    int i;
+    int firstForgottenPos = -1;
+    int troubleAnnounced = 0;
+    
+    for (i = 0; (unsigned)i <= c->buffer_samples; i++) {
+      if (((unsigned)i < c->buffer_samples) && (c->buffer[i] > 42.f)) {
+	if (firstForgottenPos == -1) {
+	  firstForgottenPos = i;
+	}
+      } else {
+	if (firstForgottenPos != -1) {
+	  if (!troubleAnnounced) {
+	    mserv_log("Warning: Sound buffer not entirely updated by %s()",
+		      __FUNCTION__);
+	    troubleAnnounced = 1;
+	  }
+	  if (firstForgottenPos == i - 1) {
+	    mserv_log("         Position %d/%d was missed",
+		      firstForgottenPos,
+		      c->buffer_samples);
+	  } else {
+	    mserv_log("         Positions %d-%d of %d were missed",
+		      firstForgottenPos,
+		      i - 1,
+		      c->buffer_samples);
+	  }
+	  firstForgottenPos = -1;
+	}
+      }
     }
   }
   

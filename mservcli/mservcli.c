@@ -269,28 +269,24 @@ int mservcli_send(struct mservcli_id *id, const char *output)
 
 int mservcli_discarddata(struct mservcli_id *id)
 {
-  int rt = 0;
   int i;
 
   do {
-    do {
-      if (fgets(id->buffer, id->buflen, id->in) == NULL) {
-        errno = EPIPE;
-        return -1;
-      }
-      if (!*id->buffer || id->buffer[(i = strlen(id->buffer))-1] != '\n') {
-        errno = EPIPE;
-        return -1;
-      }
+    if (fgets(id->buffer, id->buflen, id->in) == NULL) {
+      errno = EPIPE;
+      return -1;
+    }
+    if (!*id->buffer || id->buffer[(i = strlen(id->buffer))-1] != '\n') {
+      errno = EPIPE;
+      return -1;
+    }
+    id->buffer[--i] = '\0';
+    if (*id->buffer && id->buffer[i-1] == '\r')
       id->buffer[--i] = '\0';
-      if (*id->buffer && id->buffer[i-1] == '\r')
-        id->buffer[--i] = '\0';
-      if (*id->buffer == '=') {
-        if (mservcli_processrt(id) == -1)
-          return -1;
-        rt = 1;
-      }
-    } while (rt);
+    if (*id->buffer == '=') {
+      if (mservcli_processrt(id) == -1)
+        return -1;
+    }
   } while (*id->buffer != '.' && *(id->buffer+1) != '\0');
   return 0;
 }

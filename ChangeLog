@@ -18,6 +18,7 @@ via CVS the version of the first entry is the forthcoming version number.
 - Allow multiple output streams on each channel (for doing icecast+soundcard)
 - Introduce concept of primary volume controllers
 - Add snprintf checks in autoconf
+- Fix mservcli library discard loop (thanks to Thomas Munro)
 
 0.39 - Sep 13th 2003
 --------------------

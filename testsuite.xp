@@ -131,10 +131,17 @@ expect "Track name"
 # Start playing and try some commands again
 send "play\n"
 expect "Playing"
-expect -i $computerjohan "=622\trandom"
 
 send "status\n"
 expect "Track name"
+# This is really the result of the "play" command, not "status".
+
+# The reason we don't wait for the computer being notified about that
+# a new song has started playing before we do "status" is that doing
+# things this way has previously uncovered a bug.  We don't want that
+# bug to re-appear in the future, so please don't change the order of
+# "play", "status" and "expect -i $computerjohan" here.
+expect -i $computerjohan "=622\trandom"
 
 send "ratings\n"
 expect "Ratings of track"

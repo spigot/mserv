@@ -72,7 +72,7 @@ player_mod=prog_xmp\n\
 #\n\
 # Set gap between songs, in seconds.  0 to start the next song as quick as\n\
 # possible.\n\
-# gap=1\n\
+# gap=1.0\n\
 #\n\
 # Default user rating for songs that haven't been heard yet (0 - 1)\n\
 # 0=awful, 0.25=bad, 0.50=neutral, 0.75=good, 1=superb\n\

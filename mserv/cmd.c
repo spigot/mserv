@@ -2167,8 +2167,7 @@ static void cmd_kick(t_client *kicker, t_cmdparams *cp)
     if (victim->authed && stricmp(victim->user, str[0]) == 0) {
       if (kicker->mode != mode_human) /* humans will see 'disconnected' message */
 	mserv_response(kicker, "USERCHG", NULL);
-      if (victim->mode == mode_human)
-	mserv_response(victim, "KICKED", NULL);
+      mserv_informnt(victim, "KICKED", NULL);
       have_kicked = 1;
       mserv_close(victim);
     }

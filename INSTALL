@@ -9,7 +9,7 @@ This package includes:
 
 You should be able to:
 
-  ./configure --enable-module-icecast --disable-module-local
+  ./configure --enable-module-icecast --disable-module-ossaudio
   make
   make install
 
@@ -19,7 +19,7 @@ by default.
 You need to specify which modules to compile (this release only supports
 icecast)
 
-  --enable-module-local    Compile the local output module (default)
+  --enable-module-ossaudio Compile the ossaudio output module (default)
   --enable-module-icecast  Compile the icecast output module
 
 Once you have installed Mserv with icecast support, run mserv once to

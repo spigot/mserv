@@ -1633,7 +1633,7 @@ static void mserv_cmd_volume(t_client *cl, const char *ru, const char *line)
   (void)ru;
   if (*line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_VOLUME, line)) != -1) {
+  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_PCM, line)) != -1) {
     if (!*line) {
       mserv_response(cl, "VOLCUR", "%d", val & 0xFF);
     } else {
@@ -2789,6 +2789,8 @@ static void mserv_cmd_reset(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "RESETER", NULL);
     return;
   }
+  mserv_broadcast("RESETGO", "%s", cl->user);
+  mserv_flush();
   mserv_log("Reset initiated by %s", cl->user);
   mserv_reset();
   mserv_broadcast("RESET", "%s", cl->user);

@@ -112,15 +112,24 @@ player_mod=prog_xmp\n\
 # 0=awful, 0.25=bad, 0.50=neutral, 0.75=good, 1=superb\n\
 # rate_unrated=0.50\n\
 #\n\
-# Set whether or not particular alerts are displayed\n\
-# alert_unheard=on\n\
-# alert_unrated=on\n\
-# alert_firstplay=on\n\
-#\n\
 # Set whether or not each type of user has their queue cleared on disconnect\n\
 # queue_clear_human=on\n\
 # queue_clear_computer=off\n\
 # queue_clear_rtcomputer=on\n\
+#\n\
+# Set whether or not particular alerts are displayed\n\
+# human_alert_unheard=on\n\
+# human_alert_unrated=on\n\
+# human_alert_firstplay=on\n\
+# human_alert_nogenre=on\n\
+#\n\
+# Set display options for HUMAN mode users\n\
+# human_display_screen=79\n\
+# human_display_info=10\n\
+# human_display_track=7\n\
+# human_display_author=20\n\
+# human_display_align=on\n\
+# human_display_bold=on\n\
 ";
 
 unsigned int defconf_size = sizeof(defconf_file)-1;

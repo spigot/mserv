@@ -4,6 +4,14 @@ Changes
 This documents changes as they are made.  Note that if you received this file
 via CVS the version of the first entry is the forthcoming version number.
 
+0.42
+-------------------
+- Human mode (telnet interface) widths of display now configurable
+- Bold can turned off in human mode
+- Alignment of track names can be turned off so that space is not wasted
+  after the track author
+- Alert lacking of genre is now configurable
+
 0.41 - Dec 3rd 2003
 -------------------
 - Added generic parameter parser for channel output streams

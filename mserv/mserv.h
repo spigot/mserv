@@ -72,6 +72,8 @@ void mserv_setplaying(t_supinfo *supinfo);
 t_supinfo *mserv_getplaying(void);
 void mserv_addtohistory(t_supinfo *sup);
 const char *mserv_clientmodetext(t_client *cl);
+void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
+                          unsigned int bold, const char *info);
 
 extern char *progname;
 extern int mserv_verbose;

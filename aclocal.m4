@@ -6926,7 +6926,7 @@ dnl Jack Moffitt <jack@icecast.org> 08-06-2001
 dnl Rewritten for libshout 2
 dnl Brendan Cully <brendan@xiph.org> 20030612
 dnl 
-dnl $Id: aclocal.m4,v 1.12 2003/11/30 02:44:29 squish Exp $
+dnl $Id: aclocal.m4,v 1.13 2003/12/10 00:16:39 squish Exp $
 
 # XIPH_PATH_SHOUT([ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
 # Test for libshout, and define SHOUT_CPPFLAGS SHOUT_CFLAGS SHOUT_LIBS, and

@@ -46,12 +46,19 @@ double opt_factor = 0.6;
 double opt_rate_unheard = 0.55;
 double opt_rate_unrated = 0.50;
 const char *opt_filter = NULL;
-unsigned int opt_alert_unheard = 1;
-unsigned int opt_alert_unrated = 1;
-unsigned int opt_alert_firstplay = 1;
 unsigned int opt_queue_clear_human = 1;
 unsigned int opt_queue_clear_computer = 0;
 unsigned int opt_queue_clear_rtcomputer = 1;
+unsigned int opt_human_alert_unheard = 1;
+unsigned int opt_human_alert_unrated = 1;
+unsigned int opt_human_alert_firstplay = 1;
+unsigned int opt_human_alert_nogenre = 1;
+unsigned int opt_human_display_screen = 79;
+unsigned int opt_human_display_info = 10;
+unsigned int opt_human_display_track = 7;
+unsigned int opt_human_display_author = 20;
+unsigned int opt_human_display_align = 1;
+unsigned int opt_human_display_bold = 1;
 
 typedef struct {
   const char *option;
@@ -80,12 +87,19 @@ t_opts opt_opts[] = {
   { "rate_unheard",           "double", &opt_rate_unheard,           "0.55" },
   { "rate_unrated",           "double", &opt_rate_unrated,           "0.50" },
   { "filter",                 "string", &opt_filter,                 "" },
-  { "alert_unheard",          "switch", &opt_alert_unheard,          "on" },
-  { "alert_unrated",          "switch", &opt_alert_unrated,          "on" },
-  { "alert_firstplay",        "switch", &opt_alert_firstplay,        "on" },
   { "queue_clear_human",      "switch", &opt_queue_clear_human,      "on" },
   { "queue_clear_computer",   "switch", &opt_queue_clear_computer,   "off" },
   { "queue_clear_rtcomputer", "switch", &opt_queue_clear_rtcomputer, "on" },
+  { "human_alert_unheard",    "switch", &opt_human_alert_unheard,    "on" },
+  { "human_alert_unrated",    "switch", &opt_human_alert_unrated,    "on" },
+  { "human_alert_firstplay",  "switch", &opt_human_alert_firstplay,  "on" },
+  { "human_alert_nogenre",    "switch", &opt_human_alert_nogenre,    "on" },
+  { "human_display_screen",   "int",    &opt_human_display_screen,   "79" },
+  { "human_display_info",     "int",    &opt_human_display_info,     "10" },
+  { "human_display_track",    "int",    &opt_human_display_track,    "7" },
+  { "human_display_author",   "int",    &opt_human_display_author,   "20" },
+  { "human_display_align",    "switch", &opt_human_display_align,    "on" },
+  { "human_display_bold",     "switch", &opt_human_display_bold,     "on" },
   { NULL, NULL, NULL, NULL }
 };
 

@@ -3357,8 +3357,7 @@ void mserv_setplaying(t_supinfo *supinfo)
   t_lang *lang;
   t_client *cl;
   t_rating *rate;
-  char buffer[AUTHORLEN+NAMELEN+64];
-  char bit[32];
+  char buffer[USERNAMELEN+AUTHORLEN+NAMELEN+64];
 
   if (mserv_playing.track) {
     mserv_checkdisk_track(mserv_playing.track);
@@ -3392,27 +3391,19 @@ void mserv_setplaying(t_supinfo *supinfo)
         mserv_send(cl, "[] ", 0);
         mserv_send(cl, lang->text, 0);
         mserv_send(cl, "\r\n", 0);
-        sprintf(bit, "%d/%d", mserv_playing.track->n_album,
-                mserv_playing.track->n_track);
-        sprintf(buffer, "[] \x1B[1m%-10.10s %7.7s %-1.1s %-20.20s "
-                "%-29.29s%2ld:%02ld\x1B[0m\r\n",
-                mserv_playing.user, bit,
-                rate && rate->rating ? mserv_ratestr(rate) : "-",
-                mserv_playing.track->author,
-                mserv_playing.track->name,
-                (mserv_playing.track->duration / 100) / 60,
-                (mserv_playing.track->duration / 100) % 60);
-        mserv_send(cl, buffer, 0);
+        mserv_send_trackinfo(cl, mserv_playing.track, rate, 1,
+                             mserv_playing.user);
         if (!mserv_playing.track->genres[0])
-          mserv_response(cl, "GENREME", NULL); /* set my genre! */
+          if (opt_human_alert_nogenre)
+            mserv_response(cl, "GENREME", NULL); /* set my genre! */
         if (!mserv_playing.track->ratings) {
-          if (opt_alert_firstplay)
+          if (opt_human_alert_firstplay)
             mserv_response(cl, "FPLAY", NULL);
         } else if (!rate) {
-          if (opt_alert_unheard)
+          if (opt_human_alert_unheard)
             mserv_response(cl, "RATEME2", NULL); /* unheard */
         } else if (!rate->rating) {
-          if (opt_alert_unrated)
+          if (opt_human_alert_unrated)
             mserv_response(cl, "RATEME1", NULL); /* unrated */
         }
       } else if (cl->mode == mode_rtcomputer) {
@@ -3441,36 +3432,68 @@ void mserv_setplaying(t_supinfo *supinfo)
   }
 }
 
+/* mserv_send_trackinfo(cl, track, rate, bold, info, percentage)
+ * print information about track to the client (who should be human)
+ * the info string is displayed if given (NULL if not supplied)
+ * bold makes the string bold
+ * rate is shown in the information string as a single character */
+
+#define TRACKINFO_MAX_INFO 16
+#define TRACKINFO_MAX_TRACK 16
+#define TRACKINFO_MAX_AUTHOR AUTHORLEN
+#define TRACKINFO_MAX_NAME NAMELEN
+#define TRACKINFO_MAX_DURATION 16
+
 void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
-                          unsigned int bold, const char *user)
+                          unsigned int bold, const char *info)
 {
-  char buffer[strlen("[] \x1B[1m") + USERNAMELEN +
-      strlen(" 999999/999999 G ") + AUTHORLEN + strlen(", ") + NAMELEN +
-      strlen(" XXXXXX:XX\x1B[0m\r\n") + 64]; /* too much, to be sure */
+  char buffer[TRACKINFO_MAX_INFO + 1 + TRACKINFO_MAX_TRACK + strlen(" G ") +
+      TRACKINFO_MAX_AUTHOR + strlen(", ") + TRACKINFO_MAX_NAME + 1 +
+      TRACKINFO_MAX_DURATION + 64];
   char bit[64];
   char *p = buffer;
   int w;
-  unsigned int width_user = 10;
-  unsigned int width_author = 22;
-  unsigned int width_track = 7;
-  unsigned int width_screen = 79;
+  unsigned int width_info = opt_human_display_info;
+  unsigned int width_author = opt_human_display_author;
+  unsigned int width_track = opt_human_display_track;
+  unsigned int width_screen = opt_human_display_screen;
+  unsigned int display_align = opt_human_display_align;
+  unsigned int display_bold = opt_human_display_bold;
 
-  if (user)
-    p+= sprintf(p, "%*s ", -width_user, user);
+  if (width_info > TRACKINFO_MAX_INFO || width_info < 1)
+    width_info = TRACKINFO_MAX_INFO;
+  if (width_track > TRACKINFO_MAX_TRACK || width_track < 1)
+    width_track = TRACKINFO_MAX_TRACK;
+  if (width_author > TRACKINFO_MAX_AUTHOR || width_author < 3)
+    width_author = TRACKINFO_MAX_AUTHOR;
+
+  if (info)
+    p+= sprintf(p, "%*.*s ", -width_info, TRACKINFO_MAX_INFO, info);
   sprintf(bit, "%d/%d", track->n_album, track->n_track);
-  p+= sprintf(p, "%*s ", width_track, bit);
+  p+= sprintf(p, "%*.*s ", width_track, TRACKINFO_MAX_TRACK, bit);
   p+= sprintf(p, "%-1.1s ", rate && rate->rating ? mserv_ratestr(rate) : "-");
-  if (strlen(track->author) > width_author) {
-    p+= sprintf(p, "%.*s.., ", width_author - 2, track->author);
+  if (display_align) {
+    /* pad out to author width */
+    p+= sprintf(p, "%-*.*s ", width_author, width_author, track->author);
   } else {
-    p+= sprintf(p, "%s, ", track->author);
+    /* bring track name in to author area to maximise information */
+    if (strlen(track->author) > width_author) {
+      p+= sprintf(p, "%.*s.., ", width_author - 2, track->author);
+    } else {
+      p+= sprintf(p, "%s, ", track->author);
+    }
   }
-  sprintf(bit, " %ld:%02ld", (track->duration / 100) / 60,
-          (track->duration / 100) % 60);
+  if (track->duration > 100*(59+(60*999))) {
+    sprintf(bit, " ++:++");
+  } else {
+    sprintf(bit, " %ld:%02ld", (track->duration / 100) / 60,
+            (track->duration / 100) % 60);
+  }
   w = (width_screen - strlen("[] ")) - strlen(bit) - (p - buffer);
   if (w > 1)
-    p+= sprintf(p, "%*.*s%s", w, w, track->name, bit);
-  if (bold) {
+    p+= sprintf(p, "%*.*s%.*s", -w, w, track->name,
+                TRACKINFO_MAX_DURATION, bit);
+  if (bold && display_bold) {
     mserv_send(cl, "[] \x1B[1m", 0);
     mserv_send(cl, buffer, 0);
     mserv_send(cl, "\x1B[0m", 0);

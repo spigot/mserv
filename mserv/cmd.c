@@ -789,12 +789,11 @@ static void cmd_albums(t_client *cl, t_cmdparams *cp)
 
 static void cmd_tracks(t_client *cl, t_cmdparams *cp)
 {
-  char buffer[AUTHORLEN+NAMELEN+64];
+  char buffer[USERNAMELEN+AUTHORLEN+NAMELEN+64];
   t_album *album;
   unsigned int id;
   unsigned int i;
   char *end;
-  char bit[32];
   t_rating *rate;
 
   if (!*cp->line) {
@@ -819,15 +818,8 @@ static void cmd_tracks(t_client *cl, t_cmdparams *cp)
   for (i = 0; i < album->ntracks; i++) {
     if (album->tracks[i]) {
       rate = mserv_getrate(cp->ru, album->tracks[i]);
-      sprintf(bit, "%d/%d", album->tracks[i]->n_album,
-	      album->tracks[i]->n_track);
       if (cl->mode == mode_human) {
-	sprintf(buffer, "[] %7.7s %-1.1s %-20.20s %-39.39s %2ld:%02ld\r\n",
-		bit, rate && rate->rating ? mserv_ratestr(rate) : "-",
-		album->tracks[i]->author, album->tracks[i]->name,
-		(album->tracks[i]->duration / 100) / 60,
-		(album->tracks[i]->duration / 100) % 60);
-	mserv_send(cl, buffer, 0);
+        mserv_send_trackinfo(cl, album->tracks[i],  rate, 0, NULL);
       } else {
 	sprintf(buffer, "%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
 		album->tracks[i]->n_album, album->tracks[i]->n_track,
@@ -964,8 +956,7 @@ static void cmd_unqueue(t_client *cl, t_cmdparams *cp)
 
 static void cmd_queue(t_client *cl, t_cmdparams *cp)
 {
-  char buffer[AUTHORLEN+NAMELEN+64];
-  char bit[32];
+  char buffer[USERNAMELEN + AUTHORLEN + NAMELEN + 64];
   char linespl[LINEBUFLEN];
   char *str[4];
   char *end;
@@ -987,16 +978,7 @@ static void cmd_queue(t_client *cl, t_cmdparams *cp)
     for (q = mserv_queue; q; q = q->next) {
       rate = mserv_getrate(cp->ru, q->supinfo.track);
       if (cl->mode == mode_human) {
-	sprintf(bit, "%d/%d", q->supinfo.track->n_album,
-		q->supinfo.track->n_track);
-	sprintf(buffer, "[] %-10.10s %7.7s %-1.1s %-20.20s "
-		"%-29.29s%2ld:%02ld\r\n",
-		q->supinfo.user, bit,
-		rate && rate->rating ? mserv_ratestr(rate) : "-",
-		q->supinfo.track->author, q->supinfo.track->name,
-		(q->supinfo.track->duration / 100) / 60,
-		(q->supinfo.track->duration / 100) % 60);
-	mserv_send(cl, buffer, 0);
+        mserv_send_trackinfo(cl, q->supinfo.track, rate, 0, q->supinfo.user);
       } else {
 	sprintf(buffer, "%s\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
 		q->supinfo.user, q->supinfo.track->n_album,
@@ -1111,8 +1093,7 @@ static void cmd_queue(t_client *cl, t_cmdparams *cp)
 static int cmd_queue_sub(t_client *cl, t_album *album, int n_track,
 			       int header)
 {
-  char buffer[AUTHORLEN+NAMELEN+64];
-  char bit[32];
+  char buffer[USERNAMELEN + AUTHORLEN + NAMELEN + 64];
   t_rating *rate;
   t_client *client;
   int i = n_track-1;
@@ -1137,18 +1118,10 @@ static int cmd_queue_sub(t_client *cl, t_album *album, int n_track,
 	    mserv_ratestr(rate));
     mserv_send(cl, buffer, 0);
   }
-  sprintf(bit, "%d/%d", album->tracks[i]->n_album,
-	  album->tracks[i]->n_track);
   for (client = mserv_clients; client; client = client->next) {
     rate = mserv_getrate(client->user, album->tracks[i]);
     if (client->mode == mode_human) {
-      sprintf(buffer, "[] %-10.10s %7.7s %-1.1s %-20.20s "
-	      "%-29.29s%2ld:%02ld\r\n", cl->user, bit,
-	      rate && rate->rating ? mserv_ratestr(rate) : "-",
-	      album->tracks[i]->author, album->tracks[i]->name,
-	      (album->tracks[i]->duration / 100) / 60,
-	      (album->tracks[i]->duration / 100) % 60);
-      mserv_send(client, buffer, 0);
+      mserv_send_trackinfo(client, album->tracks[i], rate, 0, cl->user);
     } else if (client->mode == mode_rtcomputer) {
       sprintf(buffer, "=%d\t%s\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
 	      lang->code, cl->user, album->tracks[i]->n_album,
@@ -1472,15 +1445,8 @@ static void cmd_top(t_client *cl, t_cmdparams *cp)
       prob = 0;
     rate = mserv_getrate(cp->ru, track);
     if (cl->mode == mode_human) {
-      sprintf(bit, "%d/%d", track->n_album, track->n_track);
-      sprintf(buffer, "[] %5.2f%%     %7.7s %-1.1s %-20.20s "
-	      "%-29.29s%2ld:%02ld\r\n",
-	      prob > 0.9999 ? 99.99 : 100*prob, bit,
-	      rate && rate->rating ? mserv_ratestr(rate) : "-",
-	      track->author, track->name,
-	      (track->duration / 100) / 60,
-	      (track->duration / 100) % 60);
-      mserv_send(cl, buffer, 0);
+      snprintf(bit, sizeof(bit), "%5.2f%%", prob > 0.9999 ? 99.99 : 100*prob);
+      mserv_send_trackinfo(cl, track,  rate, 0, bit);
     } else {
       sprintf(buffer, "%2.2f\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n", 100*prob,
 	      track->n_album, track->n_track, track->author, track->name,
@@ -1614,8 +1580,7 @@ static void cmd_emote(t_client *cl, t_cmdparams *cp)
 static void cmd_history(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
-  char buffer[AUTHORLEN+NAMELEN+64];
-  char bit[32];
+  char buffer[USERNAMELEN + AUTHORLEN + NAMELEN + 64];
   char *str[3];
   int i;
   t_rating *rate;
@@ -1661,13 +1626,8 @@ static void cmd_history(t_client *cl, t_cmdparams *cp)
        i++) {
     rate = mserv_getrate(cp->ru, mserv_history[i]->track);
     if (cl->mode == mode_human) {
-      sprintf(bit, "%d/%d", mserv_history[i]->track->n_album,
-	      mserv_history[i]->track->n_track);
-      sprintf(buffer, "[] %-10.10s %7.7s %-1.1s %-20.20s %-34.34s\r\n",
-	      mserv_history[i]->user, bit,
-	      rate && rate->rating ? mserv_ratestr(rate) : "-",
-	      mserv_history[i]->track->author, mserv_history[i]->track->name);
-      mserv_send(cl, buffer, 0);
+      mserv_send_trackinfo(cl, mserv_history[i]->track, rate, 0,
+                           mserv_history[i]->user);
     } else {
       sprintf(buffer, "%s\t%d\t%d\t%s\t%s\t%s\r\n",
 	      mserv_history[i]->user, mserv_history[i]->track->n_album,
@@ -1685,7 +1645,6 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
 {
   char linespl[LINEBUFLEN];
   char buffer[AUTHORLEN+NAMELEN+64];
-  char bit[32];
   char *str[4];
   unsigned int n_album, n_track;
   int val;
@@ -1785,14 +1744,7 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
 	      mserv_response(cl, "RATETOO", NULL);
 	      ratetoo = 1;
 	    }
-	    sprintf(bit, "%d/%d", track2->n_album, track2->n_track);
-	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
-		    "%-29.29s%ld:%02ld\r\n",
-		    bit, rate2 && rate2->rating ? mserv_ratestr(rate2) : "-",
-		    track2->author, track2->name,
-		    (track2->duration / 100) / 60,
-		    (track2->duration / 100) % 60);
-	    mserv_send(cl, buffer, 0);
+            mserv_send_trackinfo(cl, track2, rate2, 0, "");
 	  }
 	}
       }
@@ -1836,8 +1788,7 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
 
 static void cmd_check(t_client *cl, t_cmdparams *cp)
 {
-  char buffer[AUTHORLEN+NAMELEN+64];
-  char bit[32];
+  char buffer[AUTHORLEN + NAMELEN + 64];
   t_track *track1, *track2;
   t_author *author;
   t_rating *rate1, *rate2;
@@ -1865,22 +1816,8 @@ static void cmd_check(t_client *cl, t_cmdparams *cp)
 	    mserv_responsent(cl, "CHECKR", NULL);
 	  }
 	  if (cl->mode == mode_human) {
-	    sprintf(bit, "%d/%d", track1->n_album, track1->n_track);
-	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
-		    "%-29.29s%2ld:%02ld\r\n",
-		    bit, rate1 && rate1->rating ? mserv_ratestr(rate1) : "-",
-		    track1->author, track1->name,
-		    (track1->duration / 100) / 60,
-		    (track1->duration / 100) % 60);
-	    mserv_send(cl, buffer, 0);
-	    sprintf(bit, "%d/%d", track2->n_album, track2->n_track);
-	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
-		    "%-29.29s%2ld:%02ld\r\n",
-		    bit, rate2 && rate2->rating ? mserv_ratestr(rate2) : "-",
-		    track2->author, track2->name,
-		    (track2->duration / 100) / 60,
-		    (track2->duration / 100) % 60);
-	    mserv_send(cl, buffer, 0);
+            mserv_send_trackinfo(cl, track1, rate1, 0, "");
+            mserv_send_trackinfo(cl, track2, rate2, 0, "");
 	  } else {
 	    sprintf(buffer, "%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
 		    track1->n_album, track1->n_track,
@@ -1911,8 +1848,7 @@ static void cmd_check(t_client *cl, t_cmdparams *cp)
 
 static void cmd_search(t_client *cl, t_cmdparams *cp)
 {
-  char buffer[AUTHORLEN+NAMELEN+64];
-  char bit[32];
+  char buffer[AUTHORLEN + NAMELEN + 64];
   t_track *track;
   t_author *author;
   t_rating *rate;
@@ -1934,14 +1870,7 @@ static void cmd_search(t_client *cl, t_cmdparams *cp)
 	  }
 	  rate = mserv_getrate(cp->ru, track);
 	  if (cl->mode == mode_human) {
-	    sprintf(bit, "%d/%d", track->n_album, track->n_track);
-	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
-		    "%-29.29s%2ld:%02ld\r\n", bit,
-		    rate && rate->rating ? mserv_ratestr(rate) : "-",
-		    track->author, track->name,
-		    (track->duration / 100) / 60,
-		    (track->duration / 100) % 60);
-	    mserv_send(cl, buffer, 0);
+            mserv_send_trackinfo(cl, track, rate, 0, "");
 	  } else {
 	    sprintf(buffer, "%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
 		    track->n_album, track->n_track,
@@ -2000,8 +1929,7 @@ static void cmd_asearch(t_client *cl, t_cmdparams *cp)
 
 static void cmd_searchf(t_client *cl, t_cmdparams *cp)
 {
-  char buffer[AUTHORLEN+NAMELEN+64];
-  char bit[32];
+  char buffer[AUTHORLEN + NAMELEN + 64];
   t_track *track;
   t_author *author;
   t_rating *rate;
@@ -2026,14 +1954,7 @@ static void cmd_searchf(t_client *cl, t_cmdparams *cp)
 	  }
 	  rate = mserv_getrate(cp->ru, track);
 	  if (cl->mode == mode_human) {
-	    sprintf(bit, "%d/%d", track->n_album, track->n_track);
-	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
-		    "%-29.29s%2ld:%02ld\r\n", bit,
-		    rate && rate->rating ? mserv_ratestr(rate) : "-",
-		    track->author, track->name,
-		    (track->duration / 100) / 60,
-		    (track->duration / 100) % 60);
-	    mserv_send(cl, buffer, 0);
+            mserv_send_trackinfo(cl, track, rate, 0, "");
 	  } else {
 	    sprintf(buffer, "%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",
 		    track->n_album, track->n_track,

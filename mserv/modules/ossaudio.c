@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.13 2004/09/04 15:33:08 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.14 2004/09/08 11:28:41 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -175,6 +175,11 @@ int ossaudio_output_sync(t_channel *c, t_channel_outputstream *os,
   msecsWritten = (written * 1000) / buffer_size; // buffer_size = one second
   if (msecsWritten > ossaudio->buffer_ms) {
     ossaudio->buffer_ms = msecsWritten;
+    mserv_log("channel %s: %s sound buffer is at least %d bytes = %dms",
+	      c->name,
+	      ossaudio->device_name,
+	      written,
+	      ossaudio->buffer_ms);
   }
   
   os->bytesLeft -= written;

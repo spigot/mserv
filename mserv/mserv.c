@@ -3116,6 +3116,7 @@ void mserv_recalcratings(void)
   long time_functionEntry;
   long time_afterScoring;
   long time_afterSorting;
+  int time_total;
   
   time_functionEntry = mserv_getMSecsSinceEpoch();
   
@@ -3186,15 +3187,16 @@ void mserv_recalcratings(void)
     }
   }
 
-  if (mserv_debug)
-    mserv_log("Finished recalculation");
   time_afterSorting = mserv_getMSecsSinceEpoch();
+  time_total = time_afterSorting - time_functionEntry;
+  if (mserv_debug)
+    mserv_log("Finished recalculation after %dms", time_total);
 
-  if (time_afterSorting - time_functionEntry > channel_getSoundBufferMs()) {
-    mserv_log("Warning: mserv_recalcratings() took %ldms (scoring) + %ldms (sorting) = %ldms, which is > %dms (sound buffer).  Expect sound skips.",
+  if (time_total > (3 * channel_getSoundBufferMs()) / 4) {
+    mserv_log("Warning: mserv_recalcratings() took %ldms (scoring) + %ldms (sorting) = %ldms, which is > 75% of the %dms sound buffer.  Expect sound skips.",
 	      time_afterScoring - time_functionEntry,
 	      time_afterSorting - time_afterScoring,
-	      time_afterSorting - time_functionEntry,
+	      time_total,
 	      channel_getSoundBufferMs());
   }
   

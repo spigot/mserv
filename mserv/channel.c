@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <time.h>
+#include <fcntl.h>
 
 #include "mserv.h"
 #include "misc.h"
@@ -356,7 +357,7 @@ int channel_addinput(t_channel *c, int fd, t_trkinfo *trkinfo,
                      char *error, int errsize)
 {
   t_channel_inputstream *i, **tail;
-
+  
   if (c->channels != channels || c->samplerate != samplerate) {
     /* TODO: perhaps we could support both mono->stereo / stereo->mono and
      *       22050->44100 / 44100->22050 conversion */
@@ -470,8 +471,21 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
     }
     if (c->input->fd != -1) {
       /* read PCM data from input stream */
+      long timeOfReadStart = 0;
+      int readTimeInMsecs = 0;
+      
+      if (mserv_debug) {
+	timeOfReadStart = mserv_getMSecsSinceEpoch();
+      }
+      
       ret = read(c->input->fd, c->buffer_char + c->buffer_bytes,
                  (c->buffer_samples * 2) - c->buffer_bytes);
+
+      if (mserv_debug) {
+	long timeOfReadDone = mserv_getMSecsSinceEpoch();
+	readTimeInMsecs = timeOfReadDone - timeOfReadStart;
+      }
+      
       if (ret == -1) {
         if (errno != EAGAIN && errno != EINTR) {
           mserv_log("channel %s: failure reading on input socket for %d/%d: %s",
@@ -488,8 +502,8 @@ static int channel_input_sync(t_channel *c, char *error, int errsize)
         c->input->fd = -1;
       } else {
         if (mserv_debug)
-          mserv_log("channel %s: %d bytes read from input stream",
-                    c->name, ret);
+          mserv_log("channel %s: %d bytes read from input stream in %dms",
+                    c->name, ret, readTimeInMsecs);
         /* if we had a left over byte from before, and we now have the byte,
          * add one to the number of words we can now convert to floats */
         words = (ret / 2) + (((c->buffer_bytes & 1) && (ret & 1)) ? 1 : 0);
@@ -625,12 +639,26 @@ int channel_sync(t_channel *c, char *error, int errsize)
   
   if (moreInputWanted) {
     int ret;
+    long timeOfSyncStart = 0;
+    
+    if (mserv_debug) {
+      timeOfSyncStart = mserv_getMSecsSinceEpoch();
+    }
+    
     c->buffer_bytes = 0;
 
     ret = channel_input_sync(c, error, errsize);
     if (ret == MSERV_FAILURE) {
       // We failed to read input
       return ret;
+    }
+
+    if (mserv_debug) {
+      long timeOfSyncDone = mserv_getMSecsSinceEpoch();
+      int syncTimeInMsecs = timeOfSyncDone - timeOfSyncStart;
+      mserv_log("channel %s: input sync succeeded after %dms",
+		c->name,
+		syncTimeInMsecs);
     }
     
     /* All output channels have received new data */
@@ -679,16 +707,27 @@ int channel_sync(t_channel *c, char *error, int errsize)
     if (os->modinfo->output_sync) {
       int result;
       
-      if (mserv_debug)
+      long timeOfSyncStart = 0;
+      int syncTimeInMsecs = 0;
+      
+      if (mserv_debug) {
+	timeOfSyncStart = mserv_getMSecsSinceEpoch();
         mserv_log("calling module '%s' output_sync function",
                   os->modinfo->module->name);
+      }
       result = os->modinfo->output_sync(c, os, os->private, 
 					ierror, sizeof(ierror));
+      if (mserv_debug) {
+	long timeOfSyncDone = mserv_getMSecsSinceEpoch();
+	syncTimeInMsecs = timeOfSyncDone - timeOfSyncStart;
+      }
       if (result >= 0) {
 	os->bytesLeft = result;
 
 	if (mserv_debug) {
-	  mserv_log("output_sync function returned success");
+	  mserv_log("output_sync function returned success (%d) after %dms",
+		    result,
+		    syncTimeInMsecs);
 	}
       } else {
         mserv_log("channel %s: %s output sync: %s", c->name,

@@ -712,11 +712,10 @@ static void mserv_checkchild(void)
     
     mserv_log("Child process exited with status (%d)", WEXITSTATUS(status));
     if (playing) {
-      mserv_broadcast("PLTRBL", "%d\t%d\t%s\t%s",
-		      playing->track->album->id,
-		      playing->track->n_track,
-		      playing->track->author,
-		      playing->track->name);
+      mserv_broadcast("PLTRBL", "%d\t%d\t%s\t%s\t%d",
+		      playing->track->album->id, playing->track->n_track,
+		      playing->track->author, playing->track->name,
+                      WEXITSTATUS(status));
     } else {
       mserv_broadcast("PLTRBL", "");
     }
@@ -724,14 +723,14 @@ static void mserv_checkchild(void)
     /* Player terminated by signal */
     trouble = 1;
     
-    mserv_log("Child process received signal %d%s",
-	      WTERMSIG(status), WCOREDUMP(status) ? " (core dumped)" : "");
+    mserv_log("Child process received signal %s (%d)%s",
+              strsignal(WTERMSIG(status)), WTERMSIG(status),
+              WCOREDUMP(status) ? " (core dumped)" : "");
     if (playing) {
-      mserv_broadcast("PLTRBL2", "%d\t%d\t%s\t%s",
-		      playing->track->album->id,
-		      playing->track->n_track,
-		      playing->track->author,
-		      playing->track->name);
+      mserv_broadcast("PLTRBL2", "%d\t%d\t%s\t%s\t%s",
+		      playing->track->album->id, playing->track->n_track,
+                      playing->track->author, playing->track->name,
+                      strsignal(WTERMSIG(status)));
     } else {
       mserv_broadcast("PLTRBL2", "");
     }
@@ -3753,7 +3752,7 @@ static int genre_insertsort(t_genre **list, t_genre *genre)
 
 static int mserv_createdir(const char *path)
 {
-  char *mypath;
+  char *mypath = NULL;
   char *p, *r;
   struct stat buf;
   unsigned int len = strlen(path);

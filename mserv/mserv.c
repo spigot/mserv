@@ -3097,16 +3097,21 @@ static double mserv_recalcweights(void)
       
 	if (!mserv_getsatisfaction(cl, &satisfaction)) {
 	  /* No satisfaction value available for this user, use the
-	   * neutral value 0.5 */
-	  satisfaction = 0.5;
+	   * goal value as a guess for what this user will think. */
+	  satisfaction = mserv_getsatisfactiongoal();
 	}
 	/* The user's weight will become 101% minus the user's
-	 * satisfaction.  Thus, if a user has heard only SUPERB songs,
+	 * satisfaction squared.  Thus, if a user has heard only SUPERB songs,
 	 * that user's weight will be 0.01.  If a user has heard only
 	 * AWFUL songs, the weight will be 1.01.  This way nobody ever
 	 * gets their opinion entirely ignored (i.e. a weight of
-	 * 0.0). */
-	cl->weight = 1.01 - satisfaction;
+	 * 0.0).
+	 *
+	 * The squaring is to make differences between high
+	 * satisfactions bigger, thus making differences in
+	 * satisfaction even out more quickly.
+	 */
+	cl->weight = 1.01 - (satisfaction * satisfaction);
       } else {
 	/* Experimental fairness disabled; all users get a weight of
 	 * 1.0. */
@@ -3581,7 +3586,9 @@ int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
   double totalWeight = 0.0;
   int maxsongs;
   
-  maxsongs = mserv_n_songs_started - cl->loggedinatsong;
+  /* Use the song playing when the user logged in as the first song to
+   * base the satisfaction value upon. */
+  maxsongs = (mserv_n_songs_started - cl->loggedinatsong) + 1;
   if (maxsongs > HISTORYLEN) {
     maxsongs = HISTORYLEN;
   }
@@ -4357,8 +4364,8 @@ static void mserv_update_lastunrated(const t_trkinfo *most_recent_track)
   }
 }
 
-/* Return 0.75 if many users are logged in, 0.99 otherwise. */
-static double mserv_getsatisfactiongoal(void)
+/* Return 0.75 if many users are logged in, 0.90 otherwise. */
+double mserv_getsatisfactiongoal(void)
 {
   char *user = NULL;
   t_client *cl;
@@ -4378,9 +4385,9 @@ static double mserv_getsatisfactiongoal(void)
     }
   }
   
-  /* Less than two different users are logged in, aim for 99%
+  /* Less than two different users are logged in, aim for 90%
    * satisfaction */
-  return 0.99;
+  return 0.90;
 }
 
 /* Used if automatic factor adjustment is in effect.  Adjust the

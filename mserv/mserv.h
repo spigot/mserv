@@ -47,6 +47,7 @@ t_track *mserv_gettrack(unsigned int n_album, unsigned int n_track);
 t_album *mserv_getalbum(unsigned int n_album);
 t_rating *mserv_getrate(const char *user, t_track *track);
 int mserv_getsatisfaction(const t_client *cl, double *satisfaction);
+double mserv_getsatisfactiongoal(void);
 int mserv_addqueue(t_client *cl, t_track *track);
 int mserv_player_playnext(void);
 void mserv_abortplay(void);

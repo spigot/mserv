@@ -572,9 +572,9 @@ static void cmd_userinfo(t_client *cl, t_cmdparams *cp)
   if (rcl == NULL ||
       !mserv_getsatisfaction(rcl, &satisfaction))
   {
-    /* If the satisfaction value doesn't exist, 0.5 should be
-     * neutral... */
-    satisfaction = 0.5;
+    /* No satisfaction value available for this user, use the
+     * goal value as a guess for what this user will think. */
+    satisfaction = mserv_getsatisfactiongoal();
   }
   
   mserv_response(cl, "INFU", "%s\t%s\t"

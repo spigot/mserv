@@ -3328,8 +3328,10 @@ int mserv_setmixer(t_client *cl, int what, const char *line)
     return -1;
   }
   curval = curval & 0xff;
-  if (!*line)
+  if (!*line) {
+    close(mixer_fd);
     return curval;
+  }
   if (*line == '+' || *line == '-') {
     type = *line == '+' ? 1 : -1;
     param = 1;

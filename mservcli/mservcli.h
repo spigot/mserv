@@ -1,3 +1,6 @@
+#ifndef _MSERVCLI_H
+#define _MSERVCLI_H
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -35,3 +38,5 @@ int mservcli_getdata(struct mservcli_id *id, struct mservcli_data *data);
 int mservcli_send(struct mservcli_id *id, const char *output);
 int mservcli_discarddata(struct mservcli_id *id);
 int mservcli_poll(struct mservcli_id *id);
+
+#endif /* _MSERVCLIH */

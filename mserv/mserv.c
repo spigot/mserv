@@ -2031,7 +2031,7 @@ static int mserv_trackcompare_filename(const void *a, const void *b)
   if (*(const t_track * const *)b == NULL)
     return -1;
   return stricmp((*(const t_track * const *)a)->filename,
-		 (*(const t_track * const *)b)->filename);
+		    (*(const t_track * const *)b)->filename);
 }
 
 static int mserv_trackcompare_name(const void *a, const void *b)
@@ -2046,7 +2046,7 @@ static int mserv_trackcompare_name(const void *a, const void *b)
   if (*(const t_track * const *)b == NULL)
     return -1;
   return stricmp((*(const t_track * const *)a)->name,
-		 (*(const t_track * const *)b)->name);
+		    (*(const t_track * const *)b)->name);
 }
 
 /*
@@ -2055,28 +2055,14 @@ static int mserv_trackcompare_name(const void *a, const void *b)
  */
 static double mserv_fuzz_rating(double rating)
 {
-  /* A resolution of 1000 really means 1 / 1000 or 0.001. */
-  const int resolution = 1000;
+  static double diff = -0.05;
   
-  /* An amount of 5 means the rating will be modified by +-5
-   * percent. */
-  const int amount = 5;
+  diff += 0.03141;
+  if (diff > 0.05) {
+    diff -= 0.10;
+  }
   
-  const double nvalues = 2 * amount * resolution + 1;
-  
-  /* From the NOTES section of the rand() man page.
-   *
-   * Construct a random number in the range -amount*resolution to
-   * +amount*resolution, end points included. */
-  const int intfuzz =
-    ((int)(nvalues * rand() / (RAND_MAX + 1.0))) - (amount * resolution);
-  
-  double doublefuzz = ((double)intfuzz) / ((double)resolution);
-  
-  /* The doublefuzz is between -amount and +amount.  The rating is
-   * between 0.0 and 1.0.  Thus, the fuzz value has to be scaled down
-   * by a factor 100.0 to fit the rating. */
-  return rating + doublefuzz / 100.0;
+  return rating + diff;
 }
 
 static int mserv_trackcompare_rating(const void *a, const void *b)

@@ -39,8 +39,21 @@ const char defconf_file[] = "# Mserv configuration file for " VERSION "\n\
 #############################################################################\n\
 # Choose an output stream...\n\
 #\n\
+# Syntax: CHANNEL OUTPUT ADD <channel> <module> <location> <param>[,<param>]\n\
+#\n\
+# Example to output to local soundcard:\n\
 # exec=channel output add default ossaudio /dev/dsp mixer=/dev/mixer\n\
+#\n\
+# Example to stream to an icecast server at samplerate 44100, 48kbit stereo:\n\
 # exec=channel output add default icecast http://source:password@localhost:8000/mserv.ogg bitrate=48000\n\
+#\n\
+# Example to stream to an icecast server at samplerate 8000, 8kbit mono:\n\
+# exec=channel output add default icecast http://source:password@localhost:8000/mserv.ogg resample=8000,bitrate=8000,downmix\n\
+#\n\
+# NOTE: Ogg Vorbis is picky what bitrate is allowed at a particular setting\n\
+#       If you get \"failed to initialise vorbis engine\" this is probably\n\
+#       the cause.  e.g. 48kb/s seems to be the lowest at 44100 stereo,\n\
+#       32kb/s the lowest at 44100 mono.\n\
 \n\
 #############################################################################\n\
 #                                  PLAYERS                                  #\n\

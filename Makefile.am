@@ -6,7 +6,10 @@ SUBDIRS = libltdl @MY_SUBDIRS@
 DIST_SUBDIRS = libltdl mserv mservcli mservutils
 CTAGSFLAGS = -t -d
 
-EXTRA_DIST = ChangeLog README NEWS AUTHORS COPYING LICENSE
+EXTRA_DIST = ChangeLog README NEWS AUTHORS COPYING LICENSE mservcli.pc.in
+
+pkgconfigdir=$(libdir)/pkgconfig
+pkgconfig_DATA = mservcli.pc
 
 run:
 	sudo make install

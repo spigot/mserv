@@ -19,6 +19,8 @@ via CVS the version of the first entry is the forthcoming version number.
 - Fixed last track check in some functions (Thanks again to Robin Lee Powell)
 - Split command routines in to separate files and clean up help/execution
 - Implemented CHANNEL OUTPUT ADD and CHANNEL OUTPUT REMOVE
+- Added 'downmix' icecast option for converting to mono output
+- Added resampling at different sample rates using libsamplerate if available
 
 0.40 - Nov 1st 2003
 -------------------

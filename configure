@@ -463,7 +463,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE am__leading_dot subdirs CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CPP EGREP LIBOBJS LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL INCLTDL LIBLTDL make MY_SUBDIRS MSERVCLI_LIBS MSERVCMD_LIBS MSERV_LIBS MSERV_CFLAGS MSERV_CPPFLAGS MODULE_ICECAST_LIBS MODULE_ICECAST_CPPFLAGS MODULE_ICECAST_CFLAGS PKGCONFIG SHOUTCONFIG VORBIS_CFLAGS VORBIS_LIBS VORBISFILE_LIBS VORBISENC_LIBS MODULE_OSSAUDIO_LIBS MODULE_OSSAUDIO_CPPFLAGS MODULE_OSSAUDIO_CFLAGS WANT_MODULE_ICECAST_TRUE WANT_MODULE_ICECAST_FALSE WANT_MODULE_OSSAUDIO_TRUE WANT_MODULE_OSSAUDIO_FALSE LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE am__leading_dot subdirs CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CPP EGREP LIBOBJS LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL INCLTDL LIBLTDL make MY_SUBDIRS MSERVCLI_LIBS MSERVCMD_LIBS MSERV_LIBS MSERV_CFLAGS MSERV_CPPFLAGS PKG_CONFIG LIBSAMPLERATE_CFLAGS LIBSAMPLERATE_LIBS MODULE_ICECAST_LIBS MODULE_ICECAST_CPPFLAGS MODULE_ICECAST_CFLAGS PKGCONFIG SHOUTCONFIG VORBIS_CFLAGS VORBIS_LIBS VORBISFILE_LIBS VORBISENC_LIBS MODULE_OSSAUDIO_LIBS MODULE_OSSAUDIO_CPPFLAGS MODULE_OSSAUDIO_CFLAGS WANT_MODULE_ICECAST_TRUE WANT_MODULE_ICECAST_FALSE WANT_MODULE_OSSAUDIO_TRUE WANT_MODULE_OSSAUDIO_FALSE LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1052,6 +1052,8 @@ Optional Packages:
   --with-engine-icecast   build icecast module
   --with-warnings         turn on gcc warnings
   --with-debug            turn debugging options on
+  --with-libsamplerate=DIR
+                          use libsamplerate
   --with-vorbis=PFX   Prefix where libvorbis is installed (optional)
   --with-vorbis-libraries=DIR   Directory where libvorbis library is installed (optional)
   --with-vorbis-includes=DIR   Directory where libvorbis header files are installed (optional)
@@ -4448,7 +4450,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 4451 "configure"' > conftest.$ac_ext
+  echo '#line 4453 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -5549,7 +5551,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:5552:" \
+echo "$as_me:5554:" \
      "checking for Fortran 77 compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -6561,11 +6563,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:6564: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:6566: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:6568: \$? = $ac_status" >&5
+   echo "$as_me:6570: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -6794,11 +6796,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:6797: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:6799: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:6801: \$? = $ac_status" >&5
+   echo "$as_me:6803: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -6861,11 +6863,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:6864: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:6866: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:6868: \$? = $ac_status" >&5
+   echo "$as_me:6870: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8921,7 +8923,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 8924 "configure"
+#line 8926 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -9019,7 +9021,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 9022 "configure"
+#line 9024 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11178,11 +11180,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:11181: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:11183: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:11185: \$? = $ac_status" >&5
+   echo "$as_me:11187: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -11245,11 +11247,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:11248: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:11250: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:11252: \$? = $ac_status" >&5
+   echo "$as_me:11254: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -12502,7 +12504,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 12505 "configure"
+#line 12507 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12600,7 +12602,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 12603 "configure"
+#line 12605 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13427,11 +13429,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13430: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13432: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:13434: \$? = $ac_status" >&5
+   echo "$as_me:13436: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -13494,11 +13496,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13497: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13499: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:13501: \$? = $ac_status" >&5
+   echo "$as_me:13503: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15488,11 +15490,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15491: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15493: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:15495: \$? = $ac_status" >&5
+   echo "$as_me:15497: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -15721,11 +15723,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15724: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15726: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:15728: \$? = $ac_status" >&5
+   echo "$as_me:15730: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -15788,11 +15790,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15791: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15793: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15795: \$? = $ac_status" >&5
+   echo "$as_me:15797: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -17848,7 +17850,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 17851 "configure"
+#line 17853 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17946,7 +17948,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 17949 "configure"
+#line 17951 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -20129,6 +20131,15 @@ else
 fi;
 
 
+# Check whether --with-libsamplerate or --without-libsamplerate was given.
+if test "${with_libsamplerate+set}" = set; then
+  withval="$with_libsamplerate"
+
+else
+  with_LIBSAMPLERATE=not-specified
+fi;
+
+
   echo "$as_me:$LINENO: result: " >&5
 echo "${ECHO_T}" >&6
   echo "$as_me:$LINENO: result: Components:" >&5
@@ -20612,6 +20623,126 @@ if test $ac_cv_lib_crypt_crypt = yes; then
   MSERV_LIBS="$MSERV_LIBS -lcrypt"
 fi
 
+
+  if test "x$with_LIBSAMPLERATE" = "xnot-specified"; then
+
+  succeeded=no
+
+  if test -z "$PKG_CONFIG"; then
+    # Extract the first word of "pkg-config", so it can be a program name with args.
+set dummy pkg-config; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_PKG_CONFIG+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $PKG_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  test -z "$ac_cv_path_PKG_CONFIG" && ac_cv_path_PKG_CONFIG="no"
+  ;;
+esac
+fi
+PKG_CONFIG=$ac_cv_path_PKG_CONFIG
+
+if test -n "$PKG_CONFIG"; then
+  echo "$as_me:$LINENO: result: $PKG_CONFIG" >&5
+echo "${ECHO_T}$PKG_CONFIG" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  fi
+
+  if test "$PKG_CONFIG" = "no" ; then
+     echo "*** The pkg-config script could not be found. Make sure it is"
+     echo "*** in your path, or set the PKG_CONFIG environment variable"
+     echo "*** to the full path to pkg-config."
+     echo "*** Or see http://www.freedesktop.org/software/pkgconfig to get pkg-config."
+  else
+     PKG_CONFIG_MIN_VERSION=0.9.0
+     if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
+        echo "$as_me:$LINENO: checking for samplerate" >&5
+echo $ECHO_N "checking for samplerate... $ECHO_C" >&6
+
+        if $PKG_CONFIG --exists "samplerate" ; then
+            echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+            succeeded=yes
+
+            echo "$as_me:$LINENO: checking LIBSAMPLERATE_CFLAGS" >&5
+echo $ECHO_N "checking LIBSAMPLERATE_CFLAGS... $ECHO_C" >&6
+            LIBSAMPLERATE_CFLAGS=`$PKG_CONFIG --cflags "samplerate"`
+            echo "$as_me:$LINENO: result: $LIBSAMPLERATE_CFLAGS" >&5
+echo "${ECHO_T}$LIBSAMPLERATE_CFLAGS" >&6
+
+            echo "$as_me:$LINENO: checking LIBSAMPLERATE_LIBS" >&5
+echo $ECHO_N "checking LIBSAMPLERATE_LIBS... $ECHO_C" >&6
+            LIBSAMPLERATE_LIBS=`$PKG_CONFIG --libs "samplerate"`
+            echo "$as_me:$LINENO: result: $LIBSAMPLERATE_LIBS" >&5
+echo "${ECHO_T}$LIBSAMPLERATE_LIBS" >&6
+        else
+            LIBSAMPLERATE_CFLAGS=""
+            LIBSAMPLERATE_LIBS=""
+            ## If we have a custom action on failure, don't print errors, but
+            ## do set a variable so people can do so.
+            LIBSAMPLERATE_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "samplerate"`
+
+        fi
+
+
+
+     else
+        echo "*** Your version of pkg-config is too old. You need version $PKG_CONFIG_MIN_VERSION or newer."
+        echo "*** See http://www.freedesktop.org/software/pkgconfig"
+     fi
+  fi
+
+  if test $succeeded = yes; then
+     :
+  else
+     { echo "$as_me:$LINENO: WARNING: $LIBSAMPLERATE_PKG_ERRORS" >&5
+echo "$as_me: WARNING: $LIBSAMPLERATE_PKG_ERRORS" >&2;}; with_LIBSAMPLERATE=no
+  fi
+
+    if test "x$with_LIBSAMPLERATE" = "xnot-specified"; then
+      MSERV_LIBS="$MSERV_LIBS $LIBSAMPLERATE_LIBS"
+      MSERV_CFLAGS="$MSERV_CFLAGS $LIBSAMPLERATE_CFLAGS"
+    fi
+  else
+    if test "x$with_LIBSAMPLERATE" != "xno"; then
+      MSERV_CFLAGS="$MSERV_CFLAGS -L$with_LIBSAMPLERATE/lib"
+      MSERV_CFLAGS="$MSERV_CFLAGS -I$with_LIBSAMPLERATE/include"
+      MSERV_LIBS="$MSERV_LIBS -lsamplerate"
+    fi
+  fi
+  if test "x$with_LIBSAMPLERATE" != "xno"; then
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSAMPLERATE 1
+_ACEOF
+
+  else
+    echo "$as_me:$LINENO: result: libsamplerate not enabled" >&5
+echo "${ECHO_T}libsamplerate not enabled" >&6
+  fi
 
 
   echo "$as_me:$LINENO: result: " >&5
@@ -21700,7 +21831,7 @@ echo "${ECHO_T}Turning on debug flags" >&6
   fi
 
 
-                                                    ac_config_files="$ac_config_files Makefile mserv/Makefile mservcli/Makefile mservutils/Makefile mserv/modules/Makefile"
+                                                              ac_config_files="$ac_config_files Makefile mserv/Makefile mservcli/Makefile mservutils/Makefile mserv/modules/Makefile mservcli.pc"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -22282,6 +22413,7 @@ do
   "mservcli/Makefile" ) CONFIG_FILES="$CONFIG_FILES mservcli/Makefile" ;;
   "mservutils/Makefile" ) CONFIG_FILES="$CONFIG_FILES mservutils/Makefile" ;;
   "mserv/modules/Makefile" ) CONFIG_FILES="$CONFIG_FILES mserv/modules/Makefile" ;;
+  "mservcli.pc" ) CONFIG_FILES="$CONFIG_FILES mservcli.pc" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
@@ -22446,6 +22578,9 @@ s,@MSERVCMD_LIBS@,$MSERVCMD_LIBS,;t t
 s,@MSERV_LIBS@,$MSERV_LIBS,;t t
 s,@MSERV_CFLAGS@,$MSERV_CFLAGS,;t t
 s,@MSERV_CPPFLAGS@,$MSERV_CPPFLAGS,;t t
+s,@PKG_CONFIG@,$PKG_CONFIG,;t t
+s,@LIBSAMPLERATE_CFLAGS@,$LIBSAMPLERATE_CFLAGS,;t t
+s,@LIBSAMPLERATE_LIBS@,$LIBSAMPLERATE_LIBS,;t t
 s,@MODULE_ICECAST_LIBS@,$MODULE_ICECAST_LIBS,;t t
 s,@MODULE_ICECAST_CPPFLAGS@,$MODULE_ICECAST_CPPFLAGS,;t t
 s,@MODULE_ICECAST_CFLAGS@,$MODULE_ICECAST_CFLAGS,;t t

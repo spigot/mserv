@@ -216,14 +216,14 @@ typedef struct _t_queue {
 
 /* input stream structure */
 
-typedef struct _t_output_inputstream {
-  struct _t_output_inputstream *next; /* next input in stream */
+typedef struct _t_channel_inputstream {
+  struct _t_channel_inputstream *next; /* next input in stream */
   int fd;                   /* input file descriptor */
   t_supinfo supinfo;        /* track sup. info. */
   unsigned int zeros_start; /* number of zero bytes left for delay */
   unsigned int zeros_end;   /* number of zero bytes left for delay */
   unsigned int announced;   /* have we announced the play of this track? */
-} t_output_inputstream;
+} t_channel_inputstream;
 
 typedef struct _t_module {
   int apiver;
@@ -245,28 +245,52 @@ typedef struct _t_params {
   t_params_list *list;      /* parameter list */
 } t_params;
 
+struct _t_modinfo;
+typedef struct _t_modinfo t_modinfo;
+
+/* output stream structure */
+
+typedef struct _t_channel_outputstream {
+  struct _t_channel_outputstream *next; /* next output stream */
+  char location[256];           /* http://user:pass@hostname:port/thing */
+  t_params *params;             /* parameters (bitrate, etc.) */
+  t_modinfo *modinfo;           /* the module itself */
+  void *private;                /* private module info for this stream */
+  unsigned int channels;        /* output stream channels */
+  unsigned int samplerate;      /* output stream sample rate */
+  void *resampler;              /* resampler state (SRC_STATE) */
+  float *output;                /* output for resampler / output for module */
+} t_channel_outputstream;
+
 struct _t_channel;
 typedef struct _t_channel t_channel;
 
 typedef int (*t_module_init)(char *error, int errsize);
 typedef int (*t_module_final)(char *error, int errsize);
-typedef int (*t_module_output_create)(t_channel *c, const char *location,
+typedef int (*t_module_output_create)(t_channel *c, t_channel_outputstream *os,
+                                      const char *location,
                                       t_params *params, void **private,
                                       char *error, int errsize);
-typedef int (*t_module_output_destroy)(t_channel *c, void *private,
+typedef int (*t_module_output_destroy)(t_channel *c, t_channel_outputstream *os,
+                                       void *private,
                                        char *error, int errsize);
-typedef int (*t_module_output_poll)(t_channel *c, void *private,
+typedef int (*t_module_output_poll)(t_channel *c, t_channel_outputstream *os,
+                                    void *private,
                                     char *error, int errsize);
-typedef int (*t_module_output_sync)(t_channel *c, void *private,
+typedef int (*t_module_output_sync)(t_channel *c, t_channel_outputstream *os,
+                                    void *private,
                                     char *error, int errsize);
-typedef int (*t_module_output_volume)(t_channel *c, void *private, int *volume,
+typedef int (*t_module_output_volume)(t_channel *c, t_channel_outputstream *os,
+                                      void *private, int *volume,
                                       char *error, int errsize);
-typedef int (*t_module_output_start)(t_channel *c, void *private,
-                                      char *error, int errsize);
-typedef int (*t_module_output_stop)(t_channel *c, void *private,
+typedef int (*t_module_output_start)(t_channel *c, t_channel_outputstream *os,
+                                     void *private,
+                                     char *error, int errsize);
+typedef int (*t_module_output_stop)(t_channel *c, t_channel_outputstream *os,
+                                    void *private,
                                     char *error, int errsize);
 
-typedef struct _t_modinfo {
+struct _t_modinfo {
   struct _t_modinfo *next;
   void *dlh;
   t_module *module;
@@ -280,25 +304,15 @@ typedef struct _t_modinfo {
   t_module_output_volume output_volume;
   t_module_output_start output_start;
   t_module_output_stop output_stop;
-} t_modinfo;
-
-/* output stream structure */
-
-typedef struct _t_outputstream {
-  struct _t_outputstream *next; /* next output stream */
-  char location[256];           /* http://user:pass@hostname:port/thing */
-  t_params *params;             /* parameters (bitrate, etc.) */
-  t_modinfo *modinfo;           /* the module itself */
-  void *private;                /* private module info for this stream */
-} t_output_list;
+};
 
 struct _t_channel {
   char name[16];               /* channel name */
   struct timeval lasttime;     /* interval timer */
   unsigned int paused;         /* are we currently paused? */
   unsigned int stopped;        /* are we currently stopped? */
-  t_output_inputstream *input; /* stream of inputs */
-  t_output_list *output;       /* outputs (simultaneous) */
+  t_channel_inputstream *input;   /* stream of inputs */
+  t_channel_outputstream *output; /* outputs (simultaneous) */
   unsigned int channels;       /* 1 for mono, 2 for stereo, etc. */
   unsigned int samplerate;     /* samples per second (16 bit) */
   unsigned int buffer_size;    /* samplerate * channels * bytes per sample */

@@ -65,6 +65,10 @@ dnl Options
     AC_HELP_STRING([--disable-client], [do not compile client libs/utils]),,
     enable_client="yes")
 
+  AC_ARG_WITH(libsamplerate,
+    AC_HELP_STRING([--with-libsamplerate=DIR], [use libsamplerate]),,
+    with_LIBSAMPLERATE=not-specified)
+
 dnl Component parts
 
   AC_MSG_RESULT()
@@ -113,6 +117,27 @@ dnl mserv
   AC_CHECK_LIB(socket, main, MSERV_LIBS="$MSERV_LIBS -lsocket")
   AC_CHECK_LIB(malloc, main, MSERV_LIBS="$MSERV_LIBS -lmalloc")
   AC_CHECK_LIB(crypt, crypt, MSERV_LIBS="$MSERV_LIBS -lcrypt")
+
+  if test "x$with_LIBSAMPLERATE" = "xnot-specified"; then
+    PKG_CHECK_MODULES(LIBSAMPLERATE, samplerate,,
+      AC_WARN([$LIBSAMPLERATE_PKG_ERRORS]); with_LIBSAMPLERATE=no)
+    if test "x$with_LIBSAMPLERATE" = "xnot-specified"; then
+      MSERV_LIBS="$MSERV_LIBS $LIBSAMPLERATE_LIBS"
+      MSERV_CFLAGS="$MSERV_CFLAGS $LIBSAMPLERATE_CFLAGS"
+    fi
+  else
+    if test "x$with_LIBSAMPLERATE" != "xno"; then
+      MSERV_CFLAGS="$MSERV_CFLAGS -L$with_LIBSAMPLERATE/lib"
+      MSERV_CFLAGS="$MSERV_CFLAGS -I$with_LIBSAMPLERATE/include"
+      MSERV_LIBS="$MSERV_LIBS -lsamplerate"
+    fi
+  fi
+  if test "x$with_LIBSAMPLERATE" != "xno"; then
+    AC_DEFINE_UNQUOTED(HAVE_LIBSAMPLERATE, 1,
+                       [libsamplerate will be used if defined])
+  else
+    AC_MSG_RESULT([libsamplerate not enabled])
+  fi
 
 dnl mserv modules
 
@@ -187,6 +212,7 @@ dnl C flags etc.
 dnl Final stuff
 
   AC_OUTPUT([Makefile mserv/Makefile mservcli/Makefile
-             mservutils/Makefile mserv/modules/Makefile])
+             mservutils/Makefile mserv/modules/Makefile
+             mservcli.pc])
 
 dnl Moooo.

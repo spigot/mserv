@@ -28,17 +28,15 @@
 #include "mserv.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: icecast.c,v 1.3 2003/11/15 02:38:10 squish Exp $";
+static char mserv_rcs_id[] = "$Id: icecast.c,v 1.4 2003/11/30 02:44:30 squish Exp $";
 MSERV_MODULE(icecast, "0.01", "Icecast output streaming",
              MSERV_MODFLAG_OUTPUT);
 
 typedef struct _t_icecast {
-  int channels;            /* 1 for mono, 2 for stereo, etc. */
-  int samplerate;          /* samples per second (16 bit) */
-  int bitrate;             /* bitrate */
-  int volume;              /* volume level */
-  int persist;             /* persist streaming when stopped */
-  int connected;           /* connected? */
+  unsigned int bitrate;    /* bitrate */
+  unsigned int volume;     /* volume level */
+  unsigned int persist;    /* persist streaming when stopped */
+  unsigned int connected;  /* connected? */
   shout_t *shout;          /* shout output object */
   vorbis_info vi;          /* vorbis object */
   vorbis_comment vc;       /* vorbis comment object */
@@ -72,7 +70,8 @@ int icecast_final(char *error, int errsize)
 
 /* connect to stream */
 
-static int icecast_internal_connect(t_channel *c, t_icecast *icecast,
+static int icecast_internal_connect(t_channel *c, t_channel_outputstream *os,
+                                    t_icecast *icecast,
                                     char *error, int errsize)
 {
   ogg_packet header;
@@ -80,23 +79,24 @@ static int icecast_internal_connect(t_channel *c, t_icecast *icecast,
   ogg_packet header_code;
 
   (void)c;
+  (void)os;
 
   if (icecast->connected)
     return MSERV_SUCCESS;
 
   if (shout_open(icecast->shout) != SHOUTERR_SUCCESS) {
-    snprintf(error, errsize, "icecast: failed opening Icecast connection: %s",
+    snprintf(error, errsize, "icecast: failed opening connection: %s",
              shout_get_error(icecast->shout));
     goto failed;
   }
-  mserv_log("Successfully connected to Icecast server '%s:%s'"
+  mserv_log("Successfully connected to Icecast server '%s:%d'"
             " for mount '%s'",
             shout_get_host(icecast->shout), shout_get_port(icecast->shout),
             shout_get_mount(icecast->shout));
   icecast->connected = 1;
   vorbis_info_init(&icecast->vi);
-  if (vorbis_encode_init(&icecast->vi, icecast->channels, 
-                         icecast->samplerate, -1,
+  if (vorbis_encode_init(&icecast->vi, os->channels, 
+                         os->samplerate, -1,
                          icecast->bitrate, -1) != 0) {
     snprintf(error, errsize, "icecast: failed to initialise vorbis engine");
     goto failed;
@@ -136,12 +136,15 @@ failed:
 
 /* disconnect to stream */
 
-static int icecast_internal_disconnect(t_channel *c, t_icecast *icecast,
+static int icecast_internal_disconnect(t_channel *c,
+                                       t_channel_outputstream *os,
+                                       t_icecast *icecast,
                                        char *error, int errsize)
 {
   (void)c;
   (void)error;
   (void)errsize;
+  (void)os;
 
   if (!icecast->connected)
     return MSERV_SUCCESS;
@@ -157,9 +160,10 @@ static int icecast_internal_disconnect(t_channel *c, t_icecast *icecast,
 
 /* create output stream */
 
-int icecast_output_create(t_channel *c, const char *location,
-                           t_params *params, void **private,
-                           char *error, int errsize)
+int icecast_output_create(t_channel *c, t_channel_outputstream *os,
+                          const char *location,
+                          t_params *params, void **private,
+                          char *error, int errsize)
 {
   char *user, *pass, *host, *port;
   char mount[128];
@@ -172,19 +176,10 @@ int icecast_output_create(t_channel *c, const char *location,
     snprintf(error, errsize, "out of memory");
     return MSERV_FAILURE;
   }
+  memset(icecast, 0, sizeof(t_icecast));
   icecast->connected = 0;
-  icecast->channels = c->channels;
-  icecast->samplerate = c->samplerate;
-  if (icecast->channels != 2) {
-    snprintf(error, errsize, "channels must be 2");
-    return MSERV_FAILURE;
-  }
-  if (icecast->samplerate != 44100) {
-    snprintf(error, errsize, "sample rate must be 44100");
-    return MSERV_FAILURE;
-  }
   if (params_get(params, "bitrate", &val) != MSERV_SUCCESS)
-    val = "32768";
+    val = "64000";
   icecast->bitrate = atoi(val);
   if (params_get(params, "volume", &val) != MSERV_SUCCESS)
     val = "50";
@@ -194,8 +189,13 @@ int icecast_output_create(t_channel *c, const char *location,
   icecast->persist = atoi(val) ? 1 : 0;
   if (!(icecast->shout = shout_new())) {
     snprintf(error, errsize, "failed to allocate shout object");
-    return MSERV_FAILURE;
+    goto failed;
   }
+  if (mserv_debug)
+    mserv_log("icecast: channel creation request for %s: samplerate=%d,"
+              "bitrate=%d,volume=%d,channels=%d,persist=%d",
+              c->name, os->samplerate, icecast->bitrate, icecast->volume,
+              os->channels, icecast->persist);
   /* now take a copy of destination into splitbuf for splitting */
   if (strlen(location) >= sizeof(splitbuf)) {
     snprintf(error, errsize, "URI too long");
@@ -217,52 +217,53 @@ int icecast_output_create(t_channel *c, const char *location,
     goto failed;
   }
   snprintf(mount, sizeof(mount), "/%s", p);
-  mserv_log("Request to icecast connect to %s:%s", host, port);
+  mserv_log("icecast: request to create channel to %s:%s", host, port);
   if (!*user || !*pass || !*host || !*port || !mount[1]) {
     snprintf(error, errsize, "icecast: location invalid, use "
              "http://user:pass@host:port/mount");
     goto failed;
   }
   if (shout_set_host(icecast->shout, host) != SHOUTERR_SUCCESS) {
-    snprintf(error, errsize, "icecast: failed setting Icecast hostname: %s",
+    snprintf(error, errsize, "icecast: failed setting libshout hostname: %s",
              shout_get_error(icecast->shout));
     goto failed;
   }
   if (shout_set_protocol(icecast->shout,
                          SHOUT_PROTOCOL_HTTP) != SHOUTERR_SUCCESS) {
-    snprintf(error, errsize, "icecast: failed setting Icecast protocol: %s",
+    snprintf(error, errsize, "icecast: failed setting libshout protocol: %s",
              shout_get_error(icecast->shout));
     goto failed;
   }
   if (shout_set_port(icecast->shout, atoi(port)) != SHOUTERR_SUCCESS) {
-    snprintf(error, errsize, "icecast: failed setting Icecast port: %s",
+    snprintf(error, errsize, "icecast: failed setting libshout port: %s",
              shout_get_error(icecast->shout));
     goto failed;
   }
   if (shout_set_password(icecast->shout, pass) != SHOUTERR_SUCCESS) {
-    snprintf(error, errsize, "icecast: failed setting Icecast password: %s",
+    snprintf(error, errsize, "icecast: failed setting libshout password: %s",
              shout_get_error(icecast->shout));
     goto failed;
   }
   if (shout_set_mount(icecast->shout, mount) != SHOUTERR_SUCCESS) {
-    snprintf(error, errsize, "icecast: failed setting Icecast hostname: %s",
+    snprintf(error, errsize, "icecast: failed setting libshout hostname: %s",
              shout_get_error(icecast->shout));
     goto failed;
   }
   if (shout_set_user(icecast->shout, user) != SHOUTERR_SUCCESS) {
-    snprintf(error, errsize, "icecast: failed setting Icecast user: %s",
+    snprintf(error, errsize, "icecast: failed setting libshout user: %s",
              shout_get_error(icecast->shout));
     goto failed;
   }
   if (shout_set_format(icecast->shout,
                        SHOUT_FORMAT_VORBIS) != SHOUTERR_SUCCESS) {
-    snprintf(error, errsize, "icecast: failed setting Icecast format: %s",
+    snprintf(error, errsize, "icecast: failed setting libshout format: %s",
              shout_get_error(icecast->shout));
     goto failed;
   }
   /* does the user want us to connect now? */
   if (params_get(params, "connect", &val) == MSERV_SUCCESS && atoi(val) == 1) {
-    if (icecast_internal_connect(c, icecast, error, errsize) != MSERV_SUCCESS)
+    if (icecast_internal_connect(c, os, icecast,
+                                 error, errsize) != MSERV_SUCCESS)
       goto failed;
   }
   *private = (void *)icecast;
@@ -276,8 +277,8 @@ failed:
 
 /* destroy output stream */
 
-int icecast_output_destroy(t_channel *c, void *private,
-                            char *error, int errsize)
+int icecast_output_destroy(t_channel *c, t_channel_outputstream *os,
+                           void *private, char *error, int errsize)
 {
   t_icecast *icecast = (t_icecast *)private;
 
@@ -286,21 +287,26 @@ int icecast_output_destroy(t_channel *c, void *private,
   (void)errsize;
 
   if (icecast->connected) {
-    if (icecast_internal_disconnect(c, icecast, error,
+    if (icecast_internal_disconnect(c, os, icecast, error,
                                     errsize) != MSERV_SUCCESS)
       return MSERV_FAILURE;
   }
+  if (icecast->shout)
+    shout_free(icecast->shout);
+  free(icecast);
   return MSERV_SUCCESS;
 }
 
 /* synchronise output stream */
 
-int icecast_output_sync(t_channel *c, void *private, char *error, int errsize)
+int icecast_output_sync(t_channel *c, t_channel_outputstream *os,
+                        void *private, char *error, int errsize)
 {
   t_icecast *icecast = (t_icecast *)private;
   float **vorbbuf;
   unsigned int chan, i, pages, bytes;
 
+  (void)c;
   if (!icecast->connected) {
     snprintf(error, errsize, "not connected");
     return MSERV_FAILURE;
@@ -308,16 +314,14 @@ int icecast_output_sync(t_channel *c, void *private, char *error, int errsize)
 
   /* take one second sample buffer and send to libvorbis */
 
-  vorbbuf = vorbis_analysis_buffer(&icecast->vd,
-                                   c->buffer_samples / c->channels);
-  for (i = 0; i < c->buffer_samples / c->channels; i++) {
-    for (chan = 0; chan < c->channels; chan++)
-      vorbbuf[chan][i] = c->buffer[i * c->channels + chan];
+  vorbbuf = vorbis_analysis_buffer(&icecast->vd, os->samplerate);
+  for (i = 0; i < os->samplerate; i++) {
+    for (chan = 0; chan < os->channels; chan++)
+      vorbbuf[chan][i] = os->output[i * os->channels + chan];
   }
   if (mserv_debug)
-    mserv_log("icecast: wrote %d samples to libvorbis",
-              c->buffer_samples / c->channels);
-  vorbis_analysis_wrote(&icecast->vd, c->buffer_samples / c->channels);
+    mserv_log("icecast: wrote %d samples to libvorbis", os->samplerate);
+  vorbis_analysis_wrote(&icecast->vd, os->samplerate);
 
   /* get encoded data back from libvorbis */
 
@@ -359,14 +363,16 @@ int icecast_output_sync(t_channel *c, void *private, char *error, int errsize)
 
 /* read/set volume */
 
-int icecast_output_volume(t_channel *c, void *private, int *volume,
-                           char *error, int errsize)
+int icecast_output_volume(t_channel *c, t_channel_outputstream *os,
+                          void *private, int *volume,
+                          char *error, int errsize)
 {
   t_icecast *icecast = (t_icecast *)private;
 
   (void)c;
   (void)error;
   (void)errsize;
+  (void)os;
 
   if (*volume == -1) {
     *volume = icecast->volume;
@@ -378,22 +384,24 @@ int icecast_output_volume(t_channel *c, void *private, int *volume,
 
 /* start output stream */
 
-int icecast_output_start(t_channel *c, void *private, char *error, int errsize)
+int icecast_output_start(t_channel *c, t_channel_outputstream *os,
+                         void *private, char *error, int errsize)
 {
   t_icecast *icecast = (t_icecast *)private;
 
   if (!icecast->connected)
-    return icecast_internal_connect(c, icecast, error, errsize);
+    return icecast_internal_connect(c, os, icecast, error, errsize);
   return MSERV_SUCCESS;
 }
 
 /* stop output stream */
 
-int icecast_output_stop(t_channel *c, void *private, char *error, int errsize)
+int icecast_output_stop(t_channel *c, t_channel_outputstream *os,
+                        void *private, char *error, int errsize)
 {
   t_icecast *icecast = (t_icecast *)private;
 
   if (icecast->connected && !icecast->persist)
-    return icecast_internal_disconnect(c, icecast, error, errsize);
+    return icecast_internal_disconnect(c, os, icecast, error, errsize);
   return MSERV_SUCCESS;
 }

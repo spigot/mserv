@@ -1165,40 +1165,46 @@ static int cmd_queue_sub(t_client *cl, t_album *album, int n_track,
 static void cmd_play(t_client *cl, t_cmdparams *cp)
 {
   char error[256];
+  t_track *track;
 
   (void)cp;
   if (channel_paused(mserv_channel)) {
     mserv_resumeplay(cl);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
+      track = mserv_playing.track ? mserv_playing.track
+                                  : mserv_player_playing.track;
       mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
-		     mserv_playing.track->n_album,
-		     mserv_playing.track->n_track,
-		     mserv_playing.track->author,
-		     mserv_playing.track->name);
+		     track->n_album, track->n_track,
+		     track->author, track->name);
     }
     return;
   }
   if (mserv_playing.track) {
+    track = mserv_playing.track ? mserv_playing.track
+                                : mserv_player_playing.track;
     mserv_response(cl, "ALRPLAY", "%d\t%d\t%s\t%s",
-		   mserv_playing.track->n_album,
-		   mserv_playing.track->n_track, mserv_playing.track->author,
-		   mserv_playing.track->name);
+                   track->n_album, track->n_track,
+                   track->author, track->name);
     return;
   }
   if (mserv_player_playnext()) {
     mserv_response(cl, "NOMORE", NULL);
     return;
   }
-  if (channel_start(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
+  if (channel_start(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS) {
     mserv_log("Failed to commence play on channel %s: %s", mserv_channel->name,
               error);
-  if (cl->mode != mode_human) {
-    /* humans will already have seen broadcast */
-    mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
-                   mserv_playing.track->n_album,
-                   mserv_playing.track->n_track, mserv_playing.track->author,
-                   mserv_playing.track->name);
+    mserv_response(cl, "CHANF", "%s", error);
+  } else {
+    if (cl->mode != mode_human) {
+      /* humans will already have seen broadcast */
+      track = mserv_playing.track ? mserv_playing.track
+                                  : mserv_player_playing.track;
+      mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
+                     track->n_album, track->n_track,
+                     track->author, track->name);
+    }
   }
 }
 

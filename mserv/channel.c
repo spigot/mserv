@@ -32,6 +32,10 @@
 #include "module.h"
 #include "params.h"
 
+#if HAVE_LIBSAMPLERATE
+#include <samplerate.h>
+#endif
+
 /*
  *
  *   buffer_char/buffer_float/buffer_bytes/buffer_size
@@ -145,46 +149,90 @@ int channel_create(t_channel **channel, const char *name,
 int channel_addoutput(t_channel *c, const char *modname, const char *location,
                      const char *params, char *error, int errsize)
 {
-  t_output_list *ol, **olend;
+  t_channel_outputstream *os, **osend;
   t_modinfo *mi;
+  int resampletype;
+  int src_errno;
+  char *val;
  
   if ((mi = module_find(modname)) == NULL) {
     snprintf(error, errsize, "module %s not loaded", modname);
     return MSERV_FAILURE;
   }
-  if (strlen(location) >= sizeof(ol->location)) {
+  if (strlen(location) >= sizeof(os->location)) {
     snprintf(error, errsize, "destination location too long");
     return MSERV_FAILURE;
   }
-  if ((ol = malloc(sizeof(t_output_list))) == NULL) {
+  if ((os = malloc(sizeof(t_channel_outputstream))) == NULL) {
     snprintf(error, errsize, "out of memory");
     return MSERV_FAILURE;
   }
-  ol->next = NULL;
-  ol->modinfo = mi;
-  strncpy(ol->location, location, sizeof(ol->location));
-  ol->location[sizeof(ol->location) - 1] = '\0';
-  if (params_parse(&(ol->params), params, error, errsize) != MSERV_SUCCESS)
-    return MSERV_FAILURE;
+  memset(os, 0, sizeof(t_channel_outputstream));
+  os->next = NULL;
+  os->modinfo = mi;
+  strncpy(os->location, location, sizeof(os->location));
+  os->location[sizeof(os->location) - 1] = '\0';
+  if (params_parse(&(os->params), params, error, errsize) != MSERV_SUCCESS)
+    goto failed;
   if (mi->output_create == NULL) {
     snprintf(error, errsize, "module '%s' has no output creation function",
              modname);
-    return MSERV_FAILURE;
+    goto failed;
+  }
+  if (params_get(os->params, "downmix", &val) != MSERV_SUCCESS)
+    val = "0";
+  os->channels = atoi(val) ? 1 : 2;
+  if (params_get(os->params, "samplerate", &val) != MSERV_SUCCESS)
+    val = "44100";
+  os->samplerate = atoi(val);
+  if (params_get(os->params, "resampletype", &val) != MSERV_SUCCESS)
+    val = "1"; /* SRC_SINC_MEDIUM_QUALITY */
+  resampletype = atoi(val);
+  if (c->samplerate != os->samplerate) {
+#if HAVE_LIBSAMPLERATE
+    os->resampler = (void *)src_new(resampletype, c->channels, &src_errno);
+    if (os->resampler == NULL) {
+      snprintf(error, errsize, "libsamplerate failed to initialise: %s",
+               src_strerror(src_errno));
+      goto failed;
+    }
+    /* allocate based on output sample rate but input channels, this is
+     * because we do the samplerate conversion first, before we downmix */
+    if ((os->output = malloc(sizeof(float) * c->channels *
+                                       os->samplerate)) == NULL) {
+      snprintf(error, errsize, "out of memory");
+      goto failed;
+    }
+#else
+    snprintf(error, errsize, "libsamplerate is not enabled");
+    goto failed;
+#endif
+  } else {
+    os->resampler = NULL;
   }
   if (mserv_debug)
     mserv_log("calling module '%s' output_create function", modname);
-  if (mi->output_create(c, location, ol->params, &ol->private,
+  if (mi->output_create(c, os, location, os->params, &os->private,
                         error, errsize) != MSERV_SUCCESS)
-    return MSERV_FAILURE;
+    goto failed;
   if (mserv_debug)
     mserv_log("output_create function returned success");
   if (c->output) {
-    for (olend = &c->output; (*olend)->next; olend = &((*olend)->next)) ;
-    (*olend)->next = ol;
+    for (osend = &c->output; (*osend)->next; osend = &((*osend)->next)) ;
+    (*osend)->next = os;
   } else {
-    c->output = ol;
+    c->output = os;
   }
   return MSERV_SUCCESS;
+failed:
+  if (os->resampler)
+    src_delete((SRC_STATE *)os->resampler);
+  if (os->output)
+    free(os->output);
+  if (os->params)
+    free(os->params);
+  free(os);
+  return MSERV_FAILURE;
 }
 
 /* remove output from channel stream (modname or uri can be NULL) */
@@ -192,33 +240,36 @@ int channel_addoutput(t_channel *c, const char *modname, const char *location,
 int channel_removeoutput(t_channel *c, const char *modname,
                         const char *location, char *error, int errsize)
 {
-  t_output_list *ol, *ol_last;
-  t_output_list **olp, **olp_last;
+  t_channel_outputstream *os, *os_last;
+  t_channel_outputstream **osp, **osp_last;
   t_modinfo *mi;
  
   /* search for stream, keeping pointer so we can remove it later */
-  ol_last = NULL;
-  olp_last = NULL;
-  for (olp = &c->output, ol = c->output; ol; olp = &(ol->next), ol = ol->next) {
-    if (modname == NULL || stricmp(ol->modinfo->module->name, modname) == 0) {
-      if (location == NULL || stricmp(ol->location, location) == 0) {
-        ol_last = ol;
-        olp_last = olp;
+  os_last = NULL;
+  osp_last = NULL;
+  for (osp = &c->output, os = c->output; os; osp = &(os->next), os = os->next) {
+    if (modname == NULL || stricmp(os->modinfo->module->name, modname) == 0) {
+      if (location == NULL || stricmp(os->location, location) == 0) {
+        os_last = os;
+        osp_last = osp;
       }
     }
   }
-  if (ol_last == NULL || olp_last == NULL) {
+  if (os_last == NULL || osp_last == NULL) {
     snprintf(error, errsize, "could not find output stream");
     return MSERV_FAILURE;
   }
-  if ((mi = module_find(ol_last->modinfo->module->name)) == NULL) {
+  if ((mi = module_find(os_last->modinfo->module->name)) == NULL) {
     snprintf(error, errsize, "module not loaded");
     return MSERV_FAILURE;
   }
-  if (mi->output_destroy(c, &ol->private, error, errsize) != MSERV_SUCCESS)
+  if (mi->output_destroy(c, os, &os_last->private,
+                         error, errsize) != MSERV_SUCCESS)
     return MSERV_FAILURE;
-  *olp_last = ol_last->next;
-  free(ol_last);
+  if (os_last->resampler)
+    src_delete((SRC_STATE *)os_last->resampler);
+  *osp_last = os_last->next;
+  free(os_last);
   return MSERV_SUCCESS;
 }
 
@@ -228,14 +279,14 @@ int channel_removeoutput(t_channel *c, const char *modname,
 
 int channel_volume(t_channel *c, int *volume, char *error, int errsize)
 {
-  t_output_list *ol;
+  t_channel_outputstream *os;
   int matches = 0;
 
-  /* look for primary volume controller */
-  for (ol = c->output; ol; ol = ol->next) {
-    if (ol->modinfo->output_volume) {
-      if (ol->modinfo->flags | MSERV_MODFLAG_OUTPUT_VOLUME_PRIMARY)
-        return ol->modinfo->output_volume(c, ol->private, volume,
+  /* look for primary vosume controsler */
+  for (os = c->output; os; os = os->next) {
+    if (os->modinfo->output_volume) {
+      if (os->modinfo->flags | MSERV_MODFLAG_OUTPUT_VOLUME_PRIMARY)
+        return os->modinfo->output_volume(c, os, os->private, volume,
                                           error, errsize);
       matches++;
     }
@@ -243,16 +294,16 @@ int channel_volume(t_channel *c, int *volume, char *error, int errsize)
   /* if there was only one volume able output stream, or we're reading, use
    * the first able output stream */
   if (matches == 1 || *volume == -1) {
-    for (ol = c->output; ol; ol = ol->next) {
-      if (ol->modinfo->output_volume)
-        return ol->modinfo->output_volume(c, ol->private, volume,
+    for (os = c->output; os; os = os->next) {
+      if (os->modinfo->output_volume)
+        return os->modinfo->output_volume(c, os, os->private, volume,
                                           error, errsize);
     }
   }
   /* writing to multiple output streams */
-  for (ol = c->output; ol; ol = ol->next) {
-    if (ol->modinfo->output_volume)
-      ol->modinfo->output_volume(c, ol->private, volume, error, errsize);
+  for (os = c->output; os; os = os->next) {
+    if (os->modinfo->output_volume)
+      os->modinfo->output_volume(c, os, os->private, volume, error, errsize);
   }
   return MSERV_SUCCESS;
 }
@@ -303,7 +354,7 @@ int channel_addinput(t_channel *c, int fd, t_supinfo *track_supinfo,
                      double delay_start, double delay_end,
                      char *error, int errsize)
 {
-  t_output_inputstream *i, **tail;
+  t_channel_inputstream *i, **tail;
 
   if (c->channels != channels || c->samplerate != samplerate) {
     /* TODO: perhaps we could support both mono->stereo / stereo->mono and
@@ -311,7 +362,7 @@ int channel_addinput(t_channel *c, int fd, t_supinfo *track_supinfo,
     snprintf(error, errsize, "channels/samplerate not supported");
     return MSERV_FAILURE;
   }
-  if ((i = malloc(sizeof(t_output_inputstream))) == NULL) {
+  if ((i = malloc(sizeof(t_channel_inputstream))) == NULL) {
     snprintf(error, errsize, "out of memory");
     return MSERV_FAILURE;
   }
@@ -334,7 +385,7 @@ int channel_addinput(t_channel *c, int fd, t_supinfo *track_supinfo,
 
 int channel_inputfinished(t_channel *c)
 {
-  t_output_inputstream *i = c->input;
+  t_channel_inputstream *i = c->input;
 
   if (i == NULL)
     return MSERV_SUCCESS;
@@ -356,20 +407,23 @@ int channel_sync(t_channel *c, char *error, int errsize)
 {
   char ierror[256];
   struct timeval now, ago;
-  t_output_list *ol;
+  t_channel_outputstream *os;
   int ret;
   unsigned int ui;
   short int *sp;
   float *fp;
   unsigned int words;
+#ifdef HAVE_LIBSAMPLERATE
+  SRC_DATA src_data;
+#endif
 
   /* poll modules */
-  for (ol = c->output; ol; ol = ol->next) {
-    if (ol->modinfo->output_poll) {
-      if (ol->modinfo->output_poll(c, ol->private, 
+  for (os = c->output; os; os = os->next) {
+    if (os->modinfo->output_poll) {
+      if (os->modinfo->output_poll(c, os, os->private, 
                                    ierror, sizeof(ierror)) != MSERV_SUCCESS)
-        mserv_log("channel %s: %s output poll: %s", c->name,
-                  ol->modinfo->module->name, ierror);
+        mserv_log("channel %s: %s output posl: %s", c->name,
+                  os->modinfo->module->name, ierror);
     }
   }
 
@@ -492,15 +546,68 @@ int channel_sync(t_channel *c, char *error, int errsize)
   } else {
     c->lasttime.tv_sec+= 1;
   }
-  for (ol = c->output; ol; ol = ol->next) {
-    if (ol->modinfo->output_sync) {
+  for (os = c->output; os; os = os->next) {
+    if (os->modinfo->output_sync) {
+#ifdef HAVE_LIBSAMPLERATE
+      if (os->samplerate != c->samplerate) {
+        /* resample from channel buffer to output stream */
+        src_data.data_in = c->buffer;
+        src_data.data_out = os->output;
+        src_data.input_frames = c->samplerate;
+        src_data.output_frames = os->samplerate;
+        src_data.end_of_input = 0;
+        src_data.src_ratio =
+            (double)src_data.output_frames / src_data.input_frames;
+        if (mserv_debug)
+          mserv_log("channel %s: %s resampling: in %d, "
+                    "out %d, ratio %.4f", c->name,
+                    os->modinfo->module->name, src_data.input_frames,
+                    src_data.output_frames, src_data.src_ratio);
+        if ((ret = src_process((SRC_STATE *)os->resampler, &src_data)) != 0) {
+          mserv_log("channel %s: %s output sync: "
+                    "failed to resample: %s", c->name,
+                    os->modinfo->module->name, src_strerror(ret));
+          continue;
+        }
+        if ((unsigned int)src_data.input_frames_used != c->samplerate &&
+            (unsigned int)src_data.output_frames_gen != os->samplerate) {
+          mserv_log("channel %s: %s resampling: wanted %d->%d, got %d->%d",
+                    c->samplerate, os->samplerate, src_data.input_frames_used,
+                    src_data.output_frames_gen);
+          continue;
+        }
+      } else {
+#endif
+        /* no modifications needed */
+        os->output = c->buffer;
+#ifdef HAVE_LIBSAMPLERATE
+      }
+#endif
+      if (os->channels != c->channels) {
+        /* downmix? */
+        if (c->channels != 2 && os->channels != 1) {
+          mserv_log("channel %s: %s output sync: unsupported channel "
+                    "combination (can't downmix/upmix)", c->name,
+                    os->modinfo->module->name);
+          continue;
+        }
+        if (mserv_debug)
+          mserv_log("channel %s: %s downmixing from %d channels to %d",
+                    c->name, os->modinfo->module->name, c->channels,
+                    os->channels);
+        /* use source buffer as destination, there's no overlap */
+        for (ui = 0; ui < os->samplerate; ui++) {
+          os->output[ui] = (os->output[ui * 2 + 0] +
+                            os->output[ui * 2 + 1]) / 2.0;
+        }
+      }
       if (mserv_debug)
         mserv_log("calling module '%s' output_sync function",
-                  ol->modinfo->module->name);
-      if (ol->modinfo->output_sync(c, ol->private, 
+                  os->modinfo->module->name);
+      if (os->modinfo->output_sync(c, os, os->private, 
                                    ierror, sizeof(ierror)) != MSERV_SUCCESS)
         mserv_log("channel %s: %s output sync: %s", c->name,
-                  ol->modinfo->module->name, ierror);
+                  os->modinfo->module->name, ierror);
       if (mserv_debug)
         mserv_log("output_sync function returned success");
     }
@@ -531,7 +638,7 @@ void channel_align(t_channel *c)
 
 void channel_replacetrack(t_channel *c, t_track *track, t_track *newtrack)
 {
-  t_output_inputstream *i, *next;
+  t_channel_inputstream *i, *next;
 
   for (i = c->input; i; i = next) {
     next = i->next;
@@ -545,17 +652,17 @@ void channel_replacetrack(t_channel *c, t_track *track, t_track *newtrack)
 
 int channel_stop(t_channel *c, char *error, int errsize)
 {
-  t_output_inputstream *i, *next;
-  t_output_list *ol;
+  t_channel_inputstream *i, *next;
+  t_channel_outputstream *os;
 
   (void)error;
   (void)errsize;
   if (c->stopped)
     return MSERV_SUCCESS;
   /* call output stream modules stop methods */
-  for (ol = c->output; ol; ol = ol->next) {
-    if (ol->modinfo->output_stop)
-      ol->modinfo->output_stop(c, ol->private, error, errsize);
+  for (os = c->output; os; os = os->next) {
+    if (os->modinfo->output_stop)
+      os->modinfo->output_stop(c, os, os->private, error, errsize);
   }
   mserv_log("channel %s: stopped playing", c->name);
   for (i = c->input; i; i = next) {
@@ -574,16 +681,20 @@ int channel_stop(t_channel *c, char *error, int errsize)
 
 int channel_start(t_channel *c, char *error, int errsize)
 {
-  t_output_list *ol;
+  t_channel_outputstream *os;
+  int ret;
 
   (void)error;
   (void)errsize;
   if (!c->stopped)
     return MSERV_SUCCESS;
   /* call output stream modules start methods */
-  for (ol = c->output; ol; ol = ol->next) {
-    if (ol->modinfo->output_start)
-      ol->modinfo->output_start(c, ol->private, error, errsize);
+  for (os = c->output; os; os = os->next) {
+    if (os->modinfo->output_start) {
+      ret = os->modinfo->output_start(c, os, os->private, error, errsize);
+      if (ret != MSERV_SUCCESS)
+        return ret;
+    }
   }
   mserv_log("channel %s: started playing", c->name);
   c->stopped = 0;

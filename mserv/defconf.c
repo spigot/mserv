@@ -47,7 +47,7 @@ prog_xmp=xmp --stdout --bits 16 --stereo --frequency 44100\n\
 # player_wav=prog_sox\n\
 # player_au=prog_sox\n\
 player_mp3=prog_mpg123\n\
-player_ogg=prog_ogg\n\
+player_ogg=prog_ogg123\n\
 player_mod=prog_xmp\n\
 \n\
 #############################################################################\n\

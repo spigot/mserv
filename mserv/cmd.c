@@ -116,6 +116,8 @@ static void mserv_cmd_set_genre(t_client *cl, const char *ru,
 				const char *line);
 static void mserv_cmd_set_year(t_client *cl, const char *ru,
 			       const char *line);
+static void mserv_cmd_set_volume(t_client *cl, const char *ru,
+                                 const char *line);
 static void mserv_cmd_set_albumauthor(t_client *cl, const char *ru,
 				      const char *line);
 static void mserv_cmd_set_albumname(t_client *cl, const char *ru,
@@ -337,6 +339,9 @@ t_cmds mserv_set_cmds[] = {
   { 1, level_priv, "YEAR", mserv_cmd_set_year,
     "Set the year of a track",
     "<album> <track> <0|year>" },
+  { 1, level_priv, "VOLUME", mserv_cmd_set_volume,
+    "Set the volume of a track (in percentage - 100 is normal)",
+    "<album> <track> <0-1000>" },
   { 1, level_priv, "ALBUMAUTHOR", mserv_cmd_set_albumauthor,
     "Set the author of an album",
     "<album> <author>" },
@@ -454,14 +459,14 @@ static void mserv_cmd_help(t_client *cl, const char *ru, const char *line)
 	if (cl->mode == mode_human) {
 	  snprintf(buffer, 1024, "[] %s\r\n[] Syntax: %s%s %s\r\n",
 		   cmdsptr->help, (cmdsptr == mserv_x_cmds ? "X " : 
-				   (cmdsptr == mserv_set_cmds ? "SET" : "")),
+				   (cmdsptr == mserv_set_cmds ? "SET " : "")),
 		   cmdsptr->name, cmdsptr->syntax);
 	  mserv_send(cl, buffer, 0);
 	} else {
 	  mserv_responsent(cl, "HELP", "%s", cmdsptr->name);
 	  snprintf(buffer, 1024, "%s\r\nSyntax: %s%s %s\r\n.\r\n",
 		   cmdsptr->help, (cmdsptr == mserv_x_cmds ? "X " : 
-				   (cmdsptr == mserv_set_cmds ? "SET" : "")),
+				   (cmdsptr == mserv_set_cmds ? "SET " : "")),
 		   cmdsptr->name, cmdsptr->syntax);
 	  mserv_send(cl, buffer, 0);
 	}
@@ -969,7 +974,7 @@ static void mserv_cmd_tracks(t_client *cl, const char *ru, const char *line)
       sprintf(bit, "%d/%d", album->tracks[i]->n_album,
 	      album->tracks[i]->n_track);
       if (cl->mode == mode_human) {
-	sprintf(buffer, "[] %6.6s %-1.1s %-20.20s %-40.40s %2ld:%02ld\r\n",
+	sprintf(buffer, "[] %7.7s %-1.1s %-20.20s %-39.39s %2ld:%02ld\r\n",
 		bit, rate && rate->rating ? mserv_ratestr(rate) : "-",
 		album->tracks[i]->author, album->tracks[i]->name,
 		(album->tracks[i]->duration / 100) / 60,
@@ -1138,8 +1143,8 @@ static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line)
       if (cl->mode == mode_human) {
 	sprintf(bit, "%d/%d", q->supinfo.track->n_album,
 		q->supinfo.track->n_track);
-	sprintf(buffer, "[] %-10.10s %6.6s %-1.1s %-20.20s "
-		"%-30.30s%2ld:%02ld\r\n",
+	sprintf(buffer, "[] %-10.10s %7.7s %-1.1s %-20.20s "
+		"%-29.29s%2ld:%02ld\r\n",
 		q->supinfo.user, bit,
 		rate && rate->rating ? mserv_ratestr(rate) : "-",
 		q->supinfo.track->author, q->supinfo.track->name,
@@ -1287,8 +1292,8 @@ static int mserv_cmd_queue_sub(t_client *cl, t_album *album, int n_track,
   for (client = mserv_clients; client; client = client->next) {
     rate = mserv_getrate(client->user, album->tracks[i]);
     if (client->mode == mode_human) {
-      sprintf(buffer, "[] %-10.10s %6.6s %-1.1s %-20.20s "
-	      "%-30.30s%2ld:%02ld\r\n", cl->user, bit,
+      sprintf(buffer, "[] %-10.10s %7.7s %-1.1s %-20.20s "
+	      "%-29.29s%2ld:%02ld\r\n", cl->user, bit,
 	      rate && rate->rating ? mserv_ratestr(rate) : "-",
 	      album->tracks[i]->author, album->tracks[i]->name,
 	      (album->tracks[i]->duration / 100) / 60,
@@ -1613,8 +1618,8 @@ static void mserv_cmd_top(t_client *cl, const char *ru, const char *line)
     rate = mserv_getrate(ru, track);
     if (cl->mode == mode_human) {
       sprintf(bit, "%d/%d", track->n_album, track->n_track);
-      sprintf(buffer, "[] %5.2f%%     %6.6s %-1.1s %-20.20s "
-	      "%-30.30s%2ld:%02ld\r\n",
+      sprintf(buffer, "[] %5.2f%%     %7.7s %-1.1s %-20.20s "
+	      "%-29.29s%2ld:%02ld\r\n",
 	      prob > 0.9999 ? 99.99 : 100*prob, bit,
 	      rate && rate->rating ? mserv_ratestr(rate) : "-",
 	      track->author, track->name,
@@ -1932,6 +1937,10 @@ static void mserv_cmd_set_year(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "NAN", NULL);
     return;
   }
+  if (year < 100 || year > 1000) {
+    mserv_response(cl, "NAN", NULL);
+    return;
+  }
   if ((track = mserv_gettrack(n_album, n_track)) == NULL) {
     mserv_response(cl, "NOTRACK", NULL);
     return;
@@ -1945,6 +1954,57 @@ static void mserv_cmd_set_year(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "YEARR", "%s\t%d\t%d\t%s\t%s\t%d", cl->user,
 		   track->n_album, track->n_track, track->author,
 		   track->name, year);
+  mserv_savechanges();
+}
+
+static void mserv_cmd_set_volume(t_client *cl, const char *ru, const char *line)
+{
+  char linespl[LINEBUFLEN];
+  char *str[4];
+  unsigned int n_album, n_track, volume;
+  char *end;
+  t_track *track;
+
+  /* <volume> */
+
+  (void)ru;
+  strcpy(linespl, line);
+  if (mserv_split(str, 3, linespl, " ") != 3) {
+    mserv_response(cl, "BADPARM", NULL);
+    return;
+  }
+  n_album = strtol(str[0], &end, 10);
+  if (!*str[0] || *end) {
+    mserv_response(cl, "NAN", NULL);
+    return;
+  }
+  n_track = strtol(str[1], &end, 10);
+  if (!*str[1] || *end) {
+    mserv_response(cl, "NAN", NULL);
+    return;
+  }
+  volume = strtol(str[2], &end, 10);
+  if (!*str[2] || *end) {
+    mserv_response(cl, "NAN", NULL);
+    return;
+  }
+  if (volume < 0 || volume > 1000) {
+    mserv_response(cl, "NAN", NULL);
+    return;
+  }
+  if ((track = mserv_gettrack(n_album, n_track)) == NULL) {
+    mserv_response(cl, "NOTRACK", NULL);
+    return;
+  }
+  track = mserv_checkdisk_track(track);
+  track->volume = volume;
+  track->modified = 1;
+  mserv_broadcast("VOLUME", "%s\t%d\t%d\t%s\t%s\t%d", cl->user, track->n_album,
+		  track->n_track, track->author, track->name, volume);
+  if (cl->mode != mode_human)
+    mserv_response(cl, "VOLUMER", "%s\t%d\t%d\t%s\t%s\t%d", cl->user,
+		   track->n_album, track->n_track, track->author,
+		   track->name, volume);
   mserv_savechanges();
 }
 
@@ -2049,7 +2109,7 @@ static void mserv_cmd_history(t_client *cl, const char *ru, const char *line)
     if (cl->mode == mode_human) {
       sprintf(bit, "%d/%d", mserv_history[i]->track->n_album,
 	      mserv_history[i]->track->n_track);
-      sprintf(buffer, "[] %-10.10s %6.6s %-1.1s %-20.20s %-35.35s\r\n",
+      sprintf(buffer, "[] %-10.10s %7.7s %-1.1s %-20.20s %-34.34s\r\n",
 	      mserv_history[i]->user, bit,
 	      rate && rate->rating ? mserv_ratestr(rate) : "-",
 	      mserv_history[i]->track->author, mserv_history[i]->track->name);
@@ -2172,8 +2232,8 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
 	      ratetoo = 1;
 	    }
 	    sprintf(bit, "%d/%d", track2->n_album, track2->n_track);
-	    sprintf(buffer, "[]            %6.6s %-1.1s %-20.20s "
-		    "%-30.30s%ld:%02ld\r\n",
+	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
+		    "%-29.29s%ld:%02ld\r\n",
 		    bit, rate2 && rate2->rating ? mserv_ratestr(rate2) : "-",
 		    track2->author, track2->name,
 		    (track2->duration / 100) / 60,
@@ -2252,16 +2312,16 @@ static void mserv_cmd_check(t_client *cl, const char *ru, const char *line)
 	  }
 	  if (cl->mode == mode_human) {
 	    sprintf(bit, "%d/%d", track1->n_album, track1->n_track);
-	    sprintf(buffer, "[]            %6.6s %-1.1s %-20.20s "
-		    "%-30.30s%2ld:%02ld\r\n",
+	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
+		    "%-29.29s%2ld:%02ld\r\n",
 		    bit, rate1 && rate1->rating ? mserv_ratestr(rate1) : "-",
 		    track1->author, track1->name,
 		    (track1->duration / 100) / 60,
 		    (track1->duration / 100) % 60);
 	    mserv_send(cl, buffer, 0);
 	    sprintf(bit, "%d/%d", track2->n_album, track2->n_track);
-	    sprintf(buffer, "[]            %6.6s %-1.1s %-20.20s "
-		    "%-30.30s%2ld:%02ld\r\n",
+	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
+		    "%-29.29s%2ld:%02ld\r\n",
 		    bit, rate2 && rate2->rating ? mserv_ratestr(rate2) : "-",
 		    track2->author, track2->name,
 		    (track2->duration / 100) / 60,
@@ -2321,8 +2381,8 @@ static void mserv_cmd_search(t_client *cl, const char *ru, const char *line)
 	  rate = mserv_getrate(ru, track);
 	  if (cl->mode == mode_human) {
 	    sprintf(bit, "%d/%d", track->n_album, track->n_track);
-	    sprintf(buffer, "[]            %6.6s %-1.1s %-20.20s "
-		    "%-30.30s%2ld:%02ld\r\n", bit,
+	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
+		    "%-29.29s%2ld:%02ld\r\n", bit,
 		    rate && rate->rating ? mserv_ratestr(rate) : "-",
 		    track->author, track->name,
 		    (track->duration / 100) / 60,
@@ -2414,8 +2474,8 @@ static void mserv_cmd_searchf(t_client *cl, const char *ru, const char *line)
 	  rate = mserv_getrate(ru, track);
 	  if (cl->mode == mode_human) {
 	    sprintf(bit, "%d/%d", track->n_album, track->n_track);
-	    sprintf(buffer, "[]            %6.6s %-1.1s %-20.20s "
-		    "%-30.30s%2ld:%02ld\r\n", bit,
+	    sprintf(buffer, "[]            %7.7s %-1.1s %-20.20s "
+		    "%-29.29s%2ld:%02ld\r\n", bit,
 		    rate && rate->rating ? mserv_ratestr(rate) : "-",
 		    track->author, track->name,
 		    (track->duration / 100) / 60,
@@ -2545,20 +2605,20 @@ static void mserv_cmd_info(t_client *cl, const char *ru, const char *line)
   snprintf(year, sizeof(year), "%d", track->year);
   mserv_response(cl, "INFT",
 		 "%d\t%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%.1f\t%.1f\t"
-		 "%s\t%s\t%s\t%d:%02d.%d\t%s",
+		 "%s\t%s\t%s\t%d:%02d.%d\t%s\t%d",
 		 track->n_album, track->n_track, album->author, album->name,
 		 track->author, track->name, track->year ? year : "unknown",
 		 track->lastplay, ago, 100*track->prating, 100*track->rating,
 		 mserv_ratestr(rate), track->genres,
 		 track->filterok ? "included" : "excluded",
 		 (track->duration/100)/60, (track->duration/100) % 60,
-		 (track->duration/10) % 10, track->miscinfo);
+		 (track->duration/10) % 10, track->miscinfo, track->volume);
   if (cl->mode == mode_human) {
-    for (i = 1; i <= 11; i++) {
+    for (i = 1; i <= 12; i++) {
       sprintf(token, "INFT%d", i);
       mserv_response(cl, token,
 		     "%d\t%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%.1f\t%.1f\t"
-		     "%s\t%s\t%s\t%d:%02d.%d\t%s",
+		     "%s\t%s\t%s\t%d:%02d.%d\t%s\t%d",
 		     track->n_album, track->n_track, album->author,
 		     album->name, track->author, track->name,
 		     track->year ? year : "unknown", track->lastplay,
@@ -2566,7 +2626,8 @@ static void mserv_cmd_info(t_client *cl, const char *ru, const char *line)
 		     mserv_ratestr(rate), track->genres,
 		     track->filterok ? "included" : "excluded",
 		     (track->duration/100)/60, (track->duration/100) % 60,
-		     (track->duration/10) % 10, track->miscinfo);
+                     (track->duration/10) % 10, track->miscinfo,
+                     track->volume);
     }
   }
 }
@@ -2688,7 +2749,7 @@ static void mserv_cmd_x_authortracks(t_client *cl, const char *ru,
 	  sprintf(bit, "%d/%d", author->tracks[i]->n_album,
 		  author->tracks[i]->n_track);
 	  if (cl->mode == mode_human) {
-	    sprintf(buffer, "[] %6.6s %-1.1s %-20.20s %-45.45s\r\n", bit,
+	    sprintf(buffer, "[] %7.7s %-1.1s %-20.20s %-44.44s\r\n", bit,
 		    rate && rate->rating ? mserv_ratestr(rate) : "-",
 		    author->tracks[i]->author, author->tracks[i]->name);
 	    mserv_send(cl, buffer, 0);
@@ -2973,7 +3034,7 @@ static void mserv_cmd_x_genretracks(t_client *cl, const char *ru,
 	sprintf(bit, "%d/%d", genre->tracks[ui]->n_album,
 		genre->tracks[ui]->n_track);
 	if (cl->mode == mode_human) {
-	  sprintf(buffer, "[] %6.6s %-1.1s %-20.20s %-45.45s\r\n", bit,
+	  sprintf(buffer, "[] %7.7s %-1.1s %-20.20s %-44.44s\r\n", bit,
 		  rate && rate->rating ? mserv_ratestr(rate) : "-",
 		  genre->tracks[ui]->author, genre->tracks[ui]->name);
 	  mserv_send(cl, buffer, 0);

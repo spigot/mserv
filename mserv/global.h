@@ -113,8 +113,9 @@ typedef struct _t_track {
   unsigned int modified:1;
   unsigned int norandom:1;
   unsigned int filterok:1;
-  double prating;
-  double rating;
+  int volume;                       /* percentage (100 is normal) */
+  double prating;                   /* calculated rating of track */
+  double rating;                    /* temporally, filtered adjusted rating */
   unsigned long int duration;
   char *author;
   char *name;

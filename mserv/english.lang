@@ -62,8 +62,9 @@ INFT6	246	  Duration:        %15 (%16)
 INFT7	246	  Genre(s):        %13
 INFT8	246	  Played:          %09
 INFT9	246	  Filter:          %14
-INFT10	246	  Rated:           %12; mean %10%%
-INFT11	246	                   temporally adjusted to %11%%
+INFT10	246	  Volume:          %17
+INFT11	246	  Rated:           %12; mean %10%%
+INFT12	246	                   temporally adjusted to %11%%
 QADDR	247	The following tracks have been added to the queue:
 USERADD	248	User has been created.
 PASSCHG	249	Password has been changed
@@ -107,6 +108,7 @@ CHECKRN	277	There are no inconsistent songs.
 CHECKR	278	These songs are inconsistent:
 SEARCFA	279	These songs match filter:
 ASRCHA	280	Search results:
+VOLUMER	281	Volume changed
 
 RATETOO	200	You may like to rate these too:
 FPLAY	200	** First play!
@@ -209,3 +211,4 @@ FILTER	637	Random play filter set to '%02' by %01 (%03 incl, %04 excl)
 NFILTER	638	Random play filter turned off by %01
 MEMORY	639	Out of memory
 RESETGO	640	Server reset initiated by %01...
+VOLUME	641	The volume of %02/%03 has been set by %01

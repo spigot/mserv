@@ -1968,6 +1968,7 @@ static t_track *mserv_loadtrk(const char *filename)
   int year = 0;
   int modified = 0;
   int duration = 0;
+  int volume = 100;
   char fullpath_trk[MAXFNAME];
   char fullpath_file[MAXFNAME];
   int len;
@@ -2042,6 +2043,8 @@ static t_track *mserv_loadtrk(const char *filename)
 	  lastplay = atol(value);
 	} else if (!stricmp(token, "_duration")) {
 	  duration = atol(value);
+	} else if (!stricmp(token, "_volume")) {
+	  volume = atol(value);
 	} else if (!stricmp(token, "_miscinfo")) {
 	  strncpy(miscinfo, value, MISCINFOLEN+1);
 	  miscinfo[MISCINFOLEN] = '\0';
@@ -2154,6 +2157,7 @@ static t_track *mserv_loadtrk(const char *filename)
   track->duration = duration;
   track->random = rand();
   track->mtime = mtime;
+  track->volume = volume;
   return track;
 }
 
@@ -2674,6 +2678,7 @@ int mserv_savechanges(void)
     fprintf(fd, "_year=%d\n", track->year);
     fprintf(fd, "_genres=%s\n", track->genres);
     fprintf(fd, "_lastplay=%lu\n", (unsigned long int)track->lastplay);
+    fprintf(fd, "_volume=%d\n", track->volume);
     fprintf(fd, "_duration=%lu\n", track->duration);
     fprintf(fd, "_miscinfo=%s\n", track->miscinfo);
     for (rate = track->ratings; rate; rate = rate->next) {
@@ -3261,8 +3266,8 @@ void mserv_setplaying(t_supinfo *supinfo)
         mserv_send(cl, "\r\n", 0);
         sprintf(bit, "%d/%d", mserv_playing.track->n_album,
                 mserv_playing.track->n_track);
-        sprintf(buffer, "[] \x1B[1m%-10.10s %6.6s %-1.1s %-20.20s "
-                "%-30.30s%2ld:%02ld\x1B[0m\r\n",
+        sprintf(buffer, "[] \x1B[1m%-10.10s %7.7s %-1.1s %-20.20s "
+                "%-29.29s%2ld:%02ld\x1B[0m\r\n",
                 mserv_playing.user, bit,
                 rate && rate->rating ? mserv_ratestr(rate) : "-",
                 mserv_playing.track->author,

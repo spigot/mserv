@@ -270,7 +270,6 @@ int filter_check(const char *filter, t_track *track)
 	  /* parameter <= >= < > = == number */
 	  if (ui == 0)
 	    goto error;
-	  mserv_log("parse: %s (%d)", token, ui);
 	  switch(token[ui]) {
 	  case '<': type = 0; break;
 	  case '>': type = 1; break;

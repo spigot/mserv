@@ -1658,6 +1658,24 @@ static void mserv_cmd_volume(t_client *cl, const char *ru, const char *line)
   }
 }
 
+#if ENGINE != local
+
+static void mserv_cmd_bass(t_client *cl, const char *ru, const char *line)
+{
+  (void)ru;
+  (void)line;
+  mserv_response(cl, "NOTIMPL", NULL);
+}
+
+static void mserv_cmd_treble(t_client *cl, const char *ru, const char *line)
+{
+  (void)ru;
+  (void)line;
+  mserv_response(cl, "NOTIMPL", NULL);
+}
+
+#else
+
 static void mserv_cmd_bass(t_client *cl, const char *ru, const char *line)
 {
 #ifdef SOUNDCARD
@@ -1705,6 +1723,8 @@ static void mserv_cmd_treble(t_client *cl, const char *ru, const char *line)
   mserv_response(cl, "NOSCARD", NULL);
 #endif
 }
+
+#endif
 
 static void mserv_cmd_say(t_client *cl, const char *ru, const char *line)
 {

@@ -169,6 +169,7 @@ NOGEN	536	No such genre
 SEARCFB	537	No tracks matching filter found
 ASRCHB	538	No albums matching search pattern found
 SERROR	539	System error: '%01'
+NOTIMPL	540	Not implemented
 
 CONNECT	600	User %01 has connected
 DISCONN	601	User %01 has disconnected

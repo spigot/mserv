@@ -2027,40 +2027,47 @@ static int mserv_trackcompare_name(const void *a, const void *b)
 
 static int mserv_trackcompare_rating(const void *a, const void *b)
 {
+  const t_track *atrack = (const t_track *)a;
+  const t_track *btrack = (const t_track *)b;
+  
   /* sorts in descending order */
-  if (*(const t_track * const *)a == NULL) {
-    if (*(const t_track *const *)b == NULL)
+  if (atrack == NULL) {
+    if (btrack == NULL) {
       return 0;
-    else
-      return 1;
-  }
-  if (*(const t_track * const *)b == NULL)
-    return -1;
-  if ((*(const t_track * const *)a)->rating ==
-      (*(const t_track * const *)b)->rating) {
-    if ((*(const t_track * const *)a)->lastplay ==
-	(*(const t_track * const *)b)->lastplay) {
-      if ((*(const t_track * const *)a)->random ==
-	  (*(const t_track * const *)b)->random) {
-	return 0;
-      } else if ((*(const t_track * const *)a)->random <
-		 (*(const t_track * const *)b)->random) {
-	return 1;
-      } else {
-	return -1;
-      }
-    } else if ((*(const t_track * const *)a)->lastplay >
-	       (*(const t_track * const *)b)->lastplay) {
-      return 1;
     } else {
-      return -1;
+      return 1;
     }
-  } else if ((*(const t_track * const *)a)->rating <
-	     (*(const t_track * const *)b)->rating) {
+  }
+  
+  if (btrack == NULL)
+    return -1;
+  
+  /* Invariant: Both tracks have a rating each */
+  
+  if (atrack->rating < btrack->rating) {
     return 1;
-  } else {
+  } else if (atrack->rating > btrack->rating) {
     return -1;
   }
+  
+  /* Invariant: Both tracks have the same rating */
+  
+  if (atrack->lastplay > btrack->lastplay) {
+    return 1;
+  } else if (atrack->lastplay < btrack->lastplay) {
+    return -1;
+  }
+  
+  /* Invariant: Both tracks were last played at the same time (!) */
+  
+  if (atrack->random < btrack->random) {
+    return 1;
+  } else if (atrack->random > btrack->random) {
+    return -1;
+  }
+  
+  /* I really can't order these two tracks */
+  return 0;
 }
 
 /* Load album from disk, but don't populate it with tracks */

@@ -84,10 +84,11 @@ player_mod=prog_xmp\n\
 #############################################################################\n\
 #\n\
 # Set default random mode, either on or off.  You must still tell mserv to\n\
-# start playing (PLAY).\n\
+# start playing (PLAY command or set play=on).\n\
 # random=off\n\
 #\n\
-# Set whether or not you play should start as soon as mserv has loaded.\n\
+# Set whether or not play should start as soon as mserv has loaded.  You\n\
+# need to have items queued or random on (RANDOM command or set random=on).\n\
 # play=off\n\
 #\n\
 # Set default random factor, 0.5 is completely random, 0.6 is less random\n\
@@ -105,12 +106,21 @@ player_mod=prog_xmp\n\
 #\n\
 # Default user rating for songs that haven't been heard yet (0 - 1)\n\
 # 0=awful, 0.25=bad, 0.50=neutral, 0.75=good, 1=superb\n\
-# opt_rate_unheard=0.55\n\
+# rate_unheard=0.55\n\
 #\n\
 # Default user rating for songs that haven't been rated yet (0 - 1)\n\
 # 0=awful, 0.25=bad, 0.50=neutral, 0.75=good, 1=superb\n\
-# opt_rate_unrated=0.50\n\
-\n\
+# rate_unrated=0.50\n\
+#\n\
+# Set whether or not particular alerts are displayed\n\
+# alert_unheard=on\n\
+# alert_unrated=on\n\
+# alert_firstplay=on\n\
+#\n\
+# Set whether or not each type of user has their queue cleared on disconnect\n\
+# queue_clear_human=on\n\
+# queue_clear_computer=off\n\
+# queue_clear_rtcomputer=on\n\
 ";
 
 unsigned int defconf_size = sizeof(defconf_file)-1;

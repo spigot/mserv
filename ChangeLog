@@ -21,6 +21,8 @@ via CVS the version of the first entry is the forthcoming version number.
 - Implemented CHANNEL OUTPUT ADD and CHANNEL OUTPUT REMOVE
 - Added 'downmix' icecast option for converting to mono output
 - Added resampling at different sample rates using libsamplerate if available
+- Added options for alerting on unheard, unrated and first play of tracks
+- Added options for clearing the queue for different modes of user
 
 0.40 - Nov 1st 2003
 -------------------

@@ -17,5 +17,11 @@ extern double opt_factor;
 extern double opt_rate_unheard;
 extern double opt_rate_unrated;
 extern const char *opt_filter;
+extern unsigned int opt_alert_unheard;
+extern unsigned int opt_alert_unrated;
+extern unsigned int opt_alert_firstplay;
+extern unsigned int opt_queue_clear_human;
+extern unsigned int opt_queue_clear_computer;
+extern unsigned int opt_queue_clear_rtcomputer;
 
 int opt_read(const char *root);

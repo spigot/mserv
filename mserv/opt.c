@@ -46,6 +46,12 @@ double opt_factor = 0.6;
 double opt_rate_unheard = 0.55;
 double opt_rate_unrated = 0.50;
 const char *opt_filter = NULL;
+unsigned int opt_alert_unheard = 1;
+unsigned int opt_alert_unrated = 1;
+unsigned int opt_alert_firstplay = 1;
+unsigned int opt_queue_clear_human = 1;
+unsigned int opt_queue_clear_computer = 0;
+unsigned int opt_queue_clear_rtcomputer = 1;
 
 typedef struct {
   const char *option;
@@ -55,25 +61,31 @@ typedef struct {
 } t_opts;
 
 t_opts opt_opts[] = {
-  { "path_distconf",  "path",    &opt_path_distconf,  "config.dist" },
-  { "path_acl",       "path",    &opt_path_acl,       "acl" },
-  { "path_webacl",    "path",    &opt_path_webacl,    "webacl" },
-  { "path_logfile",   "path",    &opt_path_logfile,   "log" },
-  { "path_tracks",    "path",    &opt_path_tracks,    "tracks" },
-  { "path_trackinfo", "path",    &opt_path_trackinfo, "trackinfo" },
-  { "path_playout",   "path",    &opt_path_playout,   "player.out" },
-  { "path_startout",  "path",    &opt_path_startout,  "startup.out" },
-  { "path_idea",      "path",    &opt_path_idea,      "idea" },
-  { "path_language",  "path",    &opt_path_language,  DATADIR "/english.lang"},
-  { "path_libdir",    "path",    &opt_path_libdir,    PKGLIBDIR },
-  { "port",           "int",     &opt_port,           "4444" },
-  { "gap",            "double",  &opt_gap,            "1" },
-  { "play",           "switch",  &opt_play,           "off" },
-  { "random",         "switch",  &opt_random,         "off" },
-  { "factor",         "double",  &opt_factor,         "0.60" },
-  { "rate_unheard",   "double",  &opt_rate_unheard,   "0.55" },
-  { "rate_unrated",   "double",  &opt_rate_unrated,   "0.50" },
-  { "filter",         "string",  &opt_filter,         "" },
+  { "path_distconf",  "path", &opt_path_distconf,  "config.dist" },
+  { "path_acl",       "path", &opt_path_acl,       "acl" },
+  { "path_webacl",    "path", &opt_path_webacl,    "webacl" },
+  { "path_logfile",   "path", &opt_path_logfile,   "log" },
+  { "path_tracks",    "path", &opt_path_tracks,    "tracks" },
+  { "path_trackinfo", "path", &opt_path_trackinfo, "trackinfo" },
+  { "path_playout",   "path", &opt_path_playout,   "player.out" },
+  { "path_startout",  "path", &opt_path_startout,  "startup.out" },
+  { "path_idea",      "path", &opt_path_idea,      "idea" },
+  { "path_language",  "path", &opt_path_language,  DATADIR "/english.lang"},
+  { "path_libdir",    "path", &opt_path_libdir,    PKGLIBDIR },
+  { "port",                   "int",    &opt_port,                   "4444" },
+  { "gap",                    "double", &opt_gap,                    "1" },
+  { "play",                   "switch", &opt_play,                   "off" },
+  { "random",                 "switch", &opt_random,                 "off" },
+  { "factor",                 "double", &opt_factor,                 "0.60" },
+  { "rate_unheard",           "double", &opt_rate_unheard,           "0.55" },
+  { "rate_unrated",           "double", &opt_rate_unrated,           "0.50" },
+  { "filter",                 "string", &opt_filter,                 "" },
+  { "alert_unheard",          "switch", &opt_alert_unheard,          "on" },
+  { "alert_unrated",          "switch", &opt_alert_unrated,          "on" },
+  { "alert_firstplay",        "switch", &opt_alert_firstplay,        "on" },
+  { "queue_clear_human",      "switch", &opt_queue_clear_human,      "on" },
+  { "queue_clear_computer",   "switch", &opt_queue_clear_computer,   "off" },
+  { "queue_clear_rtcomputer", "switch", &opt_queue_clear_rtcomputer, "on" },
   { NULL, NULL, NULL, NULL }
 };
 

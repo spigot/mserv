@@ -876,7 +876,10 @@ void mserv_close(t_client *cl)
     mserv_broadcast("DISCONN", "%s", cl->user);
   if (cl->userlevel != level_guest && cl->mode != mode_computer)
     mserv_recalcratings();
-  if (cl->mode != mode_computer) {
+  /* clear queue of user if appropriate */
+  if ((cl->mode == mode_human && opt_queue_clear_human) ||
+      (cl->mode == mode_computer && opt_queue_clear_computer) ||
+      (cl->mode == mode_rtcomputer && opt_queue_clear_rtcomputer)) {
     a = NULL;
     b = mserv_queue;
     c = mserv_queue ? mserv_queue->next : NULL;
@@ -3403,11 +3406,14 @@ void mserv_setplaying(t_supinfo *supinfo)
         if (!mserv_playing.track->genres[0])
           mserv_response(cl, "GENREME", NULL); /* set my genre! */
         if (!mserv_playing.track->ratings) {
-          mserv_response(cl, "FPLAY", NULL);
+          if (opt_alert_firstplay)
+            mserv_response(cl, "FPLAY", NULL);
         } else if (!rate) {
-          mserv_response(cl, "RATEME2", NULL); /* unheard */
+          if (opt_alert_unheard)
+            mserv_response(cl, "RATEME2", NULL); /* unheard */
         } else if (!rate->rating) {
-          mserv_response(cl, "RATEME1", NULL); /* unrated */
+          if (opt_alert_unrated)
+            mserv_response(cl, "RATEME1", NULL); /* unrated */
         }
       } else if (cl->mode == mode_rtcomputer) {
         sprintf(buffer, "=%d\t%s\t%d\t%d\t%s\t%s\t%s\t%ld:%02ld\r\n",

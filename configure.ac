@@ -103,6 +103,7 @@ dnl Checks for typedefs, structures, and compiler characteristics
 
 dnl Checks for functions
 
+  AC_FUNC_SNPRINTF
   AC_CHECK_FUNCS(strsep)
 
 dnl libtool / libltdl
@@ -132,7 +133,8 @@ dnl Makefile substitutions
 dnl C flags etc.
 
   if [[ "x$WARN" != "xno" ]]; then
-    CFLAGS="$CFLAGS -W -Wall -Wstrict-prototypes -Wformat -Wunused -Wsign-compare -Wunreachable-code -Winline -Wdisabled-optimization -Werror"
+    CFLAGS="$CFLAGS -W -Wall -Wstrict-prototypes -Wformat -Wunused -Wsign-compare -Winline -Wdisabled-optimization -Werror"
+    #CFLAGS="$CFLAGS -W -Wall -Wstrict-prototypes -Wformat -Wunused -Wsign-compare -Wunreachable-code -Winline -Wdisabled-optimization -Werror"
   fi
 
   if [[ "x$DEBUG" != "xno" ]]; then

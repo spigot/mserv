@@ -590,7 +590,7 @@ static void mserv_cmd_status(t_client *cl, const char *ru, const char *line)
       return;
     }
     mserv_timersub(&now, &mserv_playing_start, &ago);
-    a = output_paused(mserv_channel) ? "STATPAU" : "STATPLA";
+    a = channel_paused(mserv_channel) ? "STATPAU" : "STATPLA";
     mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d.%d\t%s"
                    "\t%.2f",
 		   mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
@@ -923,7 +923,7 @@ static void mserv_cmd_tracks(t_client *cl, const char *ru, const char *line)
   char buffer[AUTHORLEN+NAMELEN+64];
   t_album *album;
   unsigned int id;
-  int i;
+  unsigned int i;
   char *end;
   char bit[32];
   t_rating *rate;
@@ -1297,14 +1297,12 @@ static int mserv_cmd_queue_sub(t_client *cl, t_album *album, int n_track,
 
 static void mserv_cmd_play(t_client *cl, const char *ru, const char *line)
 {
+  char error[256];
+
   (void)ru;
   (void)line;
-  if (output_paused(mserv_channel)) {
-    mserv_resumeplay();
-    mserv_broadcast("RESUME", "%s\t%d\t%d\t%s\t%s", cl->user,
-		    mserv_playing.track->n_album,
-		    mserv_playing.track->n_track, mserv_playing.track->author,
-		    mserv_playing.track->name);
+  if (channel_paused(mserv_channel)) {
+    mserv_resumeplay(cl);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
       mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
@@ -1315,7 +1313,6 @@ static void mserv_cmd_play(t_client *cl, const char *ru, const char *line)
     }
     return;
   }
-
   if (mserv_playing.track) {
     mserv_response(cl, "ALRPLAY", "%d\t%d\t%s\t%s",
 		   mserv_playing.track->n_album,
@@ -1325,15 +1322,17 @@ static void mserv_cmd_play(t_client *cl, const char *ru, const char *line)
   }
   if (mserv_player_playnext()) {
     mserv_response(cl, "NOMORE", NULL);
-  } else {
-    output_start(mserv_channel);
-    if (cl->mode != mode_human) {
-      /* humans will already have seen broadcast */
-      mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
-		     mserv_playing.track->n_album,
-		     mserv_playing.track->n_track, mserv_playing.track->author,
-		     mserv_playing.track->name);
-    }
+    return;
+  }
+  if (channel_start(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
+    mserv_log("Failed to commence play on channel %s: %s", mserv_channel->name,
+              error);
+  if (cl->mode != mode_human) {
+    /* humans will already have seen broadcast */
+    mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
+                   mserv_playing.track->n_album,
+                   mserv_playing.track->n_track, mserv_playing.track->author,
+                   mserv_playing.track->name);
   }
 }
 
@@ -1341,7 +1340,7 @@ static void mserv_cmd_stop(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
-  if (!output_stopped(mserv_channel)) {
+  if (!channel_stopped(mserv_channel)) {
     mserv_broadcast("STOPPED", "%s\t%d\t%d\t%s\t%s", cl->user,
 		    mserv_playing.track->n_album, mserv_playing.track->n_track,
 		    mserv_playing.track->author, mserv_playing.track->name);
@@ -1362,7 +1361,7 @@ static void mserv_cmd_pause(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
-  if (output_paused(mserv_channel)) {
+  if (channel_paused(mserv_channel)) {
     mserv_response(cl, "APAUSED", NULL);
     return;
   }
@@ -1381,17 +1380,23 @@ static void mserv_cmd_next(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
+  char error[256];
 
   if (mserv_playing.track)
     mserv_broadcast("SKIP", "%s", cl->user);
-  mserv_abortplay();
-  if (mserv_player_playnext()) {
-    mserv_broadcast("FINISH", NULL);
-    if (cl->mode != mode_human)
-      mserv_response(cl, "NOMORE", NULL);
-    return;
+  if (mserv_playing.track == mserv_player_playing.track) {
+    /* we haven't moved to the next track yet */
+    mserv_abortplay();
+    if (mserv_player_playnext()) {
+      mserv_broadcast("FINISH", NULL);
+      if (cl->mode != mode_human)
+        mserv_response(cl, "NOMORE", NULL);
+      return;
+    }
   }
-  output_start(mserv_channel);
+  if (channel_start(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
+    mserv_log("Failed to commence play on channel %s: %s", mserv_channel->name,
+              error);
   if (cl->mode != mode_human) {
     /* humans will already have seen broadcast */
     mserv_response(cl, "NEXT", "%d\t%d\t%s\t%s",
@@ -1856,7 +1861,8 @@ static void mserv_cmd_set_genre(t_client *cl, const char *ru,
   char *end;
   t_track *track;
   t_album *album;
-  int n, i;
+  int n;
+  unsigned int ui;
 
   /* <album> [<track>] <genre>[,genre]* */
 
@@ -1908,10 +1914,10 @@ static void mserv_cmd_set_genre(t_client *cl, const char *ru,
       mserv_response(cl, "NOALBUM", NULL);
       return;
     }
-    for (i = 0; i < album->ntracks; i++) {
-      if (album->tracks[i]) {
+    for (ui = 0; ui < album->ntracks; ui++) {
+      if (album->tracks[ui]) {
 	/* altertrack invalidates track pointer */
-	if (mserv_altertrack(album->tracks[i], NULL, NULL, str[n-1],
+	if (mserv_altertrack(album->tracks[ui], NULL, NULL, str[n-1],
 			     NULL) == NULL) {
 	  if (cl->mode != mode_human)
 	    mserv_response(cl, "MEMORYR", NULL);
@@ -1982,7 +1988,8 @@ static void mserv_cmd_set_volume(t_client *cl, const char *ru, const char *line)
 {
   char linespl[LINEBUFLEN];
   char *str[4];
-  unsigned int n_album, n_track, volume;
+  unsigned int n_album, n_track;
+  int volume;
   char *end;
   t_track *track;
 
@@ -2196,7 +2203,8 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
   int val;
   char *end;
   t_track *track, *track2;
-  int n, i;
+  int n;
+  unsigned int ui;
   t_album *album;
   t_rating *rate, *rate2;
   int ratetoo;
@@ -2272,8 +2280,8 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
     if (cl->mode == mode_human) {
       ratetoo = 0;
       for (album = mserv_albums; album; album = album->next) {
-	for (i = 0; i < album->ntracks; i++) {
-	  track2 = album->tracks[i];
+	for (ui = 0; ui < album->ntracks; ui++) {
+	  track2 = album->tracks[ui];
 	  if (track2 && track2 != track &&
 	      !stricmp(track2->author, track->author) &&
 	      !stricmp(track2->name, track->name)) {
@@ -2309,11 +2317,11 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
     }
     rate = NULL;
     total = 0;
-    for (i = 0; i < album->ntracks; i++) {
-      if (album->tracks[i]) {
-	if ((rate2 = mserv_getrate(cl->user, album->tracks[i])) == NULL ||
+    for (ui = 0; ui < album->ntracks; ui++) {
+      if (album->tracks[ui]) {
+	if ((rate2 = mserv_getrate(cl->user, album->tracks[ui])) == NULL ||
 	    rate2->rating == 0) { /* 0 means heard, not rated */
-	  if ((rate = mserv_ratetrack(cl, &album->tracks[i], val)) == NULL) {
+	  if ((rate = mserv_ratetrack(cl, &album->tracks[ui], val)) == NULL) {
 	    mserv_broadcast("MEMORY", NULL);
 	    if (cl->mode != mode_human)
 	      mserv_response(cl, "MEMORYR", NULL);
@@ -2347,15 +2355,15 @@ static void mserv_cmd_check(t_client *cl, const char *ru, const char *line)
   t_author *author;
   t_rating *rate1, *rate2;
   int f = 0;
-  int i;
+  unsigned int ui;
 
   if (*line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
   for (author = mserv_authors; author; author = author->next) {
-    for (i = 0; i < author->ntracks; i++) {
-      if ((track1 = author->tracks[i]) && (track2 = author->tracks[i+1])) {
+    for (ui = 0; ui < author->ntracks; ui++) {
+      if ((track1 = author->tracks[ui]) && (track2 = author->tracks[ui+1])) {
 	if (!stricmp(track1->author, track2->author) &&
 	    !stricmp(track1->name, track2->name)) {
 	  rate1 = mserv_getrate(ru, track1);
@@ -2422,15 +2430,15 @@ static void mserv_cmd_search(t_client *cl, const char *ru, const char *line)
   t_author *author;
   t_rating *rate;
   int f = 0;
-  int i;
+  unsigned int ui;
 
   if (!*line) {
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
   for (author = mserv_authors; author; author = author->next) {
-    for (i = 0; i < author->ntracks; i++) {
-      if ((track = author->tracks[i])) {
+    for (ui = 0; ui < author->ntracks; ui++) {
+      if ((track = author->tracks[ui])) {
 	if ((stristr(track->author, line)) ||
 	    (stristr(track->name, line))) {
 	  if (!f) {
@@ -2512,7 +2520,7 @@ static void mserv_cmd_searchf(t_client *cl, const char *ru, const char *line)
   t_author *author;
   t_rating *rate;
   int f = 0;
-  int i;
+  unsigned int ui;
 
   if (!*line) {
     mserv_response(cl, "BADPARM", NULL);
@@ -2523,8 +2531,8 @@ static void mserv_cmd_searchf(t_client *cl, const char *ru, const char *line)
     return;
   }
   for (author = mserv_authors; author; author = author->next) {
-    for (i = 0; i < author->ntracks; i++) {
-      if ((track = author->tracks[i])) {
+    for (ui = 0; ui < author->ntracks; ui++) {
+      if ((track = author->tracks[ui])) {
 	if (filter_check(line, track) == 1) {
 	  if (!f) {
 	    f = 1;
@@ -2696,7 +2704,8 @@ static void mserv_cmd_x_authors(t_client *cl, const char *ru,
 {
   char buffer[AUTHORLEN+NAMELEN+64];
   t_author *author;
-  int total, rated, i;
+  int total, rated;
+  unsigned int ui;
   t_rating *rate;
 
   (void)line;
@@ -2704,10 +2713,10 @@ static void mserv_cmd_x_authors(t_client *cl, const char *ru,
   for (author = mserv_authors; author; author = author->next) {
     total = 0;
     rated = 0;
-    for (i = 0; i < author->ntracks; i++) {
-      if (author->tracks[i]) {
+    for (ui = 0; ui < author->ntracks; ui++) {
+      if (author->tracks[ui]) {
 	total++;
-	rate = mserv_getrate(ru, author->tracks[i]);
+	rate = mserv_getrate(ru, author->tracks[ui]);
 	if (rate && rate->rating) /* rate->rating being 0 means 'heard' */
 	  rated++;
       }
@@ -2748,7 +2757,7 @@ static void mserv_cmd_x_authorinfo(t_client *cl, const char *ru,
   int total, rated;
   t_author *author;
   t_rating *rate;
-  int i;
+  unsigned int ui;
 
   if (!*line) {
     mserv_response(cl, "BADPARM", NULL);
@@ -2763,10 +2772,10 @@ static void mserv_cmd_x_authorinfo(t_client *cl, const char *ru,
     if (author->id == n_author) {
       total = 0;
       rated = 0;
-      for (i = 0; i < author->ntracks; i++) {
-	if (author->tracks[i]) {
+      for (ui = 0; ui < author->ntracks; ui++) {
+	if (author->tracks[ui]) {
 	  total++;
-	  rate = mserv_getrate(ru, author->tracks[i]);
+	  rate = mserv_getrate(ru, author->tracks[ui]);
 	  if (rate && rate->rating) /* rate->rating being 0 means 'heard' */
 	    rated++;
 	}
@@ -2785,7 +2794,7 @@ static void mserv_cmd_x_authortracks(t_client *cl, const char *ru,
   unsigned int n_author;
   char *end;
   t_author *author;
-  int i;
+  unsigned int ui;
   char bit[32];
   char buffer[AUTHORLEN+NAMELEN+64];
   t_rating *rate;
@@ -2802,20 +2811,20 @@ static void mserv_cmd_x_authortracks(t_client *cl, const char *ru,
   for (author = mserv_authors; author; author = author->next) {
     if (author->id == n_author) {
       mserv_responsent(cl, "AUTHTRK", "%d\t%s", author->id, author->name);
-      for (i = 0; i < author->ntracks; i++) {
-	if (author->tracks[i]) {
-	  rate = mserv_getrate(ru, author->tracks[i]);
-	  sprintf(bit, "%d/%d", author->tracks[i]->n_album,
-		  author->tracks[i]->n_track);
+      for (ui = 0; ui < author->ntracks; ui++) {
+	if (author->tracks[ui]) {
+	  rate = mserv_getrate(ru, author->tracks[ui]);
+	  sprintf(bit, "%d/%d", author->tracks[ui]->n_album,
+		  author->tracks[ui]->n_track);
 	  if (cl->mode == mode_human) {
 	    sprintf(buffer, "[] %7.7s %-1.1s %-20.20s %-44.44s\r\n", bit,
 		    rate && rate->rating ? mserv_ratestr(rate) : "-",
-		    author->tracks[i]->author, author->tracks[i]->name);
+		    author->tracks[ui]->author, author->tracks[ui]->name);
 	    mserv_send(cl, buffer, 0);
 	  } else {
 	    sprintf(buffer, "%d\t%d\t%d\t%s\t%s\t%s\r\n", author->id,
-		    author->tracks[i]->n_album, author->tracks[i]->n_track,
-		    author->tracks[i]->author, author->tracks[i]->name,
+		    author->tracks[ui]->n_album, author->tracks[ui]->n_track,
+		    author->tracks[ui]->author, author->tracks[ui]->name,
 		    mserv_ratestr(rate));
 	    mserv_send(cl, buffer, 0);
 	  }

@@ -18,14 +18,25 @@
 #define _BSD_SOURCE 1
 #define __EXTENSIONS__ 1
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <errno.h>
 #include <ltdl.h>
 
 #include "mserv.h"
+#include "misc.h"
+#include "opt.h"
+
+#include "module.h"
 
 static t_modinfo *module_list;
 
-#define MODULE_FUNC(name) #name, MSERV_STRUCTOFFSET(t_modinfo, name)
+#define MODULE_FUNC(name) { #name, MSERV_STRUCTOFFSET(t_modinfo, name) }
 struct _t_module_funcs {
   char *name;
   int offset;
@@ -37,20 +48,56 @@ struct _t_module_funcs {
   MODULE_FUNC(output_poll),
   MODULE_FUNC(output_sync),
   MODULE_FUNC(output_volume),
-  NULL, 0
+  { NULL, 0 }
 };
 
 int module_init(char *error, int errsize)
 {
-  LTDL_SET_PRELOADED_SYMBOLS();
+  DIR *d;
+  struct dirent *dirent;
+  struct stat statbuf;
+  char fname[256];
+
   if (lt_dlinit()) {
     snprintf(error, errsize, "failed to initialise libltdl: %s", lt_dlerror());
     return MSERV_FAILURE;
   }
+  if ((d = opendir(opt_path_libdir)) == NULL) {
+    snprintf(error, errsize, "failed to opendir '%s': %s", opt_path_libdir,
+             strerror(errno));
+    return MSERV_FAILURE;
+  }
+  while ((dirent = readdir(d)) != NULL) {
+    if (snprintf(fname, sizeof(fname), "%s/%s", opt_path_libdir, 
+                 dirent->d_name) >= (int)sizeof(fname)) {
+      snprintf(error, errsize, "file name too long loading module: %s/%s",
+               opt_path_libdir, dirent->d_name);
+      return MSERV_FAILURE;
+    }
+    if (strchr(dirent->d_name, '.'))
+      continue; /* skip the .la and .a file */
+    if (stat(fname, &statbuf) == -1) {
+      snprintf(error, errsize, "failed to stat potential module '%s': %s",
+               fname, strerror(errno));
+      return MSERV_FAILURE;
+    }
+    if (S_ISREG(statbuf.st_mode)) {
+      if (module_load(dirent->d_name, error, errsize) != MSERV_SUCCESS)
+        return MSERV_FAILURE;
+    }
+  }
+  if (closedir(d) == -1) {
+    snprintf(error, errsize, "failed to closedir '%s': %s", opt_path_libdir,
+             strerror(errno));
+    return MSERV_FAILURE;
+  }
+  return MSERV_SUCCESS;
 }
 
 int module_final(char *error, int errsize)
 {
+  (void)error;
+  (void)errsize;
   lt_dlexit();
   return MSERV_SUCCESS;
 }
@@ -62,14 +109,14 @@ int module_load(char *name, char *error, int errsize)
   char fname[1024];
   void *sym;
   t_module *module;
-  int flags = 0;
   int i;
 
   if (strlen(name) + 64 > sizeof(fname)) {
     snprintf(error, errsize, "module name too long");
     goto failed;
   }
-  if (snprintf(fname, sizeof(fname), "%s/%s", LIBDIR, name) >= sizeof(fname)) {
+  if (snprintf(fname, sizeof(fname), "%s/%s", opt_path_libdir,
+               name) >= (int)sizeof(fname)) {
     snprintf(error, errsize, "module path too long");
     goto failed;
   }
@@ -98,6 +145,7 @@ int module_load(char *name, char *error, int errsize)
     snprintf(error, errsize, "out of memory creating modlist structure");
     goto failed;
   }
+  memset(mi, 0, sizeof(t_modinfo)); /* clear all pointers */
   mi->dlh = dlh;
   mi->module = module;
   mi->next = NULL;
@@ -117,18 +165,25 @@ int module_load(char *name, char *error, int errsize)
 
   for (i = 0; module_funcs[i].name; i++) {
     snprintf(fname, sizeof(fname), "%s_%s", name, module_funcs[i].name);
+    if (mserv_debug)
+      mserv_log("looking for '%s'", fname);
     sym = lt_dlsym(dlh, fname);
-    *(void **)(mi + module_funcs[i].offset) = (void *)(sym ? sym : NULL);
+    *(void **)((char *)mi + module_funcs[i].offset) =
+        (void *)(sym ? sym : NULL);
     if (sym && mserv_debug)
-      mserv_log("found %s", fname);
+      mserv_log("found '%s'", fname);
   }
 
   /* call initialiser if present */
 
-  if (mi->init && mi->init(error, errsize) != MSERV_SUCCESS)
-    goto failed;
+  if (mi->init) {
+    if (mserv_debug)
+      mserv_log("calling initialiser...");
+    if (mi->init(error, errsize) != MSERV_SUCCESS)
+      goto failed;
+  }
 
-  mserv_log("Module '%s' (%s) loaded.\n", name, module->version);
+  mserv_log("Module '%s' (%s) initialised.\n", name, module->version);
 
   return MSERV_SUCCESS;
 failed:

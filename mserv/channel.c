@@ -21,9 +21,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <errno.h>
+#include <sys/time.h>
+#include <time.h>
 
 #include "mserv.h"
+#include "misc.h"
 #include "channel.h"
 #include "module.h"
 
@@ -54,6 +58,8 @@
 
 int channel_init(char *error, int errsize)
 {
+  (void)error;
+  (void)errsize;
   return MSERV_SUCCESS;
 }
 
@@ -61,6 +67,8 @@ int channel_init(char *error, int errsize)
 
 int channel_final(char *error, int errsize)
 {
+  (void)error;
+  (void)errsize;
   return MSERV_SUCCESS;
 }
 
@@ -101,6 +109,7 @@ int channel_create(t_channel **channel, const char *name,
     return MSERV_FAILURE;
   }
   c->buffer_bytes = 0;
+  c->lasttime.tv_sec = 0;
   *channel = c;
   return MSERV_SUCCESS;
 }
@@ -114,7 +123,7 @@ int channel_addoutput(t_channel *c, const char *modname, const char *uri,
   t_modinfo *mi;
  
   if ((mi = module_find(modname)) == NULL) {
-    snprintf(error, errsize, "module %s not loaded");
+    snprintf(error, errsize, "module %s not loaded", modname);
     return MSERV_FAILURE;
   }
   if (strlen(uri) >= sizeof(ol->uri)) {
@@ -135,11 +144,25 @@ int channel_addoutput(t_channel *c, const char *modname, const char *uri,
   ol->uri[sizeof(ol->uri) - 1] = '\0';
   strncpy(ol->params, params, sizeof(ol->params));
   ol->params[sizeof(ol->params) - 1] = '\0';
+  if (mi->output_create == NULL) {
+    snprintf(error, errsize, "module '%s' has no output creation function",
+             modname);
+    return MSERV_FAILURE;
+  }
+  if (mserv_debug)
+    mserv_log("calling module '%s' output_create function", modname);
   if (mi->output_create(c, uri, params, &ol->private,
                         error, errsize) != MSERV_SUCCESS)
     return MSERV_FAILURE;
-  for (olend = &c->output; (*olend)->next; olend = &((*olend)->next)) ;
-  (*olend)->next = ol;
+  if (mserv_debug)
+    mserv_log("output_create function returned success");
+  if (c->output) {
+    for (olend = &c->output; (*olend)->next; olend = &((*olend)->next)) ;
+    (*olend)->next = ol;
+  } else {
+    c->output = ol;
+  }
+  return MSERV_SUCCESS;
 }
 
 /* remove output from channel stream (modname or uri can be NULL) */
@@ -177,30 +200,39 @@ int channel_removeoutput(t_channel *c, const char *modname,
   return MSERV_SUCCESS;
 }
 
+/* TODO: volume setter/getter for each output stream */
+
 /* get or set current volume */
 
-int channel_volume(t_channel *c, int volume, char *error, int errsize)
+int channel_volume(t_channel *c, int *volume, char *error, int errsize)
 {
   t_output_list *ol;
-  int ret;
+  int matches = 0;
 
   /* look for primary volume controller */
   for (ol = c->output; ol; ol = ol->next) {
-    if (ol->modinfo->flags | MSERV_MODFLAG_OUTPUT_VOLUME_PRIMARY &&
-        ol->modinfo->output_volume)
-      return ol->modinfo->output_volume(c, ol->private, volume,
-                                        error, errsize);
-  }
-  /* there is no primary volume controller, set all of them */
-  for (ol = c->output; ol; ol = ol->next) {
     if (ol->modinfo->output_volume) {
-      ret = ol->modinfo->output_volume(c, ol->private, volume, 
-                                       error, errsize);
-      if (ret != MSERV_SUCCESS)
-        return ret;
+      if (ol->modinfo->flags | MSERV_MODFLAG_OUTPUT_VOLUME_PRIMARY)
+        return ol->modinfo->output_volume(c, ol->private, volume,
+                                          error, errsize);
+      matches++;
     }
   }
-  return MSERV_FAILURE;
+  /* if there was only one volume able output stream, or we're reading, use
+   * the first able output stream */
+  if (matches == 1 || *volume == -1) {
+    for (ol = c->output; ol; ol = ol->next) {
+      if (ol->modinfo->output_volume)
+        return ol->modinfo->output_volume(c, ol->private, volume,
+                                          error, errsize);
+    }
+  }
+  /* writing to multiple output streams */
+  for (ol = c->output; ol; ol = ol->next) {
+    if (ol->modinfo->output_volume)
+      ol->modinfo->output_volume(c, ol->private, volume, error, errsize);
+  }
+  return MSERV_SUCCESS;
 }
 
 /* close channel stream */
@@ -222,6 +254,7 @@ int channel_close(t_channel *c, char *error, int errsize)
   free(c->buffer_char);
   free(c->buffer);
   free(c);
+  return MSERV_SUCCESS;
 }
 
 /* add an input stream (file handle)
@@ -230,8 +263,8 @@ int channel_close(t_channel *c, char *error, int errsize)
  */
 
 int channel_addinput(t_channel *c, int fd, t_supinfo *track_supinfo,
-                     int samplerate, int channels, double delay_start,
-                     double delay_end,
+                     unsigned int samplerate, unsigned int channels, 
+                     double delay_start, double delay_end,
                      char *error, int errsize)
 {
   t_output_inputstream *i, **tail;
@@ -287,18 +320,12 @@ int channel_sync(t_channel *c, char *error, int errsize)
 {
   char ierror[256];
   struct timeval now, ago;
-  int sync;
   t_output_list *ol;
   int ret;
-
-  unsigned int chan, i;
-  unsigned int pages;
-  int datasize, reqbufsize;
-  char *newbuf;
+  unsigned int ui;
   short int *sp;
   float *fp;
-  float **vorbbuf;
-  int words;
+  unsigned int words;
 
   /* poll modules */
   for (ol = c->output; ol; ol = ol->next) {
@@ -338,10 +365,10 @@ int channel_sync(t_channel *c, char *error, int errsize)
         mserv_log("buf left = %d", (c->buffer_samples * 2) - c->buffer_bytes);
       }
       /* we need to channel some silence (GAP) to start with */
-      i = mserv_MIN(c->buffer_size - c->buffer_bytes, c->input->zeros_start);
-      memset(c->buffer_char + c->buffer_bytes, 0, i);
-      c->input->zeros_start-= i;
-      c->buffer_bytes+= i;
+      ui = mserv_MIN(c->buffer_size - c->buffer_bytes, c->input->zeros_start);
+      memset(c->buffer_char + c->buffer_bytes, 0, ui);
+      c->input->zeros_start-= ui;
+      c->buffer_bytes+= ui;
       if (mserv_debug)
         mserv_log("buffer_bytes = %d (post)", c->buffer_bytes);
       /* we may have only had a bit of silence and can fill with some data */
@@ -379,8 +406,8 @@ int channel_sync(t_channel *c, char *error, int errsize)
         words = (ret / 2) + ((c->buffer_bytes & 1) && (ret & 1) ? 1 : 0);
         sp = (signed short *)c->buffer_char + (c->buffer_bytes / 2);
         fp = (float *)c->buffer + (c->buffer_bytes / 2);
-        for (i = 0; i < words; i++)
-          fp[i] = (sp[i] / 32768.f) *
+        for (ui = 0; ui < words; ui++)
+          fp[ui] = (sp[ui] / 32768.f) *
               ((float)c->input->supinfo.track->volume / 100);
         c->buffer_bytes += ret;
       }
@@ -396,10 +423,10 @@ int channel_sync(t_channel *c, char *error, int errsize)
           mserv_log("buffer_bytes = %d (pre)", c->buffer_bytes);
         }
         /* we need to channel some silence (GAP) to end with */
-        i = mserv_MIN(c->buffer_size - c->buffer_bytes, c->input->zeros_end);
-        memset(c->buffer + c->buffer_bytes, 0, i);
-        c->input->zeros_end-= i;
-        c->buffer_bytes+= i;
+        ui = mserv_MIN(c->buffer_size - c->buffer_bytes, c->input->zeros_end);
+        memset(c->buffer + c->buffer_bytes, 0, ui);
+        c->input->zeros_end-= ui;
+        c->buffer_bytes+= ui;
         if (mserv_debug)
           mserv_log("buffer_bytes = %d (post)", c->buffer_bytes);
       }
@@ -412,11 +439,11 @@ int channel_sync(t_channel *c, char *error, int errsize)
 
   if (c->lasttime.tv_sec != 0) {
     mserv_timersub(&now, &c->lasttime, &ago);
-    if (ago.tv_sec == 0)
+    if (ago.tv_sec == 0) /* a second hasn't passed */
       return MSERV_SUCCESS;
   }
   if (mserv_debug)
-    mserv_log("channel %s: next interval");
+    mserv_log("channel %s: next interval", c->name);
 
   if (c->lasttime.tv_sec == 0) {
     /* this is the first buffer we've had - set lasttime to be half a second
@@ -431,12 +458,18 @@ int channel_sync(t_channel *c, char *error, int errsize)
   }
   for (ol = c->output; ol; ol = ol->next) {
     if (ol->modinfo->output_sync) {
+      if (mserv_debug)
+        mserv_log("calling module '%s' output_sync function",
+                  ol->modinfo->module->name);
       if (ol->modinfo->output_sync(c, ol->private, 
                                    ierror, sizeof(ierror)) != MSERV_SUCCESS)
         mserv_log("channel %s: %s output sync: %s", c->name,
                   ol->modinfo->module->name, ierror);
+      if (mserv_debug)
+        mserv_log("output_sync function returned success");
     }
   }
+  c->buffer_bytes = 0;
   return MSERV_SUCCESS;
 }
 
@@ -478,6 +511,8 @@ int channel_stop(t_channel *c, char *error, int errsize)
 {
   t_output_inputstream *i, *next;
 
+  (void)error;
+  (void)errsize;
   if (c->stopped)
     return MSERV_SUCCESS;
   mserv_log("channel '%s' stopped playing", c->name);
@@ -497,6 +532,9 @@ int channel_stop(t_channel *c, char *error, int errsize)
 
 int channel_start(t_channel *c, char *error, int errsize)
 {
+  (void)error;
+  (void)errsize;
+
   if (!c->stopped)
     return MSERV_SUCCESS;
   mserv_log("channel '%s' started playing", c->name);
@@ -508,6 +546,9 @@ int channel_start(t_channel *c, char *error, int errsize)
 
 int channel_pause(t_channel *c, char *error, int errsize)
 {
+  (void)error;
+  (void)errsize;
+
   if (c->paused)
     return MSERV_SUCCESS;
   mserv_log("channel '%s' paused", c->name);
@@ -519,6 +560,8 @@ int channel_pause(t_channel *c, char *error, int errsize)
 
 int channel_unpause(t_channel *c, char *error, int errsize)
 {
+  (void)error;
+  (void)errsize;
   if (!c->paused)
     return MSERV_SUCCESS;
   mserv_log("channel '%s' resumed", c->name);

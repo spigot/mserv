@@ -67,7 +67,6 @@ static int mserv_nextid_album = 1;
 static int mserv_nextid_track = 1;
 static int mserv_player_pid = 0;
 static int mserv_player_pipe = -1;
-static t_supinfo mserv_player_playing;
 static int mserv_started = 0;
 static char mserv_filter[FILTERLEN+1] = "";
 static double mserv_gap = 0;
@@ -84,6 +83,7 @@ t_album *mserv_albums = NULL;
 t_queue *mserv_queue = NULL;
 t_supinfo *mserv_history[HISTORYLEN];
 t_supinfo mserv_playing;
+t_supinfo mserv_player_playing;
 struct timeval mserv_playing_start;
 t_acl *mserv_acl = NULL;
 int mserv_shutdown = 0;
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
   int populate;
   struct stat statbuf;
   char *m = NULL;
-  char error[128];
+  char error[256];
   int badparams = 0;
 
   progname = argv[0];
@@ -2226,6 +2226,7 @@ int mserv_addqueue(t_client *cl, t_track *track)
    * position we've found where this occurs */
   q = last ? last->next : mserv_queue;
   newpos = -1;
+  newpos_last = NULL;
   for (qpos = 0; q && (newpos == -1 || newpos < qpos); q = q->next, qpos++) {
     /* lets look at this song and see if this user has queued another song */
     for (ppos = qpos + 1, last = q, p = q->next;
@@ -2273,10 +2274,12 @@ int mserv_player_playnext(void)
   char *strbuf;
   const char *player;
   int playerpipe[2];
+  char error[256];
 
   if (mserv_queue == NULL) { /* no more tracks to play! */
     if (!mserv_random) {
-      channel_stop(mserv_channel);
+      if (channel_stop(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
+        mserv_log("Failed to stop channel %s: %s", mserv_channel->name, error);
       return 1;
     }
     total = 0;
@@ -2369,8 +2372,13 @@ int mserv_player_playnext(void)
   close(playerpipe[1]);
   mserv_player_pipe = playerpipe[0];
   mserv_player_pid = pid;
-  output_addinput(mserv_channel, mserv_player_pipe, &mserv_player_playing,
-                  44100, 2, 1, 0, mserv_gap);
+  if (channel_addinput(mserv_channel, mserv_player_pipe, &mserv_player_playing,
+                       44100, 2, 0, mserv_gap,
+                       error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to add input to channel %s: %s", mserv_channel->name,
+              error);
+    /* continue anyway? */
+  }
   return 0;
 }
 
@@ -2394,10 +2402,12 @@ static const char *mserv_getplayer(char *fname)
 void mserv_abortplay(void)
 {
   int pid, st, killed;
-  int vol = -1;
   int x;
+  char error[256];
 
-  output_stop(mserv_channel); /* should cause a SIGPIPE in child */
+  /* channel_stop probably will cause a SIGPIPE in the child */
+  if (channel_stop(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
+    mserv_log("Failed to stop channel %s: %s\n", mserv_channel->name, error);
   if (mserv_player_playing.track) {
     if (kill(mserv_player_pid, 0) == 0) {
       /* our process exists */
@@ -2466,20 +2476,34 @@ static void mserv_checkshutdown(void)
 
 void mserv_pauseplay(t_client *cl)
 {
-  if (output_paused(mserv_channel))
+  char error[256];
+
+  if (channel_paused(mserv_channel))
     return;
-  output_pause(mserv_channel, 1);
-  mserv_broadcast("PAUSE", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
-                  mserv_playing.track->n_album,
-                  mserv_playing.track->n_track,
-                  mserv_playing.track->author, mserv_playing.track->name);
+  if (channel_pause(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to pause %s: %s", mserv_channel->name, error);
+  } else {
+    mserv_broadcast("PAUSE", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
+                    mserv_playing.track->n_album,
+                    mserv_playing.track->n_track,
+                    mserv_playing.track->author, mserv_playing.track->name);
+  }
 }
 
-void mserv_resumeplay(void)
+void mserv_resumeplay(t_client *cl)
 {
-  if (!output_paused(mserv_channel))
+  char error[256];
+
+  if (!channel_paused(mserv_channel))
     return;
-  output_pause(mserv_channel, 0);
+  if (channel_unpause(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS) {
+    mserv_log("Failed to resume %s: %s", mserv_channel->name, error);
+  } else {
+    mserv_broadcast("RESUME", "%s\t%d\t%d\t%s\t%s", cl ? cl->user : "unknown",
+                    mserv_playing.track->n_album,
+                    mserv_playing.track->n_track,
+                    mserv_playing.track->author, mserv_playing.track->name);
+  }
 }
 
 void mserv_recalcratings(void)
@@ -2901,6 +2925,8 @@ static t_author *mserv_authorlist(void)
   t_track *track, *strack;
   unsigned int ui;
 
+  /* TODO: errors should free up autorlist created so far */
+
   for (track = mserv_tracks; track; track = track->next) {
     for (author = authorlist; author; author = author->next) {
       if (!stricmp(track->author, author->name))
@@ -2912,7 +2938,7 @@ static t_author *mserv_authorlist(void)
     if ((author = malloc(sizeof(t_author)+strlen(track->author)+1)) == NULL) {
       mserv_log("Out of memory creating author structure");
       mserv_broadcast("MEMORY", NULL);
-      return authorlist;
+      return NULL;
     }
     author->name = (char *)(author + 1);
     strcpy(author->name, track->author);
@@ -2921,7 +2947,7 @@ static t_author *mserv_authorlist(void)
     if ((author->tracks = malloc(author->tracks_size * 
                                  sizeof(t_track *))) == NULL) {
       mserv_log("Out of memory creating author structure");
-      return;
+      return NULL;
     }
     for (ui = 0; ui < author->tracks_size; ui++)
       author->tracks[ui] = NULL;
@@ -2934,7 +2960,7 @@ static t_author *mserv_authorlist(void)
                                         (author->tracks_size + 64) *
                                         sizeof(t_track *))) == NULL) {
             mserv_log("Out of memory increasing size of author structure");
-            return;
+            return NULL;
           }
           for (ui = author->tracks_size; ui < author->tracks_size + 64; ui++)
             author->tracks[ui] = NULL;
@@ -2945,6 +2971,7 @@ static t_author *mserv_authorlist(void)
     }
     if (author_insertsort(&authorlist, author)) {
       mserv_log("Internal authorlist error");
+      return NULL;
     }
     qsort(author->tracks, author->tracks_size, sizeof(t_track *),
 	  mserv_trackcompare_name);
@@ -3414,12 +3441,15 @@ const char *mserv_clientmodetext(t_client *cl)
 int mserv_channelvolume(t_client *cl, const char *line)
 {
   int curval, param, newval;
-  int mixer_fd;
   char *end;
   const char *p;
   int type;
+  char error[256];
 
-  curval = output_getvolume(mserv_channel);
+  curval = -1;
+  if (channel_volume(mserv_channel, &curval,
+                     error, sizeof(error)) != MSERV_SUCCESS)
+    goto badnumber;
   if (!*line)
     return curval;
   if (*line == '+' || *line == '-') {
@@ -3455,10 +3485,11 @@ int mserv_channelvolume(t_client *cl, const char *line)
     newval = 100;
   if (newval < 0)
     newval = 0;
-  newval = output_setvolume(mserv_channel, newval);
+  if (channel_volume(mserv_channel, &newval,
+                     error, sizeof(error)) != MSERV_SUCCESS)
+    goto badnumber;
   return newval;
  badnumber:
-  close(mixer_fd);
   mserv_response(cl, "NAN", NULL);
   return -1;
 }

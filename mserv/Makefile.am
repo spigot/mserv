@@ -1,7 +1,7 @@
 # Process this file with automake to produce Makefile.in
 
 INCLUDES = -I../hdr -DDATADIR=\"${datadir}\" -DBINDIR=\"${bindir}\" \
-           -DLIBDIR=\"${libdir}\" @INCLTDL@
+           -DPKGLIBDIR=\"${pkglibdir}\" @INCLTDL@
 CTAGSFLAGS = -t -d
 
 SUBDIRS = modules
@@ -13,6 +13,7 @@ mserv_SOURCES = mserv.c misc.c cmd.c acl.c mp3info.c conf.c defconf.c \
                 opt.c filter.c channel.c module.c
 
 mserv_LDADD = @MSERV_LIBS@ @LIBLTDL@
+mserv_LDFLAGS = -export-dynamic
 mserv_CPPFLAGS = @MSERV_CPPFLAGS@
 mserv_CFLAGS = @MSERV_CFLAGS@
 

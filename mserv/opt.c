@@ -39,6 +39,7 @@ const char *opt_path_playout = NULL;
 const char *opt_path_idea = NULL;
 const char *opt_path_mixer = NULL;
 const char *opt_path_language = NULL;
+const char *opt_path_libdir = NULL;
 unsigned int opt_port = 4444;
 double opt_gap = 1;
 unsigned int opt_play = 0;
@@ -70,6 +71,7 @@ t_opts opt_opts[] = {
   { "path_idea",      "path",    &opt_path_idea,      "idea" },
   { "path_mixer",     "path",    &opt_path_mixer,     "/dev/mixer" },
   { "path_language",  "path",    &opt_path_language,  DATADIR "/english.lang"},
+  { "path_libdir",    "path",    &opt_path_libdir,    PKGLIBDIR },
   { "port",           "int",     &opt_port,           "4444" },
   { "gap",            "double",  &opt_gap,            "1" },
   { "play",           "switch",  &opt_play,           "off" },

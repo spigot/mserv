@@ -9,11 +9,11 @@ int channel_addoutput(t_channel *c, const char *modname, const char *uri,
                      const char *params, char *error, int errsize);
 int channel_removeoutput(t_channel *c, const char *modname,
                         const char *uri, char *error, int errsize);
-int channel_volume(t_channel *c, int volume, char *error, int errsize);
+int channel_volume(t_channel *c, int *volume, char *error, int errsize);
 int channel_close(t_channel *c, char *error, int errsize);
 int channel_addinput(t_channel *c, int fd, t_supinfo *track_supinfo,
-                     int samplerate, int channels, double delay_start,
-                     double delay_end,
+                     unsigned int samplerate, unsigned int channels, 
+                     double delay_start, double delay_end,
                      char *error, int errsize);
 int channel_inputfinished(t_channel *c);
 int channel_sync(t_channel *c, char *error, int errsize);

@@ -10,6 +10,7 @@ extern const char *opt_path_playout;
 extern const char *opt_path_idea;
 extern const char *opt_path_mixer;
 extern const char *opt_path_language;
+extern const char *opt_path_libdir;
 extern unsigned int opt_port;
 extern double opt_gap;
 extern unsigned int opt_random;

@@ -211,11 +211,11 @@ typedef struct _t_queue {
 
 typedef struct _t_output_inputstream {
   struct _t_output_inputstream *next; /* next input in stream */
-  int fd;                  /* input file descriptor */
-  t_supinfo supinfo;       /* track sup. info. */
-  int zeros_start;         /* number of zero bytes left for delay */
-  int zeros_end;           /* number of zero bytes left for delay */
-  int announced;           /* have we announced the play of this track? */
+  int fd;                   /* input file descriptor */
+  t_supinfo supinfo;        /* track sup. info. */
+  unsigned int zeros_start; /* number of zero bytes left for delay */
+  unsigned int zeros_end;   /* number of zero bytes left for delay */
+  unsigned int announced;   /* have we announced the play of this track? */
 } t_output_inputstream;
 
 typedef struct _t_module {
@@ -241,7 +241,7 @@ typedef int (*t_module_output_poll)(t_channel *c, void *private,
                                     char *error, int errsize);
 typedef int (*t_module_output_sync)(t_channel *c, void *private,
                                     char *error, int errsize);
-typedef int (*t_module_output_volume)(t_channel *c, void *private, int volume,
+typedef int (*t_module_output_volume)(t_channel *c, void *private, int *volume,
                                       char *error, int errsize);
 
 typedef struct _t_modinfo {

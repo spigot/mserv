@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
   sin.sin_family = AF_INET;
   sin.sin_port = htons(port);
   if ((hent = gethostbyname(host)) == NULL) {
-    fprintf(stderr, "mservcmd: unknown host\n", host);
+    fprintf(stderr, "mservcmd: unknown host '%s'\n", host);
     exit(2);
   }
   sin.sin_addr = *(struct in_addr *)hent->h_addr_list[0];

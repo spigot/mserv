@@ -31,7 +31,7 @@ int mserv_addqueue(t_client *cl, t_track *track);
 int mserv_player_playnext(void);
 void mserv_pauseplay(t_client *cl);
 void mserv_abortplay(void);
-void mserv_resumeplay(void);
+void mserv_resumeplay(t_client *cl);
 void mserv_recalcratings(void);
 t_track *mserv_altertrack(t_track *track, const char *author,
                           const char *name, const char *genres,
@@ -82,6 +82,7 @@ extern t_album *mserv_albums;
 extern t_queue *mserv_queue;
 extern t_supinfo *mserv_history[];
 extern t_supinfo mserv_playing;
+extern t_supinfo mserv_player_playing;
 extern struct timeval mserv_playing_start;
 extern t_acl *mserv_acl;
 extern int mserv_shutdown;

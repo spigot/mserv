@@ -91,7 +91,7 @@ t_client *mserv_user2client(const char *user);
 void mserv_setplaying(t_channel *c, t_trkinfo *wasplaying,
                       t_trkinfo *nowplaying);
 t_trkinfo *mserv_getplaying(void);
-void mserv_addtohistory(t_trkinfo *sup);
+void mserv_addtohistory(const t_trkinfo *addme);
 const char *mserv_clientmodetext(t_client *cl);
 void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
                           unsigned int bold, const char *info);
@@ -104,7 +104,7 @@ extern t_client *mserv_clients;
 extern t_track *mserv_tracks;
 extern t_album *mserv_albums;
 extern t_queue *mserv_queue;
-extern t_trkinfo *mserv_history[];
+extern t_historyentry *mserv_history[];
 extern t_trkinfo mserv_player_playing;
 extern t_acl *mserv_acl;
 extern int mserv_shutdown;

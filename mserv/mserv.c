@@ -81,7 +81,7 @@ t_client *mserv_clients = NULL;
 t_track *mserv_tracks = NULL;
 t_album *mserv_albums = NULL;
 t_queue *mserv_queue = NULL;
-t_trkinfo *mserv_history[HISTORYLEN];
+t_historyentry *mserv_history[HISTORYLEN];
 t_acl *mserv_acl = NULL;
 int mserv_shutdown = 0;
 int mserv_random = 0;
@@ -4156,20 +4156,26 @@ void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
   mserv_send(cl, "\r\n", 0);
 }
 
-void mserv_addtohistory(t_trkinfo *sup)
+void mserv_addtohistory(const t_trkinfo *addme)
 {
-  t_trkinfo *history;
+  t_historyentry *newentry;
 
-  if ((history = malloc(sizeof(t_trkinfo))) == NULL) {
+  if ((newentry = calloc(1, sizeof(t_historyentry))) == NULL) {
     mserv_log("Out of memory adding item to history");
     mserv_broadcast("MEMORY", NULL);
   } else {
     if (mserv_history[HISTORYLEN-1])
       free(mserv_history[HISTORYLEN-1]);
-    memmove((char *)mserv_history+sizeof(t_trkinfo *), mserv_history,
-            (HISTORYLEN-1)*sizeof(t_trkinfo *));
-    mserv_history[0] = history;
-    memcpy(mserv_history[0], sup, sizeof(t_trkinfo));
+    
+    memmove((char *)mserv_history+sizeof(t_historyentry *),
+	    mserv_history,
+            (HISTORYLEN-1)*sizeof(t_historyentry *));
+    
+    newentry->track = addme->track;
+    strncpy(newentry->user, addme->user,
+	    strnlen(addme->user, USERNAMELEN+1));
+    
+    mserv_history[0] = newentry;
   }
   mserv_n_songs_started++;
 }

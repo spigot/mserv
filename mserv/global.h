@@ -223,6 +223,12 @@ typedef struct _t_trkinfo {
   char user[USERNAMELEN+1];
 } t_trkinfo;
 
+typedef struct _t_historyentry {
+  t_track *track;
+  char user[USERNAMELEN+1];
+  int durationMsecs;
+} t_historyentry;
+
 typedef struct _t_queue {
   struct _t_queue *next;
   t_trkinfo trkinfo;

@@ -665,11 +665,15 @@ static void mserv_checkchild(void)
       if (WIFEXITED(st)) {
 	if (WEXITSTATUS(st)) {
 	  mserv_log("Child process exited (%d)", WEXITSTATUS(st));
-	  mserv_broadcast("NOSPAWN", "%d\t%d\t%s\t%s",
-			  playing->track->album->id,
-			  playing->track->n_track,
-			  playing->track->author,
-			  playing->track->name);
+	  if (playing) {
+	    mserv_broadcast("NOSPAWN", "%d\t%d\t%s\t%s",
+			    playing->track->album->id,
+			    playing->track->n_track,
+			    playing->track->author,
+			    playing->track->name);
+	  } else {
+	    mserv_broadcast("NOSPAWN", "");
+	  }
 	  mserv_player_pid = 0;
 	  mserv_checkshutdown();
 	  return;
@@ -2286,11 +2290,30 @@ static t_track *mserv_loadtrk(const char *filename)
     fclose(fd);
     if (!*author) {
       mserv_log("No author specified in '%s'", fullpath_trk);
-      return NULL;
+      strncpy(author, "Unknown", AUTHORLEN+1);
+      author[AUTHORLEN] = '\0';
     }
     if (!*name) {
+      char *basename;
+      
       mserv_log("No name specified in '%s'", fullpath_trk);
-      return NULL;
+
+      /* Fall back on the filename in fullpath_trk... */
+      basename = strrchr(fullpath_trk, '/');
+      if (basename == NULL) {
+	basename = fullpath_trk;
+      } else {
+	/* Skip the '/' character */
+	basename++;
+      }
+      
+      /* ... but without the ".trk". */
+      strncpy(name, basename, NAMELEN+1);
+      if (strlen(basename) - 4 < NAMELEN) {
+	name[strlen(basename) - 4] = '\0';
+      } else {
+	name[NAMELEN] = '\0';
+      }
     }
   }
   if (duration == 0 && !*miscinfo) {

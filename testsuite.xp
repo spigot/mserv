@@ -95,10 +95,14 @@ send "queue\n"
 expect "no tracks in the queue"
 send "queue 1 1\n"
 expect "The following tracks have been added to the queue"
+expect -i $computerjohan "=618\tjohan"
+expect -i $computerjohan "=619\tjohan\t1\t1"
+
 send "queue\n"
 expect "The following tracks are in the queue"
 send "unqueue 1 1\n"
 expect "unqueued by johan"
+expect -i $computerjohan "=627\tjohan\t1\t1"
 
 send "next\n"
 expect "Nothing playing"
@@ -116,6 +120,7 @@ expect "Track name"
 # Start playing and try some commands again
 send "play\n"
 expect "Playing"
+expect -i $computerjohan "=622\trandom"
 
 send "ratings\n"
 expect "Ratings of track"
@@ -131,16 +136,20 @@ expect "Track name"
 
 send "pause\n"
 expect "paused"
+expect -i $computerjohan "=606\tjohan"
 
 send "pause\n"
 expect "Already paused"
 
 send "play\n"
 expect "resumed by johan"
+expect -i $computerjohan "=605\tjohan"
 
 send "next\n"
 expect "Track skipped"
 expect "Playing:"
+expect -i $computerjohan "=629\tjohan"
+expect -i $computerjohan "=622\trandom"
 
 send "info\n"
 expect "Track name"
@@ -150,9 +159,11 @@ expect "Already playing"
 
 send "stop\n"
 expect "stopped"
+expect -i $computerjohan "=623\tjohan"
 
 send "quit\n"
 expect "Goodbye"
+expect -i $computerjohan "=601\tjohan"
 wait
 
 # Log johan back in so he can be kicked off by root
@@ -163,6 +174,7 @@ send "user johan\n"
 expect "PASS"
 send "pass johan\n"
 expect "Welcome johan"
+expect -i $computerjohan "=600\tjohan"
 
 # Log in as root for testing root-only commands
 spawn telnet localhost 4444

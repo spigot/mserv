@@ -1,0 +1,57 @@
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+program_prefix = @program_prefix@
+LIBDIR = @libdir@
+INCDIR = @includedir@
+ILIBDIR = ${program_prefix}${LIBDIR}
+IINCDIR = ${program_prefix}${INCDIR}
+
+AR = /usr/bin/ar
+CC = @CC@
+LDFLAGS = @LDFLAGS@
+CFLAGS = @CFLAGS@
+LIBS = @LIBS@
+XTRA_LIBS = @XTRA_LIBS@
+DEPFLAGS = @DEPFLAGS@
+
+SRCS1 = mservcli.c
+OBJS1 = mservcli.o
+
+SRCS2 = misc.c
+OBJS2 = misc.o
+
+default:	libmservcli libmservplus
+		@echo "### All compiled."
+
+install:	default
+		@INSTALL@ -d -m 0755 ${ILIBDIR}
+		@INSTALL@ -d -m 0755 ${IINCDIR}
+		@INSTALL@ -m 0644 libmservcli.a ${ILIBDIR}/libmservcli.a
+		@INSTALL@ -m 0644 libmservplus.a ${ILIBDIR}/libmservplus.a
+		@INSTALL@ -m 0644 mservcli.h ${IINCDIR}/mservcli.h
+		@echo "### All installed."
+
+libmservcli:	${OBJS1}
+		@echo "### Creating libmservcli.a..."
+		@${AR} -r libmservcli.a ${OBJS1}
+
+libmservplus:	${OBJS2}
+		@echo "### Creating libmservplus.a..."
+		@${AR} -r libmservplus.a ${OBJS2}
+
+depend:		
+		@makedepend ${SRCS1} ${DEPFLAGS}
+
+clean:		
+		rm -f *.o *~ \#* config.cache config.log Makefile config.h config.status libmservcli.a libmservplus.a
+
+cleaner:	clean
+		rm -f configure
+		autoconf
+
+.c.o:
+		@echo "### Compiling $<..."
+		@${CC} ${CFLAGS} ${DEFS} $< -o $@
+
+# DO NOT DELETE THIS LINE -- make depend depends on it

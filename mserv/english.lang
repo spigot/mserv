@@ -1,0 +1,207 @@
+; 1xx positive preliminary
+; 2xx positive completion reply
+; 3xx positive intermediate reply
+; 4xx transient negative completion reply
+; 5xx permanent negative completion reply
+; 6xx informative messages
+
+USEROK	201	Username ok - now type: PASS <password>
+ACLSUCC	202	Successfully authenticated! Welcome %01.
+HELP	203	Help on command '%01'
+HELPC	203	This is Mserv version %01
+HELPCX	203	Syntax: X <command> <params>
+DATE	204	Local time is %05 on %04
+
+QUIT	220	Goodbye!
+MOO	221	Moo!
+STATPLA	222	Playing album %04, track %05
+STATPAU	223	Paused on album %04, track %05
+STAT1	222	  Track name:      %07
+STAT2	222	        author:    %06
+STAT3	222	  Time playing:    %09
+STAT4	222	  Filter:          %01
+STAT5	222	  Tracks included: %02
+STAT6	222	         excluded: %03
+STAT7	222	  Random:          %10 (%11)
+STATN	224	Nothing currently playing
+STATN1	222	  Filter:          %01
+STATN2	222	  Tracks included: %02
+STATN3	222	         excluded: %03
+STATN4	222	  Random:          %04 (%05)
+SHOW	225	The following tracks are in the queue:
+WHO	226	The following people are online:
+ALBUMS	227	Albums available:
+TRACKS	228	Tracks in album '%03':
+RATINGS	229	Ratings of track '%04' (%01/%02):
+STARTED	230	Play commenced
+STOP	231	Play stopped
+PAUSED	232	Play paused
+CLEARR	233	Queue cleared
+TOP	234	Most likely to be played tracks:
+VOLCUR	235	Volume is currently %01%%
+BASSCUR	236	Bass level is currently %01%%
+TREBCUR	237	Treble level is currently %01%%
+FACTCUR	238	Random play factor is currently %01
+FACTSET	239	Random play factor set to %01
+NEXT	240	Moved to next track %03
+HISTORY	241	The following tracks were recently played:
+RANCUR	242	Random play is currently %01.
+SEARCHA	243	Search results:
+IDEAD	244	Idea stored.
+INFA	245	Album %01
+INFA1	245	  Album name:      %03
+INFA2	245	      author:      %02
+INFA3	245	  Total duration:  %04
+INFT	246	Album %01, track %02
+INFT1	246	  Track name:      %06
+INFT2	246	        author:    %05
+INFT3	246	  Album name:      %04
+INFT4	246	        author:    %03
+INFT5	246	  Dated:           %07
+INFT6	246	  Duration:        %15 (%16)
+INFT7	246	  Genre(s):        %13
+INFT8	246	  Played:          %09
+INFT9	246	  Filter:          %14
+INFT10	246	  Rated:           %12; mean %10%%
+INFT11	246	                   temporally adjusted to %11%%
+QADDR	247	The following tracks have been added to the queue:
+USERADD	248	User has been created.
+PASSCHG	249	Password has been changed
+AUTHORS	250	Authors available:
+AUTHINF	251	Author %01 is '%02' (%03 tracks; %04 rated)
+AUTHTRK	252	Tracks by author '%02' (%01):
+AUTHID	253	Author '%02' has id %01
+UNQR	254	Track '%04' (%01/%02) unqueued
+VOLREP	255	Volume has been set to %01%%
+BASSREP	256	Bass level has been set to %01%%
+TREBREP	257	Treble level has been set to %01%%
+RESETR	258	Reset completed!
+SHUTYES	259	Shutdown initiated!
+AUTHR	260	Author changed
+NAMER	261	Name changed
+YEARR	262	Year changed
+GENRER	263	Genre changed
+DELAYR	264	Delay between tracks changed
+USERCHG	265	Changed user details
+GAPCUR	266	Gap is currently %01 seconds
+RANDOM	267	Random setting changed
+CURFILT	268	Random play filter is '%02' (%03 incl, %04 excl)
+FILTR	269	Filter changed
+RATED	270	Rated
+GENRES	271	Genres:
+GENTRK	272	Tracks with genre '%02' (%01):
+GENID	273	Genre '%02' has id %01
+GENINF	274	Genre %01 is '%02' (%03 tracks; %04 rated)
+SYNCED	275	Synchronised successfully
+REMOVED	276	User removed
+INFU	246	User %01
+INFU1	246	  Superb:          %03%% (%10)
+INFU2	246	  Good:            %04%% (%11)
+INFU3	246	  Neutral:         %05%% (%12)
+INFU4	246	  Bad:             %06%% (%13)
+INFU5	246	  Awful:           %07%% (%14)
+INFU6	246	  Heard (unrated): %08%% (%15)
+INFU7	246	  Unheard:         %09%% (%16)
+INFU8	246	  Index:           %17%% (%02/%01)
+CHECKRN	247	There are no inconsistent songs.
+CHECKR	248	These songs are inconsistent:
+SEARCFA	249	These songs match filter:
+
+RATETOO	200	You may like to rate these too:
+FPLAY	200	** First play!
+RATEME1	200	** Unrated
+RATEME2	200	** Unheard
+GENREME	200	** No genre set!
+
+NOTAUTH	400	Not authenticated
+NOTHING	401	Nothing playing
+ALRPLAY	402	Already playing '%04'
+NOMORE	403	No more tracks to play (enable random mode or queue a track)
+NOQUEUE	404	There are no tracks in the queue
+ACLEAR	405	Queue already clear
+APAUSED	406	Already paused!
+GOAWAY	407	You are prohibited from connecting for a short duration
+RESETER	408	Reseting may result in loss of data: type command again within 1 minute
+NOUNQ	409	Track is not in the queue
+ARANDOM	410	Random setting unchanged
+GENRERR	411	Invalid genre setting
+
+BADCOM	500	Command not understood
+STATE	501	State error
+IMPLERR	502	Implementation error
+BADPARM	503	Invalid parameters
+AAUTHED	504	You are already authenticated
+NOUSER	505	USER must come before PASS
+BADMODE	506	Unknown mode specified, must be HUMAN, COMPUTER or RTCOMPUTER
+ACLFAIL	507	Invalid access or password
+NOALBUM	508	No such album
+NOTRACK	509	No such track
+QNONE	510	Could not add track to queue
+MIXER	511	Unable to open mixer
+IOCTLRD	512	Unable to read current value (ioctl error)
+IOCTLWR	513	Unable to write value (ioctl error)
+IOCTLEE	514	Unable to attain value required!
+SUSERR	515	Unable to suspend process
+NOHELP	516	No help available on '%01'
+NAN	517	Invalid number
+BADRATE	518	Bad rate type, must be AWFUL, BAD, NEUTRAL, GOOD or SUPERB
+BADFACT	519	Bad factor, must be in the range 0 to 0.99
+SEARCHB	520	No tracks matching search pattern found
+FILEBAD	521	Unable to open file for writing
+MEMORYR	522	Out of memory
+BADUSER	523	User name is not valid, must be alphanumerics
+NOUSER	524	No such user
+NOAUTH	525	No such author
+KICKED	526	You have been kicked off!
+BADLEV	527	Bad user level, must be GUEST, USER, PRIV or MASTER
+SHUTALR	528	Already in shutdown mode
+SHUTNQ	529	Tracks cannot be queued as system is shutting down
+IDEAF	530	Could not save idea
+NOSCARD	531	Server not compiled with soundcard support
+BADFILT	532	Invalid filter
+BADAUTH	533	Invalid author setting
+BADNAME	534	Invalid name setting
+NOTRKS	535	There are no tracks!
+NOGEN	536	No such genre
+SEARCFB	537	No tracks matching filter found
+
+CONNECT	600	User %01 has connected
+DISCONN	601	User %01 has disconnected
+VOLSET	602	Volume has been set to %01%% by %02
+BASSSET	603	Bass level has been set to %01%% by %02
+TREBSET	604	Treble level has been set to %01%% by %02
+RESUME	605	Play of '%05' resumed by %01
+PAUSE	606	Play of '%05' paused by %01
+FINISH	607	Finished playing tracks
+REPEAT	608	The current track has been put back in the queue by %01
+AUTH	609	The author of %02/%03 has been set by %01
+NAME	610	The name of %02/%03 has been set by %01
+YEAR	611	The year of %02/%03 has been set by %01
+GENRE	612	The genre of %02/%03 has been set by %01
+GENREAL	613	The genre of all tracks in album %02 has been set by %01
+RATE	614	The track %02/%03 has been rated %06 by %01
+RATECUR	615	This track has been rated %06 by %01
+RATEDAL	616	Album %02 has been rated %05 by %01 (%06 tracks)
+FACTOR	617	Random play factor set to %01 by %02
+QADD	618	The following tracks have been added to the queue by %01:
+QADDTR	619	...
+RANDOM0	620	Random play turned off by %01
+RANDOM1	621	Random play turned on by %01
+NOWPLAY	622	Playing: -------------------------------------------------------------------
+STOPPED	623	Play of '%05' stopped by %01
+SAY	624	<%01> %02
+EMOTE	625	* %01 %02
+NOSPAWN	626	Track play stopped - player returned error condition
+UNQ	627	Track '%05' (%02/%03) unqueued by %01
+UNQA	628	Track '%04' (%01/%02) unqueued
+SKIP	629	Track skipped by %01
+RESET	630	Server has been cleared and reset by %01
+CLEAR	631	Queue cleared by %01
+SHUTEND	632	*** Shutdown initiated by %01 and will occur at end of song! ***
+SHUTNOW	633	*** System shutdown by %01! ***
+ALBAUTH	634	The author of %02 has been set by %01
+ALBNAME	635	The name of %02 has been set by %01
+DELAY	636	The delay between tracks has been changed to %02 seconds by %01
+FILTER	637	Random play filter set to '%02' by %01 (%03 incl, %04 excl)
+NFILTER	638	Random play filter turned off by %01
+MEMORY	639	Out of memory

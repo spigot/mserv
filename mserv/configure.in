@@ -1,0 +1,82 @@
+dnl Mserv configure.in file - process with autoconf
+
+	AC_INIT(mserv.c)
+	AC_CONFIG_HEADER(config.h)
+	AC_PREFIX_DEFAULT("/usr/local")
+
+dnl Checks for programs.
+
+	AC_PROG_CC
+	AC_PROG_CPP
+	AC_PROG_INSTALL
+	AC_PROG_MAKE_SET
+	AC_PROG_RANLIB
+	AC_TYPE_SIGNAL
+
+	AC_CHECK_PROG(make, gmake, gmake, make)
+
+	CFLAGS="$CFLAGS -I. -I-"
+	CFLAGS="$CFLAGS -I/gnu/include -I/usr/local/include"
+	DEPFLAGS=""
+	LIBS=""
+	LDFLAGS="$OSLDFLAGS -L/gnu/lib -L/usr/local/lib -L$SSL/lib"
+	XTRA_LIBS=""
+
+dnl Checks for libraries.
+
+	AC_CHECK_LIB(m, pow, XTRA_LIBS="$XTRA_LIBS -lm")
+	AC_CHECK_LIB(socket, main, XTRA_LIBS="$XTRA_LIBS -lsocket")
+	AC_CHECK_LIB(malloc, main, XTRA_LIBS="$XTRA_LIBS -lmalloc")
+	AC_CHECK_LIB(crypt, crypt, XTRA_LIBS="$XTRA_LIBS -lcrypt")
+	AC_CHECK_LIB(nsl, inet_ntoa, XTRA_LIBS="$XTRA_LIBS -lnsl")
+#	AC_CHECK_LIB(resolv, main, XTRA_LIBS="$XTRA_LIBS -lresolv")
+
+dnl Checks for header files.
+
+	AC_HEADER_STDC
+	SOUND=0
+	AC_CHECK_HEADERS(sys/soundcard.h, SOUND=1)
+	AC_CHECK_HEADERS(soundcard.h, SOUND=2)
+        if [[ "x$SOUND" = "0" ]]; then
+		echo ""; echo "-----"; echo "WARNING: no sys/soundcard.h!";
+		echo "VOLUME/BASS/TREBLE controls disabled!";
+		echo "-----"; echo "";
+	fi
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+
+	AC_C_CONST
+	AC_C_INLINE
+
+dnl Make CFLAGS not link and add additional stuff
+
+	if [[ "x$GCC" = "xyes" ]]; then
+		CFLAGS="$CFLAGS -Wall -W -Wunused"
+		CFLAGS="$CFLAGS -Wmissing-prototypes"
+		CFLAGS="$CFLAGS -Wcast-qual -Wcast-align"
+	fi
+	CFLAGS="-c $CFLAGS"
+
+dnl Checks for functions.
+
+	AC_CHECK_FUNCS(strsep)
+
+dnl Makefile substitutions
+
+	if [[ "x$program_prefix" = "xNONE" ]]; then
+		program_prefix=""
+	fi
+
+	AC_SUBST(DEPFLAGS)
+	AC_SUBST(XTRA_LIBS)
+	AC_SUBST(LDFLAGS)
+	AC_SUBST(program_prefix)
+
+dnl Final stuff
+
+	AC_OUTPUT([Makefile])
+
+	echo ""
+	echo "Configuration was successful."
+
+dnl Moooo.

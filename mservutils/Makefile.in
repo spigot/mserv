@@ -1,0 +1,52 @@
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+program_prefix = @program_prefix@
+BINDIR = @bindir@
+MANDIR = @mandir@
+SHAREDIR = @datadir@/mserv
+IBINDIR = ${program_prefix}${BINDIR}
+IMANDIR = ${program_prefix}${MANDIR}
+ISHAREDIR = ${program_prefix}${SHAREDIR}
+
+CC = @CC@
+LDFLAGS = @LDFLAGS@
+CFLAGS = @CFLAGS@ -DBINDIR=\"${BINDIR}\" -DMANDIR=\"${MANDIR}\" \
+         -DSHAREDIR=\"${SHAREDIR}\"
+LIBS = @LIBS@
+XTRA_LIBS = @XTRA_LIBS@
+DEPFLAGS = @DEPFLAGS@
+
+SRCS1 = mservcmd.c
+OBJS1 = mservcmd.o
+
+default:	mservcmd
+		@echo "### All compiled."
+
+install:	default
+		@INSTALL@ -d -m 0755 ${IBINDIR}
+		@INSTALL@ -d -m 0755 ${IMANDIR}/man1
+		@INSTALL@ -d -m 0755 ${ISHAREDIR}
+		@INSTALL@ -s -m 0755 mservcmd ${IBINDIR}/mservcmd
+		@INSTALL@ -m 0644 mservcmd.1 ${IMANDIR}/man1/mservcmd.1
+		@echo "### All installed."
+
+mservcmd:	${OBJS1}
+		@echo "### Linking mservcmd..."
+		@${CC} -o mservcmd ${OBJS1} ${LDFLAGS} ${XTRA_LIBS} ${LIBS}
+
+depend:		
+		@makedepend ${SRCS1} ${DEPFLAGS}
+
+clean:		
+		rm -f *.o *~ \#* config.cache config.log Makefile config.h config.status mservcmd
+
+cleaner:	clean
+		rm -f configure
+		autoconf
+
+.c.o:
+		@echo "### Compiling $<..."
+		${CC} ${CFLAGS} ${DEFS} $< -o $@
+
+# DO NOT DELETE THIS LINE -- make depend depends on it

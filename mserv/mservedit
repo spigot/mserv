@@ -1,0 +1,187 @@
+#!/usr/bin/perl
+
+# Written by James Ponder, Jan-Feb 1999
+# Modified by Joesph Heenan, Feb 1999
+# Incorporated back into mserv, 3rd March 1999
+# Modified to not look at mp3 files by default by James, 22nd April 1999
+# Modified for genres by James, 25th April 1999
+
+# Use this program to alter or generate the .trk files for an album,
+# note that mserv usually has a 'tracks' directory and a 'trackinfo'
+# directory, so running this on the 'tracks' directory with the mp3s in it
+# will result in it not finding any .trk files - however, you can specify
+# '-x' which will override this so that it sees the mp3 files as potential
+# things to associate .trk files to.  This will make it saves these .trk
+# files in the same directory, which is normally not the correct directory
+# because, as pointed out before, tracks and trackinfo files are normally in
+# different directories, so you'll have to move them to the correct place.
+#
+# In summary: don't use '-x' unless you've symlinked the 'tracks' and
+#             'trackinfo' directories together.
+
+require 'getopt.pl';
+
+Getopt('ayng');
+
+if ($#ARGV < 0 ) {
+  die "Syntax: mservedit [-a <author>] [-y <year>] [-n <name>] [-g <genre>]\n".
+      "        [-f use filenames as initial track names]\n".
+      "        [-x look at mp3 files as well as trk files] <directory>\n";
+}
+$dir = $ARGV[0];
+
+if ($opt_x) {
+  $pattern = '(.mp3)|(.trk)$';
+} else {
+  $pattern = '.trk$';
+}
+
+opendir(DIR, $dir) || die "Could not opendir '$dir': $!\n";
+@files = grep(/$pattern/, readdir(DIR));
+closedir(DIR);
+for (@files) { s/\.trk$//; }
+@files = sort {$a cmp $b } @files;
+
+$prev = 'nonesuch';
+@files = grep($_ ne $prev && ($prev = $_), @files);
+
+if ($#files < 0) {
+  die "No files found!  Are you doing this in the directory ".
+      "with the\n.trk files in it?  You should be.\n";
+}
+
+# can you say 'race condition'?
+$tempfile = "$dir/edit.tmp.$$";
+
+@files = ( "album", @files );
+
+open(TEMP, ">$tempfile") || die "Could not open $tempfile\n";
+$SIG{'INT'} = sub {
+    unlink $tempfile;
+    die "Bye.\n";
+};
+
+foreach $file (@files) {
+    print TEMP ('-'x40)." $file ".'-'x(36-length($file))."-\n";
+    $author = '';
+    $name = '';
+    $year = '';
+    $genres = '';
+    if (-e "$dir/$file.trk" || ($file eq "album" && -e "$dir/album")) {
+        if ( $file eq "album" ) {
+	    open(FILE, "$dir/album") || die "Could not open $dir/album: $!\n";
+	} else {
+	    open(FILE, "$dir/$file.trk")
+		|| die "Could not open $dir/$file.trk: $!\n";
+	}
+	while(<FILE>) {
+	    if (/^_author=(.*)$/) {
+		$author = $1;
+	    } elsif (/^_name=(.*)$/) {
+		$name = $1;
+	    } elsif (/^_year=(.*)$/) {
+		$year = $1;
+	    } elsif (/^_genres=(.*)$/) {
+		$genres = $1;
+	    }
+	}
+	close(FILE);
+    }
+    if ( $opt_f ) {
+      $name = $file;
+      $name =~ s/\.mp3$//;
+    }
+    $author = $opt_a if $opt_a;
+    $name = $opt_n if $opt_n;
+    $year = $opt_y if $opt_y;
+    $genres = $opt_g if $opt_g;
+    print TEMP "Author:$author\n";
+    print TEMP "  Name:$name\n";
+    if ( $file ne "album" ) { 
+        print TEMP "  Year:$year\n"; 
+        print TEMP " Genre:$genres\n"; 
+    }
+}
+print TEMP ('-'x40)."  ".('-'x37)."\n";
+close(TEMP);
+
+$editor = $ENV{'EDITOR'};
+$editor = '/usr/bin/vi' if ($editor eq '');
+
+$again = 1;
+
+while ($again) {
+    while (system($editor, $tempfile)) {
+	print "Press return to edit again, or ctrl-c to exit: ";
+	<STDIN>;
+    }
+    print "[return] to save, ctrl-c to exit: ";
+    <STDIN>;
+    
+    $again = 0;
+
+    $file = '';
+    $author = '';
+    $name = '';
+    $year = '';
+    $genres = '';
+    
+    open(STUFF, $tempfile) || die "Unable to open $tempfile: $!\n";
+    while(<STUFF>) {
+	chomp;
+	$line = $_;
+	if ($line =~ /---------- (.*) -/) {
+	    $nfile = $1;
+	    if ($nfile ne 'album') {
+		$nfile = "$nfile.trk";
+	    }
+	    if ($file ne '') {
+		if ($author eq '' || $name eq '' || ($year eq '' && $file ne 'album')) {
+                    close(STUFF);
+		    $again = 1;
+		    print "You must fill in all entries, hit return to edit ".
+			"again: ";
+		    <STDIN>;
+	            break;
+		}
+		undef @stuff;
+		if (open(OFILE, "$dir/$file")) {
+		    while(<OFILE>) {
+		        chomp;
+			if (!/^_author=/ &&
+			    !/^_name=/ &&
+			    !/^_year=/ &&
+			    !/^_genres=/) {
+			    push(@stuff, $_);
+		        }
+		    }
+		    close(OFILE);
+		}
+		open(NFILE, ">$dir/$file.new") || die "Unable to open ".
+		    "$dir/$file.new for writing: $!\n";
+		print NFILE "_author=$author\n";
+		print NFILE "_name=$name\n";
+		if ( $file ne 'album' ) { print NFILE "_year=$year\n"; }
+		if ( $file ne 'album' ) { print NFILE "_genres=$genres\n"; }
+		while ($#stuff >= 0) {
+		    print NFILE shift(@stuff)."\n";
+		}
+		close(NFILE) || die "unable to close file\n";
+		rename "$dir/$file.new", "$dir/$file" ||
+		    die "unable to rename $file.new to $file\n";
+	    }
+	    $file = $nfile;
+	} elsif ($line =~ /^Author:(.*)$/) {
+	    $author = $1;
+	} elsif ($line =~ /^  Name:(.*)$/) {
+	    $name = $1;
+	} elsif ($line =~ /^  Year:(.*)$/) {
+	    $year = $1;
+	} elsif ($line =~ /^ Genre:(.*)$/) {
+	    $genres = $1;
+	}
+    }
+}
+unlink $tempfile || die "Unable to unlink $tempfile: $!\n";
+unlink $tempfile.'~';
+

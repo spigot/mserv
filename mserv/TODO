@@ -1,0 +1,28 @@
+Things suggested / to do, I might not like them, but they're listed here
+so people don't suggest them again:
+
+* Re-write authors code so that the structure is like the genre code
+* Command to specify rating of unheard tracks
+* It might be nice if history showed the times the tracks were played
+* Command to promote a song to the top of the queue
+* User's ratings should only be counted once, even if they're logged in twice
+* Option to have a beep accompany '** Unrated'
+* Section in documentation about when on-disk versions are checked against
+  memory copies, e.g. when a track changes, plus the whole lot on certain
+  operations, e.g. filter changes, disconnect/reconnect etc
+* Fingerprint facility, so that you can take ratings from one server to
+  another.
+* Last play time for a track should be stored for each user, and the mean
+  value used to calculate the temporally adjusted rating.  Maybe
+* Should you be able to rate as 'UNHEARD'?
+* GAP 1 should say "second" not "seconds"
+* Should attempt to cope with pausing in the status time information
+* Rating the same song (name/author the same) twice shouldn't mean the song
+  is twice as likely to be played
+* Ban feature to ban a track for a while
+* Do we want abbreviated commands?  dunno.
+* Minimum time before replay option enforced on queue requests?
+* Filter settings should be reset when a user disconnects?
+* Someone needs to write a CDDB grabbing to .trk file program
+* Separate filter stuff into a filter.c
+* Separate output stuff into an output.c

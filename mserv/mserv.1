@@ -1,0 +1,122 @@
+.TH MSERV 1 "December 1999" "MSERV" "Mserv music server"
+.SH NAME
+mserv \- music server
+.SH SYNPOSIS
+.na
+.B mserv
+[\c
+.BI -c \ <config_path>\fR\c
+]
+[\c
+.BI -p \ <port>\fR\c
+]
+[\c
+.BI -r \ <mserv_root>\fR\c
+]
+[\c
+.B -v\c
+]
+.SH DESCRIPTION
+.B mserv
+is a music server for playing mp3s to a group of people via one sound
+device.
+.LP
+.B mserv
+listens on port 4444 and awaits connections from known users listed in the
+acl file.
+.LP
+The user 'root' is normally special in that it can perform some operations,
+such as renaming tracks, adding other users, etc., that other users cannot.
+.LP
+The manual for users is available via the web on
+.B http://www.mserv.org/
+.SH OPTIONS
+.TP
+.B \-v
+Verbose mode.  Shows track and album filenames as they are read, and also
+prints all log activity.
+.TP
+.BI \-r \ <mserv_root_path>
+Specifies where to root mserv's files.  Default is '.mserv' in your home
+directory, and if this directory does not exist it is populated automagically.
+.TP
+.BI \-c \ <config_path>
+Specifies the path to the configuration file to use.  By default this is
+the file 'config' in the mserv root directory (see -r).
+.TP
+.BI \-p \ <port>
+The port that the server listens on for connections.  Default is 4444.
+.SH MSERVPLAY
+Mserv plays music using the player specified in the config file.  One of
+the players that mserv can use is the 'mservplay' program which is a wrapper
+for mpg123 designed to increase the 'nice' priority. The
+program must be setuid root, although it is not enabled by default
+for security reasons.  Mservplay is only useful for low-powered processors
+such as pentium 100s or less.
+.SH MSERVEDIT
+A perl program that opens up your editor (environment variable EDITOR)
+with a list of all the files in the directory.  This allows you to edit
+the track names/authors/dates without the effort required to do this online.
+Note that the music server will notice when an on-disk track information
+file is altered and will re-load the information - to force this use the 'SYNC'
+mserv command.  Run this program in the directory containing all
+the '.trk' files (see comments in the mservedit file).
+.SH DEFAULT FILES
+.TP
+.B ~/.mserv/tracks/
+The directory holding all the music files (e.g. '.mp3's).
+.TP
+.B ~/.mserv/trackinfo/
+The directory holding all the track information files ('.trk's and 'album'
+files).
+.TP
+.B ~/.mserv/log
+The log file that mserv outputs.
+.TP
+.B ~/.mserv/acl
+The access control list.
+.TP
+.B ~/.mserv/webacl
+A standard Apache-style password file of colon separated <user>:<password>
+lines where the password is unix crypted.  This is derived from the
+.IR acl " file."
+.TP
+.B ~/.mserv/config
+The configuration file - see comments within.
+.TP
+.B ~/.mserv/player.out
+The current track's player output (e.g. from mpg123 indirectly from mservplay).
+.TP
+.B /usr/local/bin/mservplay
+A wrapper that runs mpg123 at a higher than usual priority (nice) value.
+.TP
+.B /usr/local/bin/mservedit
+Allows you to edit the track files (see MSERVEDIT section above).
+.SH AUTHOR
+.TP
+Written and designed by:
+.RB "James Ponder <" "james@squish.net" ">"
+.TP
+Contributors:
+.RB "Joseph Heenan <" "joseph@ping.demon.co.uk" "> who wrote the mp3info"
+code to calculate how long a track is and pull out the ID3 tag information,
+and who provided many ideas and testing.
+.TP
+Thanks to:
+.RS
+.RB "Jonathan Hunt <" "xlcus@toth.org.uk" "> for helpful ideas and testing"
+.PP
+.RB "Michael Hipp <" "Michael.Hipp@student.uni-tuebingen.de" "> for writing mpg123 that this program (usually) uses to play tracks"
+.PP
+.RB "Monty <" "xiphmont@mit.edu" "> for writing cdparanoia (a great ripper)"
+.RE
+.SH "SEE ALSO"
+.BR mservcmd (1),
+.BR mservcli (3),
+.BR mpg123 (1),
+.BR cdparanoia (1),
+.BR bladeenc (1),
+.BR l3enc/mp3enc (?)
+.SH WEBSITE
+.TP
+http://www.mserv.org/

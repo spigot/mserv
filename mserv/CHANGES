@@ -1,0 +1,316 @@
+Changes
+=======
+
+This documents changes as they are made.
+
+0.30 - Jan 2nd 2000
+-------------------
+- Fixed bug in tollerace checking for 'rate too' added in 0.28
+- Now check for soundcard.h as well as sys/soundcard.h for OpenBSD in
+  new mserv soundcard.h
+- Queuing tracks now reports the duration
+- New configuration file, hence lots of options and some command line
+  options have been removed, -p for port remains and overrides the config
+- Fixed word-wrap code when there's a breakable character at the end of a line
+- Added check for too many tracks per album
+- Removed filter code into filter.c and added SEARCHF command
+- Fixed SEARCH so that it shows duration information
+- Wrote user manual, at last
+- Changed welcome banner to be copyright 1999-2000!
+- Changed filter so that genres are specified by doing genre=<genre>
+- Added album and track to filters so you can filter on album=3
+- Re-wrote bits that exec off the player
+
+0.29 - Dec 17th 1999
+--------------------
+- Removed -Wpointer-arith because linux 2.2.x has header files that do it, tsk
+- Fixed HAVE_STRSEP because linux 2.2.x has a macro and it went all wrong
+- Fixed filters <username>=<rating> and <username>=heard
+
+0.28 - Dec 12th 1999
+--------------------
+- Fixed descriptor leak
+- Fixed it so PRIV users aren't MASTERs
+- Added 'duration' filter and altered 'year' to be same style
+- Fixed user rating filter so that they don't need to be logged on
+- Changed 'you might like to rate these too' so that it only says that for
+  songs with similar durations (10% tollerance)
+- Fixed a newline bug in rtcomputer mode
+- Updated QUEUE, CHECK, TRACKS and 'rate too' to include duration information
+- TRACKS now has a default of currently playing album
+- Split mserv.c into mserv.c, acl.c
+- Fudged pausing between songs
+- Revamped aborting of songs to move to a SIGKILL after a SIGTERM fails
+- Current setting of filter now says how many are included and excluded
+- Added 'lastplay' filter, in hours since last play
+- We now allow multi +/-s on VOLUME etc., e.g. 'VOLUME ++++'
+- PAUSE/resuming now indicate who paused/resumed the song
+- Updated TOP to include duration information
+- Rating an album now only rates those tracks not already rated
+
+0.27 - May 4th 1999
+-------------------
+- Added 'CHECK' command
+
+0.26 - Apr 25th 1999
+--------------------
+- Typos and documentation updates
+- Sorted author albums so that 'x authortracks' returns nice orderly tracks
+- Changed 'search' so that it uses the author lists to return sorted results
+
+0.25 - Apr 25th 1999
+--------------------
+- Made it possible for mpg123 not to be in /usr/local/bin
+- Added a master Makefile for ease of compilation
+- Alter mservutils so it searches for mservcli in the compilation directory
+- Added ability to issue a command and get rating information for a different
+  user (prefix command with '[<user>]'
+- Added to 'x genres' and 'x authors' the number of rated tracks to the number
+  of total tracks
+- Added 'USERINFO' command
+- Modified mservedit so that genres are editable
+
+0.24 - Apr 23th 1999
+--------------------
+- Fixed sync'ing of albums
+- More tidying up of logfile
+- Added 'REMOVE' command
+- Fixed ID3 tag importing so that it removes space padding off the end of
+  the text
+
+0.23 - Apr 22nd 1999
+--------------------
+- Fixed factor so you can't set more than two decimal places
+- Fixed duplicate 'finish' message
+- Added code to support ID3 tag importing
+- Some more cleanups
+- Changed mservedit so that it's more obvious how to use it now that
+  trackinfo files are not in the same directories as the track files
+  themselves.
+- Added 'SYNC' command
+
+0.22 - Apr 21st 1999
+--------------------
+- Fixed bug that corrupted data files on 0.21
+- Added 'time playing' to status information
+- Added total time to album information
+- Added track duration to the end of current play status line
+
+0.21 - Apr 20th 1999
+--------------------
+- Added '<user>=heard' to filter abilities
+- Removed norandom option to tracks, genres now do this
+- Split tracks and trackinfo directories, if you want to go back to
+  having tracks and information files in the same structure just symlink
+  the two directories together
+- Fixed syntax information for some commands
+- Added reporting of whether a track was included or excluded using current
+  filter to track 'INFO'
+- Added wrapping code (and what wonderful wrapping code it is)
+
+0.20 - Apr 18th 1999
+--------------------
+- Bug fixes, compilation compatibility issues
+- Sound is muted (if available) during un-suspending player when track
+  is being skipped and play is paused, stops a short blurt of old song
+- I'd just like to point out here that I hate whoever changed linux's
+  snprintf to return -1 for overflow, instead of the way everyone else
+  does it.  If the author of glibc reads this: you're an idiot.
+- Allow single date in filter as well as date range
+- Allow '<user>=<rating>' in filter
+- Check genre in filter is genre that exists when setting filter
+
+0.19 - Apr 14th 1999
+--------------------
+- Fixed a couple of display problems
+- Fixed a bug in an internal routine that caused some problems with null
+  elements (e.g. 'FILTER' sometimes said the filter was "'" instead of "''")
+- Implemented saving of album files when they're changed
+- Added checking of disk version of files when a user changes the file
+  so that an external program cna change them without fear of the server
+  over-writing the changes.  Major change! Hope this doesn't corrupt stuff :)
+
+0.18 - Apr 13th 1999
+--------------------
+- Fixed TOP when %age is greated than 9.99% resulted in wrong padding
+- Tidied up the logging
+- Fixed QUEUE to queue in the right order and stop a circumstance where
+  a user could add the same track twice
+- Fixed it so a queued song gets played after the current song finishes
+  even when random is off
+- Now allow brackets and dashes in author/name strings
+- Now allow spaces in filter string
+- Inform user of number of tracks included or excluded when changing filter
+- Revamp STATUS command to new INFO-style format and add filter information
+- Added 'GENRES' command to list all genres set in tracks
+
+0.17 - Apr 4th 1999
+-------------------
+- Fixed bug in unqueuing when user disconnects
+- Fixed bug when there are no tracks at all and user asks server to play
+- Fixed shutdown bug
+- Fixed stop in delay period bug
+- Language file fixes
+- Added requesting of genre being set when it isn't set
+- Added ability to set genre of entire album
+- Fixed misc return code errors
+- Fixed amusing bug in opening mservplay.out file that caused player output
+  to be displayed on stdout/stderr
+- Added filter facilities (FILTER command and parser)
+- Finally fixed RATE sometimes causing a crash
+- Altered TOP to reflect filter setting
+
+0.16 - Mar 31th 1999
+--------------------
+- Fixed delay between tracks bug
+- Added genre facilities
+- Added checking of author/name when set by user
+- Added SET command and 'SET GENRE' command
+- Fixed lots of bugs
+
+0.15 - Mar 23rd 1999
+--------------------
+- Fixed queue to queue the right track (oops, added a bug in last version)
+- Changed the queuing mechanism to display the correct order of tracks
+  that will be played, rather than the orde they were queued in
+- Ratings now store time rating was done, this is for the later addition
+  of fingerprints
+- 'RATINGS' command updated to display time
+- Got it compiling without warnings or errors on Solaris 2.6
+- Can now compile without sys/soundcard.h
+
+0.14 - Mar 21st 1999
+--------------------
+- Changed GAP so it works better
+- Added 'unheard' message to compliment 'unrated'.
+- Added random option to queuing of albums.
+
+0.13 - Mar 18th 1999
+--------------------
+- Fixed bugs in new routines
+- Fixed bug so that even if you've heard it it says '[] *** unrated'
+- Fixed VOLUME/BASS/TREBLE so that they work if you're a guest
+- Fixed rating bug that's been there since it was written!
+- Fixed it so that typing QUIT doesn't empty your output buffer (oops)
+- Fixed it so EPIPEs are handled better
+- GAP without parameter now returns current value and is implemented better
+- The server will now try not to play two consequetive queued tracks from the
+  same user
+- Server now reports to human users same-named tracks that they rate
+
+0.12 - Mar 17th 1999
+--------------------
+- Fixed bugs in new routines
+- Fixed output buffer bug
+- Made sure malloc errors generally don't kill server, only user it affects
+- Wrote new sort routine for sorting tracks according to ratings, since the
+  old bubble sort was really slow.
+
+0.11 - Mar 16th 1999
+--------------------
+- Computer users don't cause a recalculation of ratings, should make clients
+  that connect and disconnect quickly less likely to cause lag
+- Major change in the way tracks are handled - mserv was originally designed
+  so that tracks didn't know what album they were in, so that they could
+  appear in multiple albums.  This would allow for compilations to be created
+  by users etc.  This is now deemed too complicated, albums now know which
+  album they are in.
+- Added getrate function and removed lots of similar routines.
+- Finally decided that since mserv.c was bigger than the binary that it
+  might be time to split it up into two files, mserv.c and cmd.c.
+- Added debug code to fix elusive output buffer bug
+- Added GAP command
+
+0.10 - Mar 13th 1999
+--------------------
+- Fixed renaming of track to not corrupt author track list
+- Fixed UNQUEUE to say something when track isn't found
+- Added consistancy to reporting UNHEARD/HEARD, it now should do this always
+  to computers and never to humans (except in INFO)
+
+0.09 - Mar 6th 1999
+-------------------
+- Added SHUTDOWN command which quits after the current song has finished
+- Language file fixes
+- Fixed computer outputs
+- Fixed TOP to stop seeing -0.00%!
+- Fixed X AUTHORTRACKS to display ratings
+
+0.08 - Mar 5th 1999
+-------------------
+- Fixed some minor language problems
+- Fixed VOLUME/BASS/VOLUME so that - or + without a number works
+- INFO now says "unknown" for the year, if it's unknown
+- Changed it so that the last time a track is played is set at the END
+  of the song, hence INFO returns more helpful info for current track
+- Fixed KICK so -ve value isn't allowed
+- Added RESET command
+- Fixed AUTHOR/NAME command
+- Added YEAR command
+- Changed MASTER command to LEVEL command and added PRIV level to the existing
+  levels of GUEST, USER and MASTER.
+- Made command table nicer by using new enumerated userlevel type instead of
+  flags for master, user, etc.
+- At last, the music server sorts the tracks in an album according to filename
+
+0.07 - Mar 3rd 1999
+-------------------
+- Changed output buffers so that it will store upto 512k by dynamically
+  allocating 32k slots, instead of having a 64k static buffer.
+- Added 'First play' message when the track hasn't been heard before.
+- Human users can now type blank commands.
+- The server now automatically removes songs queued by users when they
+  disconnect.
+- VOLUME/BASS/TREBLE can now take '+x' or '-x' as parameters to adjust
+  the setting relative to its current
+- General tidy up and fixes
+
+0.06 - Mar 1st 1999
+-------------------
+- Added GUEST users that can perform most read operations on the server
+- Added KICK command
+
+0.05 - Feb 28th 1999
+--------------------
+- Fixed QUEUE album computer output
+- Added check and broadcast for player returning error exit codes
+- Added rating to broadcast computer messages and return information
+- Added check for PAUSE whilst already paused
+- Added rating to TRACKS output
+- Added DATE command
+- Changed INFO output format to be easier to read
+- Added EMOTE command and changed SAY to match output format
+- Added UNQUEUE command to unqueue a track.
+- Changed language file to use %nn to specify language item number instead
+  of using printf positional format strings
+
+0.04 - Feb 24th 1999
+--------------------
+- Added AUTHORS command to display authors and totals
+- Moved AUTHORS into 'X' command
+- Added 'X AUTHORID' to return the author ID for a given author
+- Added 'X AUTHORINFO' to return the author for a given ID
+- Added 'X AUTHORTRACKS' to display the tracks for a given author ID
+- Fixed a few problems in computer mode
+- Added album/track info to tracks display
+
+0.03 - Feb 21st 1999
+--------------------
+- Track playing now shown in bold
+- Added PASSWORD command so users can change their password
+- Added CREATE command so that masters can add users
+- Added MASTER command so that masters can elect masters
+- Fixed 'QUEUE' so that it shows current rating to user
+
+0.02 - Feb 20th 1999
+--------------------
+- Fixed language strings so that it always says "album x, track y" instead
+  of "track y of album x", since that makes people type it wrong.
+- Played about with format of INFO command
+- Added man page
+- Added 'make install'
+- Added mservplay external program
+
+0.01 - Feb 13th 1999
+--------------------
+- First version copied from development machine to our house music server

@@ -1,0 +1,75 @@
+.TH MSERVCMD 1 "March 1999" "MSERVCMD" "Mserv command line interface"
+.SH NAME
+mservcmd \- Mserv command line interface
+.SH SYNPOSIS
+.na
+.B mservcmd
+[\c
+.BI -u \ <user>\fR\c
+]
+[\c
+.BI -p \ <password>\fR\c
+]
+[\c
+.BI -h \ <host>:[<port>]\fR\c
+]
+.SH DESCRIPTION
+.B mservcmd
+is a command for sending single commands to an mserv server and outputting
+the results in a suitable way for further processing.
+.PP
+This is not for interactively talking to a server, for that you require
+a telnet client.
+.SH OPTIONS
+.TP
+.BI \-u \ <user>
+Specifies the user you wish to connect to the server as.  By default this is
+the user 'guest'.
+.TP
+.BI \-p \ <password>
+Specifies the password you wish to connect to the server using.  By default
+this is the password 'guest'.
+.TP
+.BI \-h \ <host>:[<port>]
+Specifies the host (and optionally port) for the server.  By default this is
+127.0.0.1 (your machine) with port 4444 (the default mserv port).
+.SH EXAMPLES
+.TP
+To display the available commands for user bob
+.B mservcmd -u bob -p wibble help
+.TP
+To display the list of albums
+.B mservcmd albums
+.TP
+To display the queue contents on 'mserv.zxcv.org'
+.B mservcmd -h mserv.zxcv.org queue
+.SH EXIT STATUS
+The exit status is 0 if successful, non-0 otherwise.  If the exit status
+was 0 then stdout contains the server output.  Any stderr information will
+be suitable for printing to an untrusted user, e.g. no host information will
+be printed.
+.PP
+.PD 0
+.IP 0
+Normal exit
+.IP 1
+Parameters to command were incorrect
+.IP 2
+Unknown host
+.IP 3
+Could not connect to host
+.IP 4
+Access denied
+.IP 5
+Read/Write error
+.PD 1
+.SH AUTHOR
+.TP
+Written by:
+.RB "James Ponder <" "james@squish.net" ">"
+.SH "SEE ALSO"
+.TP
+.BR mserv (1)
+.SH WEBSITE
+.TP
+http://www.mserv.org/

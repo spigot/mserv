@@ -2728,69 +2728,120 @@ static const char *mserv_getplayer(char *fname)
   return conf_getvalue(player); /* NULL or player invocation string */
 }
 
-/* If "interactive" is set it means this function should prioritize
- * quick execution before doing a thorough job.
- */
+/* Return true if the pid / everything in that process group was
+ * killed.  Return false if a given process group is empty when we get
+ * here or we're unable to signal the requested process. */
+static int mserv_killplayer(pid_t pid)
+{
+  /* Give processes 5us to die nicely */
+  static int deathTimeout = 5;
+  int status;
+  int waitedFor;
+  int killHasFailed = 0;
+  int nWaits = 0;
+  
+  /* Does wait() say the pid is already dead? */
+  while ((waitedFor = waitpid(pid, &status, WNOHANG)) > 0) {
+    nWaits++;
+  }
+  if (waitedFor == -1) {
+    if (nWaits == 0 && pid < 0) {
+      /* The process group was empty when we got here */
+      return 0;
+    }
+    
+    /* No more processes */
+    return 1;
+  }
+  
+  /* Invariant: The pid represents at least one live process */
+  
+  /* Kill it! */
+  if (kill(pid, SIGTERM) == -1) {
+    if (errno != ESRCH) {
+      /* We can't signal that process */
+      return 0;
+    }
+    
+    /* ESRCH might mean the process has died all by itself */
+    killHasFailed = 1;
+  }
+  
+  /* Does wait() say the pid died? */
+  while ((waitedFor = waitpid(pid, &status, WNOHANG)) > 0) {
+    /* This block intentionally left blank */
+  }
+  if (waitedFor == -1) {
+    /* No process left! */
+    return 1;
+  }
+  
+  if (killHasFailed) {
+    /* The process didn't die by itself, and we can't signal it. */
+    return 0;
+  }
+  
+  /* Invariant: We have signalled all processes represented by the
+   * pid */
+  
+  /* Sleep a while to give the process a chance to die. */
+  usleep(deathTimeout);
+  /* So, is it dead now? */
+  while ((waitedFor = waitpid(pid, &status, WNOHANG)) > 0) {
+    /* This block intentionally left blank */
+  }
+  if (waitedFor == -1) {
+    /* No process left! */
+    deathTimeout /= 2;
+    if (deathTimeout < 1) {
+      deathTimeout = 1;
+    }
+    return 1;
+  }
+  
+  /* The process didn't die!  Try harder. */
+  kill(pid, SIGKILL);
+  
+  /* Wait until the process is gone */
+  while ((waitedFor = waitpid(pid, NULL, WNOHANG)) >= 0) {
+    if (waitedFor == 0) {
+      waitpid(pid, NULL, 0);
+    }
+  }
+  
+  deathTimeout *= 3;
+  return 1;
+}
+
 void mserv_abortplay()
 {
-  int pid, st, killed;
-  int x;
   char error[256];
   t_track *stop_me = NULL;
 
   /* channel_stop probably will cause a SIGPIPE in the child */
   if (channel_stop(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
     mserv_log("Failed to stop channel %s: %s\n", mserv_channel->name, error);
+  
+  /* kill the player */
   if (mserv_player_playing.track) {
     stop_me = mserv_player_playing.track;
-    if (kill(mserv_player_pid, 0) == 0) {
-      /* our process exists */
-      killed = 0;
-      if (kill(-mserv_player_pid, SIGTERM) == -1) {
-        perror("kill");
-        mserv_log("Unable to kill currently playing song: %s", strerror(errno));
-      } else {
-        for (x = 0; x < 50; x++) {
-          usleep(100*1000);
-          if ((pid = waitpid(mserv_player_pid, &st,
-                             WNOHANG)) == -1) {
-            mserv_log("waitpid failure (%d): %s", errno, strerror(errno));
-          } else if (pid) {
-            killed = 1;
-            break;
-          }
-        }
-      }
-      if (!killed && kill(mserv_player_pid, 0) == 0) {
-        /* our process STILL exists */
-        if (kill(-mserv_player_pid, SIGKILL) == -1) {
-          perror("kill");
-          mserv_log("Unable to kill currently playing song: %s",
-                    strerror(errno));
-        } else {
-          for (x = 0; x < 10; x++) {
-            usleep(100*1000);
-            if ((pid = waitpid(mserv_player_pid, &st,
-                               WNOHANG)) == -1) {
-              mserv_log("waitpid failure (%d): %s", errno, strerror(errno));
-            } else if (pid) {
-              killed = 1;
-              break;
-            }
-          }
-        }
-      }
-      if (!killed)
-        mserv_log("could not kill player process %d! Help.", mserv_player_pid);
+    
+    if (!mserv_killplayer(-mserv_player_pid) &&
+	!mserv_killplayer(mserv_player_pid))
+    {
+      mserv_log("could not kill player process %d! Help.", mserv_player_pid);
     }
   }
+  mserv_player_pid = 0;
+  
+  /* Mark played track done */
   if (mserv_player_playing.track) {
     mserv_checkdisk_track(mserv_player_playing.track);
     mserv_player_playing.track->lastplay = time(NULL);
     mserv_player_playing.track->modified = 1;
     mserv_player_playing.track = NULL;
   }
-  mserv_player_pid = 0;
+  
   /* recalc ratings now lastplay has changed */
   mserv_recalcrating(stop_me);
   mserv_savechanges();

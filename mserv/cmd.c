@@ -588,6 +588,8 @@ static void mserv_cmd_pass(t_client *cl, const char *ru, const char *line)
   }
   if (cl->mode != mode_computer)
     mserv_broadcast("CONNECT", "%s", cl->user);
+  mserv_log("%s: %s successfully logged in", inet_ntoa(cl->sin.sin_addr),
+            cl->user);
   cl->authed = 1;
   cl->userlevel = acl->userlevel;
   mserv_response(cl, "ACLSUCC", "%s", cl->user);

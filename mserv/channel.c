@@ -422,7 +422,7 @@ int channel_sync(t_channel *c, char *error, int errsize)
     if (os->modinfo->output_poll) {
       if (os->modinfo->output_poll(c, os, os->private, 
                                    ierror, sizeof(ierror)) != MSERV_SUCCESS)
-        mserv_log("channel %s: %s output posl: %s", c->name,
+        mserv_log("channel %s: %s output poll: %s", c->name,
                   os->modinfo->module->name, ierror);
     }
   }
@@ -436,10 +436,10 @@ int channel_sync(t_channel *c, char *error, int errsize)
                   c->paused ? "paused" : "",
                   c->stopped ? "stopped" : "");
       }
-      /* we're paused, channel some zeros */
-      memset(c->buffer + c->buffer_bytes, 0,
-             (c->buffer_samples * 2) - c->buffer_bytes);
-      c->buffer_bytes = c->buffer_samples * 2;
+      /* we're paused, use some zeros for silence */
+      memset((char *)c->buffer + c->buffer_bytes, 0,
+             (c->buffer_samples * sizeof(float)) - c->buffer_bytes);
+      c->buffer_bytes = c->buffer_samples * sizeof(float);
       break;
     }
     if (c->input == NULL) {
@@ -456,7 +456,7 @@ int channel_sync(t_channel *c, char *error, int errsize)
       }
       /* we need to channel some silence (GAP) to start with */
       ui = mserv_MIN(c->buffer_size - c->buffer_bytes, c->input->zeros_start);
-      memset(c->buffer_char + c->buffer_bytes, 0, ui);
+      memset((char *)c->buffer + c->buffer_bytes, 0, ui);
       c->input->zeros_start-= ui;
       c->buffer_bytes+= ui;
       if (mserv_debug)
@@ -493,7 +493,7 @@ int channel_sync(t_channel *c, char *error, int errsize)
                     c->name, ret);
         /* if we had a left over byte from before, and we now have the byte,
          * add one to the number of words we can now convert to floats */
-        words = (ret / 2) + ((c->buffer_bytes & 1) && (ret & 1) ? 1 : 0);
+        words = (ret / 2) + (((c->buffer_bytes & 1) && (ret & 1)) ? 1 : 0);
         sp = (signed short *)c->buffer_char + (c->buffer_bytes / 2);
         fp = (float *)c->buffer + (c->buffer_bytes / 2);
         for (ui = 0; ui < words; ui++)
@@ -512,9 +512,12 @@ int channel_sync(t_channel *c, char *error, int errsize)
           mserv_log("buf left = %d", c->buffer_size - c->buffer_bytes);
           mserv_log("buffer_bytes = %d (pre)", c->buffer_bytes);
         }
+        /* XXX: TODO: zeros_end should be samples, not meaningless bytes */
         /* we need to channel some silence (GAP) to end with */
         ui = mserv_MIN(c->buffer_size - c->buffer_bytes, c->input->zeros_end);
-        memset(c->buffer + c->buffer_bytes, 0, ui);
+        /* ui is number of 16-bit samples, but we're clearing floats */
+        memset((char *)c->buffer + c->buffer_bytes, 0,
+               (ui / 2) * sizeof(float));
         c->input->zeros_end-= ui;
         c->buffer_bytes+= ui;
         if (mserv_debug)
@@ -546,6 +549,10 @@ int channel_sync(t_channel *c, char *error, int errsize)
   } else {
     c->lasttime.tv_sec+= 1;
   }
+
+  /* although the data was written to c->buffer_char, we converted to floats
+   * and modified according to track volume in to c->buffer */
+
   for (os = c->output; os; os = os->next) {
     if (os->modinfo->output_sync) {
 #ifdef HAVE_LIBSAMPLERATE
@@ -620,7 +627,7 @@ int channel_sync(t_channel *c, char *error, int errsize)
 
 void channel_align(t_channel *c)
 {
-  int offset = c->buffer_bytes % (c->channels * 2);
+  unsigned int offset = c->buffer_bytes % (c->channels * 2);
 
   if (offset & 1) {
     c->buffer[c->buffer_bytes / 2] = 0.f;

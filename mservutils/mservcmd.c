@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
       if ((p = strchr(optarg, ':')) != NULL) {
 	port = atoi(p+1);
 	i = ((unsigned int)(p-optarg) > sizeof(host)-1 ? sizeof(host)-1 :
-	     p-optarg);
+	     (unsigned int)(p-optarg));
 	strncpy(host, optarg, i);
 	host[i] = '\0';
       } else {

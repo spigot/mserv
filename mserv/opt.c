@@ -51,6 +51,7 @@ met:
 
 const char *opt_default_icecast_output = NULL;
 const char *opt_default_icecast_bitrate = NULL;
+const char *opt_path_distconf = NULL;
 const char *opt_path_acl = NULL;
 const char *opt_path_webacl = NULL;
 const char *opt_path_logfile = NULL;
@@ -82,6 +83,7 @@ t_opts opt_opts[] = {
     "http://source:password@localhost:8000/mserv.ogg" },
   { "default_icecast_bitrate", "string", &opt_default_icecast_bitrate,
     "48000" },
+  { "path_distconf",  "path",    &opt_path_distconf,  "config.dist" },
   { "path_acl",       "path",    &opt_path_acl,       "acl" },
   { "path_webacl",    "path",    &opt_path_webacl,    "webacl" },
   { "path_logfile",   "path",    &opt_path_logfile,   "log" },

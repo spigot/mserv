@@ -166,6 +166,7 @@ NOTRKS	535	There are no tracks!
 NOGEN	536	No such genre
 SEARCFB	537	No tracks matching filter found
 ASRCHB	538	No albums matching search pattern found
+SERROR	539	System error: '%01'
 
 CONNECT	600	User %01 has connected
 DISCONN	601	User %01 has disconnected

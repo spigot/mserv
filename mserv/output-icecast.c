@@ -52,26 +52,39 @@ met:
 #include "mserv.h"
 #include "output-icecast.h"
 
-#define DEBUG_OUTPUT
+#undef DEBUG_OUTPUT
 
 /*
  *
  * There are two buffers:
  *
- *   buffer/buffer_bytes
+ *   buffer/buffer_bytes/buffer_size
  *     the raw PCM data from the player we have a as child process, we try
  *     and maintain this as having a full second's worth of data
  *
  *   buffer_ready/buffer_ready_bytes/buffer_ready_size
  *     the dynamically resizing ogg vorbis encoded data.  we fill this up
  *     with the data from the other buffer, via libvorbisenc.  We only do
- *     this once, when the PCM data buffer is full, so this should be about
+ *     this once, when the PCM data buffer is full, so this should be
  *     one second's worth of encoded data.
  *
  *   We use libshout's delay mechanism to tell us when more data is required,
  *   and when it is, we send it all of the ogg vorbis blocks we've got, 
  *   which is therefore on average a second's worth of data.  We then let
  *   libshout tell us to wait a while before throwing more data at it.
+ */
+
+/*
+ * An output stream is created with output_create, setting up the necessary
+ * parameters and connections.
+ *
+ * Inputs are passed to output_addinput in the form of a file handle
+ * containing a stream of raw PCM data.  These file handles are placed in a
+ * link list so that we could potentially have a new stream before the old one
+ * has finished.
+ *
+ * Stopping or pausing makes the output routines generate silence.
+ *
  */
 
 /* init output sub-system */
@@ -85,8 +98,8 @@ int output_init(void)
 /* create output stream
  * returns t_output object on success, -1 (and errno) on failure */
 
-
-t_output *output_create(const char *destination, char **error)
+t_output *output_create(const char *destination, const char *parameters,
+                        char **error)
 {
   t_output *o;
   char *user, *pass, *host, *port;
@@ -96,20 +109,30 @@ t_output *output_create(const char *destination, char **error)
 
   if ((o = malloc(sizeof(t_output))) == NULL)
     return NULL;
-  o->input = -1;
+  o->input = NULL;
+  o->paused = 0;
+  o->stopped = 0;
+  o->channels = 2;
+  o->samplerate = 44100;
+  o->bitrate = atoi(parameters);
+  o->buffer_size = o->samplerate * o->channels * 2 * 2;
+  if ((o->buffer = malloc(o->buffer_size)) == NULL) {
+    free(o);
+    return NULL;
+  }
   o->volume = 0;
   o->buffer_ready = NULL;
   o->buffer_bytes = 0;
   if (!(o->shout = shout_new())) {
     mserv_log("Failed to allocate shout object");
     *error = "Failed to allocate shout object";
-    return NULL;
+    goto failed;
   }
   /* now take a copy of destination in o->url and into splitbuf for splitting */
   if (strlen(destination) >= sizeof(o->url) ||
       strlen(destination) >= sizeof(splitbuf)) {
     *error = "Output destination URL too long";
-    return NULL;
+    goto failed;
   }
   strncpy(o->url, destination, sizeof(o->url));
   o->url[sizeof(o->url) - 1] = '\0';
@@ -117,7 +140,7 @@ t_output *output_create(const char *destination, char **error)
   splitbuf[sizeof(splitbuf) - 1] = '\0';
   if (strncmp(o->url, "http://", strlen("http://")) != 0) {
     *error = "Only http:// Icecast URLs are supported";
-    return NULL;
+    goto failed;
   }
   p = splitbuf + strlen("http://");
   user = p; while (*p && *p != ':') p++; *p++ = '\0';
@@ -126,62 +149,63 @@ t_output *output_create(const char *destination, char **error)
   port = p; while (*p && *p != '/') p++; *p++ = '\0';
   if ((strlen(p) + 1) >= sizeof(mount)) {
     *error = "Mount portion of URL too long";
-    return NULL;
+    goto failed;
   }
   snprintf(mount, sizeof(mount), "/%s", p);
   mserv_log("Request to icecast connect to %s:%s", host, port);
   if (!*user || !*pass || !*host || !*port || !mount[1]) {
     *error = "Icecast location invalid, use http://user:pass@host:port/mount";
-    return NULL;
+    goto failed;
   }
   if (shout_set_host(o->shout, host) != SHOUTERR_SUCCESS) {
     mserv_log("Failed setting Icecast hostname: %s", shout_get_error(o->shout));
     *error = "Failed setting Icecast hostname";
-    return NULL;
+    goto failed;
   }
   if (shout_set_protocol(o->shout, SHOUT_PROTOCOL_HTTP) != SHOUTERR_SUCCESS) {
     mserv_log("Failed setting Icecast protocol: %s", shout_get_error(o->shout));
     *error = "Failed setting Icecast protocol";
-    return NULL;
+    goto failed;
   }
   if (shout_set_port(o->shout, atoi(port)) != SHOUTERR_SUCCESS) {
     mserv_log("Failed setting Icecast port: %s", shout_get_error(o->shout));
     *error = "Failed setting Icecast port";
-    return NULL;
+    goto failed;
   }
   if (shout_set_password(o->shout, pass) != SHOUTERR_SUCCESS) {
     mserv_log("Failed setting Icecast password: %s", shout_get_error(o->shout));
     *error = "Failed setting Icecast password";
-    return NULL;
+    goto failed;
   }
   if (shout_set_mount(o->shout, mount) != SHOUTERR_SUCCESS) {
     mserv_log("Failed setting Icecast hostname: %s", shout_get_error(o->shout));
     *error = "Failed setting Icecast hostname";
-    return NULL;
+    goto failed;
   }
   if (shout_set_user(o->shout, user) != SHOUTERR_SUCCESS) {
     mserv_log("Failed setting Icecast user: %s", shout_get_error(o->shout));
     *error = "Failed setting Icecast user";
-    return NULL;
+    goto failed;
   }
   if (shout_set_format(o->shout, SHOUT_FORMAT_VORBIS) != SHOUTERR_SUCCESS) {
     mserv_log("Failed setting Icecast format: %s", shout_get_error(o->shout));
     *error = "Failed setting Icecast format";
-    return NULL;
+    goto failed;
   }
   if (shout_open(o->shout) != SHOUTERR_SUCCESS) {
     mserv_log("Failed opening Icecast connection: %s",
               shout_get_error(o->shout));
     *error = "Failed opening Icecast connection";
-    return NULL;
+    goto failed;
   }
   mserv_log("Successfully connected to Icecast host '%s@%s' for mount '%s'",
             host, port, mount);
 
   vorbis_info_init(&o->vi);
-  if (vorbis_encode_init(&o->vi, 2, MSERV_SAMPLERATE, -1, 48000, -1) != 0) {
+  if (vorbis_encode_init(&o->vi, o->channels, o->samplerate, -1,
+                         o->bitrate, -1) != 0) {
     *error = "Failed to initialise vorbis engine";
-    return NULL;
+    goto failed;
   }
   vorbis_comment_init(&o->vc);
   vorbis_comment_add_tag(&o->vc, "ENCODER", "Mserv " VERSION);
@@ -206,13 +230,13 @@ t_output *output_create(const char *destination, char **error)
                      o->og.header_len) != SHOUTERR_SUCCESS) {
         mserv_log("Failed to send to shout: %s", shout_get_error(o->shout));
         *error = "Failed to send Ogg header";
-        return NULL;
+        goto failed;
       }
       if (shout_send(o->shout, o->og.body,
                      o->og.body_len) != SHOUTERR_SUCCESS) {
         mserv_log("Failed to send to shout: %s", shout_get_error(o->shout));
         *error = "Failed to send Ogg header";
-        return NULL;
+        goto failed;
       }
     }
   }
@@ -223,6 +247,10 @@ t_output *output_create(const char *destination, char **error)
   }
   */
   return o;
+failed:
+  free(o->buffer);
+  free(o);
+  return NULL;
 }
 
 /* get current volume */
@@ -244,6 +272,8 @@ int output_setvolume(t_output *o, int volume)
 
 void output_close(t_output *o)
 {
+  output_stop(o);
+  free(o->buffer);
   shout_close(o->shout);
 }
 
@@ -254,25 +284,69 @@ void output_final(void)
   shout_shutdown();
 }
 
-/* set input file handle */
+/* add an input file handle
+ * track is passed so that mserv_setplaying can be called when song reached
+ * if continuation is not set, clears queue
+ * if delay is given (in milliseconds), then there will be a delay before play
+ * returns -1 on error, 0 on success
+ */
 
-void output_setinput(t_output *o, int input)
+int output_addinput(t_output *o, int fd, t_supinfo *track_supinfo,
+                    int samplerate, int channels, int continuation,
+                    double delay_start, double delay_end)
 {
-  if (o->input != -1)
-    close(o->input);
-  o->input = input;
+  t_input *i, **tail;
+
+  if (o->channels != channels || o->samplerate != samplerate) {
+    /* TODO: perhaps we could support both mono->stereo / stereo->mono and
+     *       22050->44100 / 44100->22050 conversion */
+    mserv_log("Channels and sample rate of input do not match output");
+    return -1;
+  }
+  if (!continuation) {
+    /* we're not continuing on from current songs, clear everything out */
+    output_stop(o);
+  }
+  if ((i = malloc(sizeof(t_input))) == NULL) {
+    mserv_log("Failed to malloc for new input stream");
+    return -1;
+  }
+  i->next = NULL;
+  i->fd = fd;
+  i->zeros_start = delay_start * o->samplerate * o->channels * 2;
+  i->zeros_end = delay_end * o->samplerate * o->channels * 2;
+  i->announced = 0;
+  i->supinfo = *track_supinfo;
+  /* find tail of linked list */
+  for (tail = &o->input; *tail; tail = &(*tail)->next) ;
+  /* store new input on end of list */
+  *tail = i;
+  return 0;
 }
 
-/* close input stream */
+/* output_inputfinished removes the current entry in the input queue,
+ * probably because we've finished it
+ * returns 0 if there was nothing playing, 1 if something was cleared */
 
-int output_closeinput(t_output *o)
+int output_inputfinished(t_output *o)
 {
-  if (o->input != -1) {
-    close(o->input);
-    o->input = -1;
-    return 1;
+  t_input *i;
+
+  if (o->input == NULL)
+    return 0;
+  i = o->input;
+  mserv_log("Decoding of %d/%d finished", i->supinfo.track->n_album,
+            i->supinfo.track->n_track);
+  if (i->fd != -1)
+    close(i->fd);
+  o->input = i->next;
+  free(i);
+  i = o->input;
+  if (i) {
+    mserv_log("Decoding of %d/%d started", i->supinfo.track->n_album,
+              i->supinfo.track->n_track);
   }
-  return 0;
+  return 1;
 }
 
 /* sync things */
@@ -303,46 +377,93 @@ void output_sync(t_output *o)
   }
   /* if we have no ready buffer, and we have a full normal buffer,
    * send it to vorbis */
-  if (o->buffer_ready_bytes == 0 && o->buffer_bytes == sizeof(o->buffer)) {
-    vorbbuf = vorbis_analysis_buffer(&o->vd, MSERV_SAMPLERATE);
+  if (o->buffer_ready_bytes == 0 && o->buffer_bytes == o->buffer_size) {
+    vorbbuf = vorbis_analysis_buffer(&o->vd, o->buffer_size / o->channels / 2);
 #ifdef DEBUG_OUTPUT
-    mserv_log("another second, time to analyse block with vorbis");
+    mserv_log("another second of data, time to analyse block with vorbis");
 #endif
-    for (i = 0; i < sizeof(o->buffer) / 4; i++) {
+    for (i = 0; i < o->buffer_size / 4; i++) {
       vorbbuf[0][i] = ((o->buffer[i * 4 + 1] << 8) |
                        (0x00ff & o->buffer[i * 4])) / 32768.f;
       vorbbuf[1][i] = ((o->buffer[i * 4 + 3] << 8) |
                        (0x00ff & o->buffer[i * 4 + 2])) / 32768.f;
     }
-    vorbis_analysis_wrote(&o->vd, sizeof(o->buffer) / 4);
+    vorbis_analysis_wrote(&o->vd, o->buffer_size / o->channels / 2);
     o->buffer_bytes = 0;
   }
   /* if we haven't got a full buffer, read in more from the player */
-  if (o->buffer_bytes < sizeof(o->buffer)) {
+  while (o->buffer_bytes < o->buffer_size) {
     /* try and read more from the input stream */
-    if (o->input == -1) {
+    if (o->paused || o->stopped) {
 #ifdef DEBUG_OUTPUT
-      mserv_log("filling buffer with nothing");
+      mserv_log("filling in silence, reason: %s %s",
+                o->paused ? "paused" : "not-paused",
+                o->stopped ? "stopped" : "not-stopped");
 #endif
-      /* there's no input stream right now - so make stream silent */
+      /* we're paused, output some zeros */
       memset(o->buffer + o->buffer_bytes, 0,
-             sizeof(o->buffer) - o->buffer_bytes);
-      o->buffer_bytes = sizeof(o->buffer);
-    } else {
-      /* read PCM data from input stream */
-      ret = read(o->input, o->buffer + o->buffer_bytes,
-                 sizeof(o->buffer) - o->buffer_bytes);
-      if (ret == -1) {
-        if (errno != EAGAIN || errno != EINTR) {
-          mserv_log("Failure reading on input socket for mount '%s': %s",
-                    o->url, strerror(errno));
-        }
-      } else if (ret == 0) {
-        mserv_log("end of song");
-        /* end of song */
-        o->input = -1;
+             o->buffer_size - o->buffer_bytes);
+      o->buffer_bytes = o->buffer_size;
+      break;
+    }
+    if (o->input == NULL) {
+      /* no available input stream at the moment */
+      /* this is different to being stopped or paused, this usually means we've
+       * run out of input and a new player hasn't been spawned yet */
+      break;
+    }
+    if (o->input->zeros_start > 0) {
+#ifdef DEBUG_OUTPUT
+      mserv_log("in silence - %d bytes to go", o->input->zeros_start);
+      mserv_log("buf left = %d", o->buffer_size - o->buffer_bytes);
+      mserv_log("buffer_bytes = %d", o->buffer_bytes);
+#endif
+      /* we need to output some silence (GAP) to start with */
+      i = mserv_MIN(o->buffer_size - o->buffer_bytes, o->input->zeros_start);
+      memset(o->buffer + o->buffer_bytes, 0, i);
+      o->input->zeros_start-= i;
+      o->buffer_bytes+= i;
+      mserv_log("buffer_bytes = %d", o->buffer_bytes);
+      /* we may have only had a bit of silence and can fill with some data */
+      continue;
+    }
+    if (!o->input->announced) {
+      mserv_setplaying(&o->input->supinfo);
+      o->input->announced = 1;
+    }
+    /* read PCM data from input stream */
+    ret = read(o->input->fd, o->buffer + o->buffer_bytes,
+               o->buffer_size - o->buffer_bytes);
+    if (ret == -1) {
+      if (errno != EAGAIN || errno != EINTR) {
+        mserv_log("Failure reading on input socket for mount '%s': %s",
+                  o->url, strerror(errno));
       }
+      break;
+    } else if (ret == 0) {
+      /* end of song */
+      mserv_log("End of file properly reached in input stream");
+      close(o->input->fd);
+      o->input->fd = -1;
+    } else {
       o->buffer_bytes += ret;
+    }
+    if (o->input->fd == -1) {
+      if (o->input->zeros_end <= 0) {
+        output_inputfinished(o);
+      } else {
+#ifdef DEBUG_OUTPUT
+        mserv_log("in silence - %d bytes to go", o->input->zeros_end);
+        mserv_log("buf left = %d", o->buffer_size - o->buffer_bytes);
+        mserv_log("buffer_bytes = %d", o->buffer_bytes);
+#endif
+        /* we need to output some silence (GAP) to end with */
+        i = mserv_MIN(o->buffer_size - o->buffer_bytes, o->input->zeros_end);
+        memset(o->buffer + o->buffer_bytes, 0, i);
+        o->input->zeros_end-= i;
+        o->buffer_bytes+= i;
+        mserv_log("buffer_bytes = %d", o->buffer_bytes);
+      }
     }
   }
   /* does vorbis have anything decoded from what we've already sent it via
@@ -361,6 +482,7 @@ void output_sync(t_output *o)
         pages++;
         datasize = o->og.header_len + o->og.body_len;
         reqbufsize = o->buffer_ready_bytes + datasize;
+        reqbufsize = ((reqbufsize / 8192) + 1) * 8192; /* add granularity */
         if (reqbufsize > o->buffer_ready_size) {
           newbuf = realloc(o->buffer_ready, reqbufsize);
           mserv_log("Extending output buffer size from %d to %d bytes",
@@ -396,4 +518,75 @@ int output_delay(t_output *o)
 {
   int delay = shout_delay(o->shout);
   return (delay < 0) ? 0 : delay;
+}
+
+/* output_replacetrack - replace track references, if any */
+
+void output_replacetrack(t_output *o, t_track *track, t_track *newtrack)
+{
+  t_input *i, *next;
+
+  if (o->input == NULL)
+    return;
+  for (i = o->input; i; i = next) {
+    next = i->next;
+    if (i->supinfo.track == track)
+      i->supinfo.track = newtrack;
+  }
+  return;
+}
+
+/* output_stop clears the input queue and marks output as stopped
+ * returns 0 if there was nothing playing, 1 if something was cleared */
+
+int output_stop(t_output *o)
+{
+  t_input *i, *next;
+  int old = o->stopped;
+
+  for (i = o->input; i; i = next) {
+    next = i->next;
+    close(i->fd);
+    free(i);
+  }
+  o->input = NULL;
+  o->stopped = 1;
+  o->paused = 0;
+  if (old != 1)
+    mserv_setplaying(NULL);
+  return 1;
+}
+
+/* output_start - start play, returns whether stopped (1) or not (0) */
+
+int output_start(t_output *o)
+{
+  int old = o->stopped;
+  o->stopped = 0;
+  return old;
+}
+
+/* output_pause - set pause flag (0 or 1), returns previous */
+
+int output_pause(t_output *o, int pause)
+{
+  int old = o->paused;
+
+  o->paused = pause;
+  mserv_log("paused");
+  return old;
+}
+
+/* output_stopped - read whether stopped or not */
+
+int output_stopped(t_output *o)
+{
+  return o->stopped;
+}
+
+/* output_paused - read whether paused or not */
+
+int output_paused(t_output *o)
+{
+  return o->paused;
 }

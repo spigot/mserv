@@ -39,13 +39,14 @@ met:
 #define _GNU_SOURCE 1
 #define _BSD_SOURCE 1
 #define __EXTENSIONS__ 1
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
 #include <sys/types.h> /* inet_ntoa on freebsd */
+#include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <math.h>
@@ -595,32 +596,37 @@ static void mserv_cmd_status(t_client *cl, const char *ru, const char *line)
   char token[16];
   char *a;
   int i;
-  time_t ago;
+  struct timeval now, ago;
 
   (void)ru;
   (void)line;
   if (mserv_playing.track) {
-    a = mserv_paused ? "STATPAU" : "STATPLA";
-    ago = time(NULL)-mserv_playingstart;
-    mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d\t%s\t%.2f",
+    if (gettimeofday(&now, NULL) != 0) {
+      mserv_response(cl, "SERROR", "%s", "Failed to gettimeofday()");
+      return;
+    }
+    mserv_timersub(&now, &mserv_playing_start, &ago);
+    a = output_paused(mserv_output) ? "STATPAU" : "STATPLA";
+    mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d.%d\t%s"
+                   "\t%.2f",
 		   mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
 		   mserv_playing.track->n_album,
 		   mserv_playing.track->n_track,
 		   mserv_playing.track->author,
-		   mserv_playing.track->name, mserv_playingstart,
-		   ago/60, ago % 60,
+		   mserv_playing.track->name, mserv_playing_start.tv_sec,
+		   ago.tv_sec/60, ago.tv_sec % 60, ago.tv_usec / 100000,
 		   mserv_random ? "ON" : "OFF", mserv_factor);
     if (cl->mode == mode_human) {
       for (i = 1; i <= 7; i++) {
 	sprintf(token, "STAT%d", i);
-	mserv_response(cl, token, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d"
+	mserv_response(cl, token, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d.%d"
 		       "\t%s\t%.2f",
 		       mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
 		       mserv_playing.track->n_album,
 		       mserv_playing.track->n_track,
 		       mserv_playing.track->author,
-		       mserv_playing.track->name, mserv_playingstart,
-		       ago/60, ago % 60,
+		       mserv_playing.track->name, mserv_playing_start.tv_sec,
+                       ago.tv_sec/60, ago.tv_sec % 60, ago.tv_usec / 100000,
 		       mserv_random ? "ON" : "OFF", mserv_factor);
       }
     }
@@ -1305,7 +1311,7 @@ static void mserv_cmd_play(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
-  if (mserv_playing.track && mserv_paused) {
+  if (output_paused(mserv_output)) {
     mserv_resumeplay();
     mserv_broadcast("RESUME", "%s\t%d\t%d\t%s\t%s", cl->user,
 		    mserv_playing.track->n_album,
@@ -1329,9 +1335,10 @@ static void mserv_cmd_play(t_client *cl, const char *ru, const char *line)
 		   mserv_playing.track->name);
     return;
   }
-  if (mserv_playnext()) {
+  if (mserv_player_playnext()) {
     mserv_response(cl, "NOMORE", NULL);
   } else {
+    output_start(mserv_output);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
       mserv_response(cl, "STARTED", "%d\t%d\t%s\t%s",
@@ -1346,7 +1353,7 @@ static void mserv_cmd_stop(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
-  if (mserv_playing.track) {
+  if (!output_stopped(mserv_output)) {
     mserv_broadcast("STOPPED", "%s\t%d\t%d\t%s\t%s", cl->user,
 		    mserv_playing.track->n_album, mserv_playing.track->n_track,
 		    mserv_playing.track->author, mserv_playing.track->name);
@@ -1367,11 +1374,11 @@ static void mserv_cmd_pause(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
-  if (mserv_paused) {
+  if (output_paused(mserv_output)) {
     mserv_response(cl, "APAUSED", NULL);
     return;
   }
-  if (mserv_playing.track || mserv_playnext_waiting) {
+  if (mserv_playing.track) {
     mserv_pauseplay(cl);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */
@@ -1386,20 +1393,23 @@ static void mserv_cmd_next(t_client *cl, const char *ru, const char *line)
 {
   (void)ru;
   (void)line;
+
   if (mserv_playing.track)
     mserv_broadcast("SKIP", "%s", cl->user);
-  if (mserv_playnext()) {
+  mserv_abortplay();
+  if (mserv_player_playnext()) {
     mserv_broadcast("FINISH", NULL);
     if (cl->mode != mode_human)
       mserv_response(cl, "NOMORE", NULL);
-  } else {
-    if (cl->mode != mode_human) {
-      /* humans will already have seen broadcast */
-      mserv_response(cl, "NEXT", "%d\t%d\t%s\t%s",
-		     mserv_playing.track->n_album,
-		     mserv_playing.track->n_track, mserv_playing.track->author,
-		     mserv_playing.track->name);
-    }
+    return;
+  }
+  output_start(mserv_output);
+  if (cl->mode != mode_human) {
+    /* humans will already have seen broadcast */
+    mserv_response(cl, "NEXT", "%d\t%d\t%s\t%s",
+                   mserv_playing.track->n_album,
+                   mserv_playing.track->n_track, mserv_playing.track->author,
+                   mserv_playing.track->name);
   }
 }
 
@@ -2835,20 +2845,21 @@ static void mserv_cmd_shutdown(t_client *cl, const char *ru, const char *line)
 
 static void mserv_cmd_gap(t_client *cl, const char *ru, const char *line)
 {
-  int delay;
+  double delay;
   char *end;
 
   (void)ru;
   if (!*line) {
-    mserv_response(cl, "GAPCUR", "%d", mserv_setgap(-1));
+    mserv_response(cl, "GAPCUR", "%.1f", mserv_getgap());
     return;
   }    
-  delay = strtol(line, &end, 10);
+  delay = strtod(line, &end);
   if (!*line || *end || delay < 0 || delay > 3600) {
     mserv_response(cl, "NAN", NULL);
     return;
   }
-  mserv_broadcast("DELAY", "%s\t%d", cl->user, mserv_setgap(delay));
+  mserv_setgap(delay);
+  mserv_broadcast("DELAY", "%s\t%.1f", cl->user, delay);
   if (cl->mode != mode_human)
     mserv_response(cl, "DELAYR", NULL);
 }

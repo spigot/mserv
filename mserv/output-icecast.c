@@ -431,24 +431,26 @@ void output_sync(t_output *o)
       mserv_setplaying(&o->input->supinfo);
       o->input->announced = 1;
     }
-    /* read PCM data from input stream */
-    ret = read(o->input->fd, o->buffer + o->buffer_bytes,
-               o->buffer_size - o->buffer_bytes);
-    if (ret == -1) {
-      if (errno != EAGAIN || errno != EINTR) {
-        mserv_log("Failure reading on input socket for mount '%s': %s",
-                  o->url, strerror(errno));
+    if (o->input->fd != -1) {
+      /* read PCM data from input stream */
+      ret = read(o->input->fd, o->buffer + o->buffer_bytes,
+                 o->buffer_size - o->buffer_bytes);
+      if (ret == -1) {
+        if (errno != EAGAIN || errno != EINTR) {
+          mserv_log("Failure reading on input socket for mount '%s': %s",
+                    o->url, strerror(errno));
+        }
+        break;
+      } else if (ret == 0) {
+        /* end of song */
+        mserv_log("End of file properly reached in input stream");
+        close(o->input->fd);
+        o->input->fd = -1;
+      } else {
+        o->buffer_bytes += ret;
       }
-      break;
-    } else if (ret == 0) {
-      /* end of song */
-      mserv_log("End of file properly reached in input stream");
-      close(o->input->fd);
-      o->input->fd = -1;
     } else {
-      o->buffer_bytes += ret;
-    }
-    if (o->input->fd == -1) {
+      /* we must be in the silence at the end part */
       if (o->input->zeros_end <= 0) {
         output_inputfinished(o);
       } else {

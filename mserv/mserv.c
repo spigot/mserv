@@ -2084,6 +2084,9 @@ static int mserv_trackcompare_rating(const void *a, const void *b)
    * So at the time of writing, 0.55 will often be considered to be
    * larger than 0.56, seldom be considered to be larger than 0.59,
    * and never considered to be larger than 0.6.
+   *
+   * The point is that to a human, 0.55 and 0.56 are almost the same
+   * value.  This way, mserv thinks so as well.
    */
   fuzzed_arating = mserv_fuzz_rating(atrack->rating);
   if (fuzzed_arating < btrack->rating) {

@@ -4,6 +4,13 @@ Changes
 This documents changes as they are made.  Note that if you received this file
 via CVS the version of the first entry is the forthcoming version number.
 
+0.36 - cvs
+----------
+- Split output into modular compilation
+- Added Icecast 2 streaming with libshout, libvorbisenc
+- Modified gap between songs to be more accurate
+- Changed to using execvp so PATH is search for players
+
 0.35 - Aug 4th 2003
 -------------------
 - Added automake/autoheader facilities and moved to central configure

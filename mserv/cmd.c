@@ -1371,7 +1371,7 @@ static void mserv_cmd_pause(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "APAUSED", NULL);
     return;
   }
-  if (mserv_playing.track || mserv_playnextat) {
+  if (mserv_playing.track || mserv_playnext_waiting) {
     mserv_pauseplay(cl);
     if (cl->mode != mode_human) {
       /* humans will already have seen broadcast */

@@ -49,6 +49,7 @@ met:
 #include "conf.h"
 #include "opt.h"
 
+const char *opt_default_icecast_output = NULL;
 const char *opt_path_acl = NULL;
 const char *opt_path_webacl = NULL;
 const char *opt_path_logfile = NULL;
@@ -74,6 +75,8 @@ typedef struct {
 } t_opts;
 
 t_opts opt_opts[] = {
+  { "default_icecast_output", "string", &opt_default_icecast_output,
+    "http://source:password@localhost:8000/mserv.ogg" },
   { "path_acl",       "path",    &opt_path_acl,       "acl" },
   { "path_webacl",    "path",    &opt_path_webacl,    "webacl" },
   { "path_logfile",   "path",    &opt_path_logfile,   "log" },

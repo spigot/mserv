@@ -6,6 +6,26 @@
 #include "config.h"
 #include "defines.h"
 
+/* timercmp() is broken on Solaris, and isn't particularly standard */
+#define mserv_timercmp(a, b, CMP)                                       \
+  (((a)->tv_sec == (b)->tv_sec) ?                                       \
+    ((a)->tv_usec CMP (b)->tv_usec) : ((a)->tv_sec CMP (b)->tv_sec))
+
+/* timersub() replacement */
+#define mserv_timersub(a, b, res)                                       \
+  do {                                                                  \
+    (res)->tv_sec = (a)->tv_sec - (b)->tv_sec;                          \
+    (res)->tv_usec = (a)->tv_usec - (b)->tv_usec;                       \
+    if ((res)->tv_usec < 0) {                                           \
+      (res)->tv_sec--;                                                  \
+      (res)->tv_usec += 1000000;                                        \
+    }                                                                   \
+  } while (0)
+
+
+#define mserv_MIN(a,b) ( ((a) < (b)) ? (a) : (b) )
+#define mserv_MAX(a,b) ( ((a) > (b)) ? (a) : (b) )
+
 typedef enum {
   st_wait,
   st_closed
@@ -215,7 +235,8 @@ extern t_author *mserv_authors;
 extern t_genre *mserv_genres;
 extern unsigned int mserv_filter_ok;
 extern unsigned int mserv_filter_notok;
-extern time_t mserv_playnextat;
+extern unsigned int mserv_playnext_waiting;
+extern struct timeval mserv_playnext_at;
 
 extern char *mserv_path_acl;
 extern char *mserv_path_webacl;

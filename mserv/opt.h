@@ -1,3 +1,4 @@
+extern const char *opt_default_icecast_output;
 extern const char *opt_path_acl;
 extern const char *opt_path_webacl;
 extern const char *opt_path_logfile;

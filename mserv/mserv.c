@@ -40,6 +40,13 @@ met:
 #define _BSD_SOURCE 1
 #define __EXTENSIONS__ 1
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
@@ -47,19 +54,12 @@ met:
 #include <stdlib.h>
 #include <stdarg.h>
 #include <pwd.h>
-#include <sys/types.h>
 #include <fcntl.h>
-#include <sys/time.h>
 #include <netdb.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
 #include <string.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <math.h>
-#include <sys/ioctl.h>
 #include <time.h>
 
 #include "mserv.h"
@@ -72,6 +72,7 @@ met:
 #include "conf.h"
 #include "opt.h"
 #include "filter.h"
+#include "output-icecast.h"
 
 #define MAXFD 64
 
@@ -90,6 +91,7 @@ static int mserv_socket = 0;
 static int mserv_nextid_album = 1;
 static int mserv_nextid_track = 1;
 static int mserv_playingpid = 0;
+static int mserv_playingpipe = -1;
 static int mserv_started = 0;
 static char mserv_filter[FILTERLEN+1] = "";
 static char mserv_pausedby[USERNAMELEN+1];
@@ -116,7 +118,9 @@ t_author *mserv_authors = NULL;
 t_genre *mserv_genres = NULL;
 unsigned int mserv_filter_ok = 0;
 unsigned int mserv_filter_notok = 0;
-time_t mserv_playnextat = (time_t)0;
+unsigned int mserv_playnext_waiting = 0;
+struct timeval mserv_playnext_at = { 0, 0 };
+t_output *mserv_output = NULL;
 
 /*** file-scope (static) function declarations ***/
 
@@ -235,6 +239,7 @@ int main(int argc, char *argv[])
   int populate;
   struct stat statbuf;
   char *m = NULL;
+  char *error = NULL;
   int badparams = 0;
 
   progname = argv[0];
@@ -462,6 +467,19 @@ int main(int argc, char *argv[])
 
   /* do initialization */
   mserv_init();
+  
+  if (output_init() != 0) {
+    mserv_log("Failed to initialise output sub-system");
+    mserv_closedown(1);
+  }
+  error = NULL;
+  mserv_output = output_create(opt_default_icecast_output, &error);
+  if (mserv_output == NULL) {
+    if (!error)
+      error = "Unknown";
+    mserv_log("Failed to create output channel: %s", error);
+    mserv_closedown(1);
+  }
 
   mserv_started = 1;
 
@@ -476,6 +494,8 @@ int main(int argc, char *argv[])
 
   mserv_mainloop();
 
+  output_final();
+
   return(0);
 }
 
@@ -485,11 +505,12 @@ static void mserv_mainloop(void)
   fd_set fd_reads, fd_writes;
   int client_socket;
   int maxfd;
-  struct timeval timeout;
+  struct timeval timeout, timeout_playnext, now;
   struct sockaddr_in sin_client;
   int sin_client_len = sizeof(sin_client);
   int flags;
   int i;
+  int delay;
 
   for(;;) {
     /* check all connections */
@@ -536,20 +557,48 @@ static void mserv_mainloop(void)
 	  maxfd = cl->socket+1;
       }
     }
-    if (!mserv_playnextat ||
-	(timeout.tv_sec = difftime(mserv_playnextat, time(NULL))) > 60)
-      timeout.tv_sec = 60;
-    timeout.tv_usec = 0;
+    /* work out delay in microseconds until next output due */
+    delay = output_delay(mserv_output);
+    if (delay < 0)
+      delay = 10000; /* infinite delay wanted - make it 10 secs */
+    timeout.tv_sec = delay / 1000;
+    timeout.tv_usec = (delay % 1000) * 1000;
+    /* work out delay in microseconds until we next should play a track */
+    if (mserv_playnext_waiting) {
+      timeout_playnext.tv_sec = 0;
+      timeout_playnext.tv_usec = 0;
+      if (gettimeofday(&now, NULL) != 0) {
+	mserv_log("Failed to gettimeofday: %s", strerror(errno));
+	mserv_closedown(1);
+      }
+      if (mserv_timercmp(&now, &mserv_playnext_at, <))
+        timersub(&mserv_playnext_at, &now, &timeout_playnext);
+      if (mserv_timercmp(&timeout_playnext, &timeout, <))
+        timeout = timeout_playnext;
+    }
+    /* lets actually have a maximum wait of a second */
+    if (timeout.tv_sec > 0) {
+      timeout.tv_sec = 1;
+      timeout.tv_usec = 0;
+    }
     /* wait for something to happen or for a second to ellapse */
-    /* mserv_log("SELECT %d", timeout.tv_sec); */
+    mserv_log("SELECT %d %d", timeout.tv_sec, timeout.tv_usec);
     select(maxfd, &fd_reads, &fd_writes, NULL, &timeout);
-    /* mserv_log("END SELECT"); */
+    mserv_log("END SELECT");
+    /* output any sound that needs to be */
+    output_sync(mserv_output);
     /* check for time to play next song */
-    if (mserv_playnextat && difftime(mserv_playnextat, time(NULL)) <= 0) {
-      mserv_playnextat = 0;
-      if (!mserv_playing.track) {
-	if (mserv_playnext())
-	  mserv_broadcast("FINISH", NULL);
+    if (mserv_playnext_waiting) {
+      if (gettimeofday(&now, NULL) != 0) {
+	mserv_log("Failed to gettimeofday: %s", strerror(errno));
+	mserv_closedown(1);
+      }
+      if (mserv_timercmp(&now, &mserv_playnext_at, >=)) {
+        mserv_playnext_waiting = 0;
+        if (!mserv_playing.track) {
+          if (mserv_playnext())
+            mserv_broadcast("FINISH", NULL);
+        }
       }
     }
     /* check for incoming connections */
@@ -668,7 +717,14 @@ static void mserv_checkchild(void)
 	if (mserv_playnext())
 	  mserv_broadcast("FINISH", NULL);
       }
-      mserv_playnextat = time(NULL) + mserv_gap;
+      if (gettimeofday(&mserv_playnext_at, NULL) != 0) {
+	mserv_log("Failed to gettimeofday: %s", strerror(errno));
+	mserv_closedown(1);
+      }
+      /* TODO: allow floating point gaps */
+      mserv_playnext_at.tv_sec += mserv_gap;
+      mserv_playnext_at.tv_usec = 0;
+      mserv_playnext_waiting = 1;
     }
   } else if (pid == -1) {
     mserv_log("waitpid failure (%d): %s", errno, strerror(errno));
@@ -2230,6 +2286,7 @@ int mserv_playnext(void)
   char *str[21];
   char *strbuf;
   const char *player;
+  int playerpipe[2];
 
   if (mserv_playing.track) {
     mserv_abortplay();
@@ -2320,6 +2377,10 @@ int mserv_playnext(void)
       mserv_send(cl, buffer, 0);
     }
   }
+  if (pipe(playerpipe) == -1) {
+    mserv_log("Failed to create pipes with pipe() call: %s\n", strerror(errno));
+    exit(1);
+  }
   snprintf(fullpath, MAXFNAME, "%s/%s", opt_path_tracks,
 	   mserv_playing.track->filename);
   player = mserv_getplayer(fullpath);
@@ -2341,21 +2402,22 @@ int mserv_playnext(void)
 		strerror(errno));
       exit(0);
     }
-    dup2(fd, STDIN_FILENO);
-    dup2(fd, STDOUT_FILENO);
-    dup2(fd, STDERR_FILENO);
-    if (fd != STDIN_FILENO && fd != STDOUT_FILENO && fd != STDERR_FILENO)
-      close(fd);
+    if (fd != STDIN_FILENO)
+      dup2(fd, STDIN_FILENO);
+    if (fd != STDERR_FILENO)
+      dup2(fd, STDERR_FILENO);
+    if (playerpipe[1] != STDOUT_FILENO)
+      dup2(playerpipe[1], STDOUT_FILENO);
     /* close file descriptors, ikky but suggested in unix network programming
        volume 1 second edition, although I seem to remember a better way.. */
     for (i = 3; i < MAXFD; i++)
       close(i);
     setsid();
     for (i = 0; str[i] && i < 20; i++) {
-      printf("%d: %s\n", i, str[i]);
+      fprintf(stderr, "%d: %s\n", i, str[i]);
     }
-    execv(str[0], str);
-    fprintf(stderr, "%s: Unable to execv '%s': '%s'", progname,
+    execvp(str[0], str);
+    fprintf(stderr, "%s: Unable to execvp '%s': '%s'", progname,
 	    player, strerror(errno));
     exit(1);
   } else if (pid == -1) {
@@ -2363,8 +2425,11 @@ int mserv_playnext(void)
     mserv_log("Unable to fork: '%s'", strerror(errno));
   }
   free(strbuf);
+  close(playerpipe[1]);
+  mserv_playingpipe = playerpipe[0];
   mserv_playingpid = pid;
   mserv_playingstart = time(NULL);
+  output_setinput(mserv_output, mserv_playingpipe);
   if ((history = malloc(sizeof(t_supinfo))) == NULL) {
     mserv_log("Out of memory adding item to history");
     mserv_broadcast("MEMORY", NULL);
@@ -2484,9 +2549,9 @@ void mserv_pauseplay(t_client *cl)
   int i;
 
   if (!mserv_playing.track) {
-    if (mserv_playnextat) {
+    if (mserv_playnext_waiting) {
       /* we're between songs - start up next one, a bit of a fudge this */
-      mserv_playnextat = 0;
+      mserv_playnext_waiting = 0;
       mserv_playnext(); /* ignore return */
     }
   }  

@@ -74,7 +74,11 @@ LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
-MY_LIBS = @MY_LIBS@
+MSERVCLI_LIBS = @MSERVCLI_LIBS@
+MSERVCMD_LIBS = @MSERVCMD_LIBS@
+MSERV_CFLAGS = @MSERV_CFLAGS@
+MSERV_CPPFLAGS = @MSERV_CPPFLAGS@
+MSERV_LIBS = @MSERV_LIBS@
 MY_SUBDIRS = @MY_SUBDIRS@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
@@ -84,11 +88,17 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKGCONFIG = @PKGCONFIG@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SHOUTCONFIG = @SHOUTCONFIG@
 STRIP = @STRIP@
 VERSION = @VERSION@
+VORBISENC_LIBS = @VORBISENC_LIBS@
+VORBISFILE_LIBS = @VORBISFILE_LIBS@
+VORBIS_CFLAGS = @VORBIS_CFLAGS@
+VORBIS_LIBS = @VORBIS_LIBS@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
@@ -130,15 +140,17 @@ target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
 
-INCLUDES = -I../hdr -DDATADIR=\"${datadir}\"
+INCLUDES = -I../hdr -DDATADIR=\"${datadir}\" -DBINDIR=\"${bindir}\"
 
 bin_PROGRAMS = mserv
 
 mserv_SOURCES = mserv.c misc.c cmd.c acl.c mp3info.c conf.c defconf.c \
-                opt.c filter.c
+                opt.c filter.c output-icecast.c
 
 
-mserv_LDADD = @MY_LIBS@
+mserv_LDADD = @MSERV_LIBS@
+mserv_CPPFLAGS = @MSERV_CPPFLAGS@
+mserv_CFLAGS = @MSERV_CFLAGS@
 
 man1_MANS = mserv.1
 
@@ -151,9 +163,11 @@ CONFIG_CLEAN_FILES =
 bin_PROGRAMS = mserv$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 
-am_mserv_OBJECTS = mserv.$(OBJEXT) misc.$(OBJEXT) cmd.$(OBJEXT) \
-	acl.$(OBJEXT) mp3info.$(OBJEXT) conf.$(OBJEXT) \
-	defconf.$(OBJEXT) opt.$(OBJEXT) filter.$(OBJEXT)
+am_mserv_OBJECTS = mserv-mserv.$(OBJEXT) mserv-misc.$(OBJEXT) \
+	mserv-cmd.$(OBJEXT) mserv-acl.$(OBJEXT) mserv-mp3info.$(OBJEXT) \
+	mserv-conf.$(OBJEXT) mserv-defconf.$(OBJEXT) \
+	mserv-opt.$(OBJEXT) mserv-filter.$(OBJEXT) \
+	mserv-output-icecast.$(OBJEXT)
 mserv_OBJECTS = $(am_mserv_OBJECTS)
 mserv_DEPENDENCIES =
 mserv_LDFLAGS =
@@ -161,11 +175,14 @@ mserv_LDFLAGS =
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/acl.Po ./$(DEPDIR)/cmd.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/conf.Po ./$(DEPDIR)/defconf.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/filter.Po ./$(DEPDIR)/misc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mp3info.Po ./$(DEPDIR)/mserv.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/opt.Po
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/mserv-acl.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mserv-cmd.Po ./$(DEPDIR)/mserv-conf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mserv-defconf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mserv-filter.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mserv-misc.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mserv-mp3info.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mserv-mserv.Po ./$(DEPDIR)/mserv-opt.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mserv-output-icecast.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
@@ -230,15 +247,16 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acl.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conf.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/defconf.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filter.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mp3info.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/opt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-acl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-cmd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-conf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-defconf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-filter.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-misc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-mp3info.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-mserv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-opt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mserv-output-icecast.Po@am__quote@
 
 distclean-depend:
 	-rm -rf ./$(DEPDIR)
@@ -275,6 +293,336 @@ distclean-depend:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
+
+mserv-mserv.o: mserv.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-mserv.o -MD -MP -MF "$(DEPDIR)/mserv-mserv.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-mserv.o `test -f 'mserv.c' || echo '$(srcdir)/'`mserv.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-mserv.Tpo" "$(DEPDIR)/mserv-mserv.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-mserv.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mserv.c' object='mserv-mserv.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-mserv.Po' tmpdepfile='$(DEPDIR)/mserv-mserv.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-mserv.o `test -f 'mserv.c' || echo '$(srcdir)/'`mserv.c
+
+mserv-mserv.obj: mserv.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-mserv.obj -MD -MP -MF "$(DEPDIR)/mserv-mserv.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-mserv.obj `if test -f 'mserv.c'; then $(CYGPATH_W) 'mserv.c'; else $(CYGPATH_W) '$(srcdir)/mserv.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-mserv.Tpo" "$(DEPDIR)/mserv-mserv.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-mserv.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mserv.c' object='mserv-mserv.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-mserv.Po' tmpdepfile='$(DEPDIR)/mserv-mserv.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-mserv.obj `if test -f 'mserv.c'; then $(CYGPATH_W) 'mserv.c'; else $(CYGPATH_W) '$(srcdir)/mserv.c'; fi`
+
+mserv-mserv.lo: mserv.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-mserv.lo -MD -MP -MF "$(DEPDIR)/mserv-mserv.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-mserv.lo `test -f 'mserv.c' || echo '$(srcdir)/'`mserv.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-mserv.Tpo" "$(DEPDIR)/mserv-mserv.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-mserv.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mserv.c' object='mserv-mserv.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-mserv.Plo' tmpdepfile='$(DEPDIR)/mserv-mserv.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-mserv.lo `test -f 'mserv.c' || echo '$(srcdir)/'`mserv.c
+
+mserv-misc.o: misc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-misc.o -MD -MP -MF "$(DEPDIR)/mserv-misc.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-misc.o `test -f 'misc.c' || echo '$(srcdir)/'`misc.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-misc.Tpo" "$(DEPDIR)/mserv-misc.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-misc.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='misc.c' object='mserv-misc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-misc.Po' tmpdepfile='$(DEPDIR)/mserv-misc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-misc.o `test -f 'misc.c' || echo '$(srcdir)/'`misc.c
+
+mserv-misc.obj: misc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-misc.obj -MD -MP -MF "$(DEPDIR)/mserv-misc.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-misc.obj `if test -f 'misc.c'; then $(CYGPATH_W) 'misc.c'; else $(CYGPATH_W) '$(srcdir)/misc.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-misc.Tpo" "$(DEPDIR)/mserv-misc.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-misc.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='misc.c' object='mserv-misc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-misc.Po' tmpdepfile='$(DEPDIR)/mserv-misc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-misc.obj `if test -f 'misc.c'; then $(CYGPATH_W) 'misc.c'; else $(CYGPATH_W) '$(srcdir)/misc.c'; fi`
+
+mserv-misc.lo: misc.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-misc.lo -MD -MP -MF "$(DEPDIR)/mserv-misc.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-misc.lo `test -f 'misc.c' || echo '$(srcdir)/'`misc.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-misc.Tpo" "$(DEPDIR)/mserv-misc.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-misc.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='misc.c' object='mserv-misc.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-misc.Plo' tmpdepfile='$(DEPDIR)/mserv-misc.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-misc.lo `test -f 'misc.c' || echo '$(srcdir)/'`misc.c
+
+mserv-cmd.o: cmd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-cmd.o -MD -MP -MF "$(DEPDIR)/mserv-cmd.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-cmd.o `test -f 'cmd.c' || echo '$(srcdir)/'`cmd.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-cmd.Tpo" "$(DEPDIR)/mserv-cmd.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-cmd.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cmd.c' object='mserv-cmd.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-cmd.Po' tmpdepfile='$(DEPDIR)/mserv-cmd.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-cmd.o `test -f 'cmd.c' || echo '$(srcdir)/'`cmd.c
+
+mserv-cmd.obj: cmd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-cmd.obj -MD -MP -MF "$(DEPDIR)/mserv-cmd.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-cmd.obj `if test -f 'cmd.c'; then $(CYGPATH_W) 'cmd.c'; else $(CYGPATH_W) '$(srcdir)/cmd.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-cmd.Tpo" "$(DEPDIR)/mserv-cmd.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-cmd.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cmd.c' object='mserv-cmd.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-cmd.Po' tmpdepfile='$(DEPDIR)/mserv-cmd.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-cmd.obj `if test -f 'cmd.c'; then $(CYGPATH_W) 'cmd.c'; else $(CYGPATH_W) '$(srcdir)/cmd.c'; fi`
+
+mserv-cmd.lo: cmd.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-cmd.lo -MD -MP -MF "$(DEPDIR)/mserv-cmd.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-cmd.lo `test -f 'cmd.c' || echo '$(srcdir)/'`cmd.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-cmd.Tpo" "$(DEPDIR)/mserv-cmd.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-cmd.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cmd.c' object='mserv-cmd.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-cmd.Plo' tmpdepfile='$(DEPDIR)/mserv-cmd.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-cmd.lo `test -f 'cmd.c' || echo '$(srcdir)/'`cmd.c
+
+mserv-acl.o: acl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-acl.o -MD -MP -MF "$(DEPDIR)/mserv-acl.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-acl.o `test -f 'acl.c' || echo '$(srcdir)/'`acl.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-acl.Tpo" "$(DEPDIR)/mserv-acl.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-acl.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='acl.c' object='mserv-acl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-acl.Po' tmpdepfile='$(DEPDIR)/mserv-acl.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-acl.o `test -f 'acl.c' || echo '$(srcdir)/'`acl.c
+
+mserv-acl.obj: acl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-acl.obj -MD -MP -MF "$(DEPDIR)/mserv-acl.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-acl.obj `if test -f 'acl.c'; then $(CYGPATH_W) 'acl.c'; else $(CYGPATH_W) '$(srcdir)/acl.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-acl.Tpo" "$(DEPDIR)/mserv-acl.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-acl.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='acl.c' object='mserv-acl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-acl.Po' tmpdepfile='$(DEPDIR)/mserv-acl.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-acl.obj `if test -f 'acl.c'; then $(CYGPATH_W) 'acl.c'; else $(CYGPATH_W) '$(srcdir)/acl.c'; fi`
+
+mserv-acl.lo: acl.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-acl.lo -MD -MP -MF "$(DEPDIR)/mserv-acl.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-acl.lo `test -f 'acl.c' || echo '$(srcdir)/'`acl.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-acl.Tpo" "$(DEPDIR)/mserv-acl.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-acl.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='acl.c' object='mserv-acl.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-acl.Plo' tmpdepfile='$(DEPDIR)/mserv-acl.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-acl.lo `test -f 'acl.c' || echo '$(srcdir)/'`acl.c
+
+mserv-mp3info.o: mp3info.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-mp3info.o -MD -MP -MF "$(DEPDIR)/mserv-mp3info.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-mp3info.o `test -f 'mp3info.c' || echo '$(srcdir)/'`mp3info.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-mp3info.Tpo" "$(DEPDIR)/mserv-mp3info.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-mp3info.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mp3info.c' object='mserv-mp3info.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-mp3info.Po' tmpdepfile='$(DEPDIR)/mserv-mp3info.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-mp3info.o `test -f 'mp3info.c' || echo '$(srcdir)/'`mp3info.c
+
+mserv-mp3info.obj: mp3info.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-mp3info.obj -MD -MP -MF "$(DEPDIR)/mserv-mp3info.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-mp3info.obj `if test -f 'mp3info.c'; then $(CYGPATH_W) 'mp3info.c'; else $(CYGPATH_W) '$(srcdir)/mp3info.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-mp3info.Tpo" "$(DEPDIR)/mserv-mp3info.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-mp3info.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mp3info.c' object='mserv-mp3info.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-mp3info.Po' tmpdepfile='$(DEPDIR)/mserv-mp3info.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-mp3info.obj `if test -f 'mp3info.c'; then $(CYGPATH_W) 'mp3info.c'; else $(CYGPATH_W) '$(srcdir)/mp3info.c'; fi`
+
+mserv-mp3info.lo: mp3info.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-mp3info.lo -MD -MP -MF "$(DEPDIR)/mserv-mp3info.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-mp3info.lo `test -f 'mp3info.c' || echo '$(srcdir)/'`mp3info.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-mp3info.Tpo" "$(DEPDIR)/mserv-mp3info.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-mp3info.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mp3info.c' object='mserv-mp3info.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-mp3info.Plo' tmpdepfile='$(DEPDIR)/mserv-mp3info.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-mp3info.lo `test -f 'mp3info.c' || echo '$(srcdir)/'`mp3info.c
+
+mserv-conf.o: conf.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-conf.o -MD -MP -MF "$(DEPDIR)/mserv-conf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-conf.o `test -f 'conf.c' || echo '$(srcdir)/'`conf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-conf.Tpo" "$(DEPDIR)/mserv-conf.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-conf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='conf.c' object='mserv-conf.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-conf.Po' tmpdepfile='$(DEPDIR)/mserv-conf.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-conf.o `test -f 'conf.c' || echo '$(srcdir)/'`conf.c
+
+mserv-conf.obj: conf.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-conf.obj -MD -MP -MF "$(DEPDIR)/mserv-conf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-conf.obj `if test -f 'conf.c'; then $(CYGPATH_W) 'conf.c'; else $(CYGPATH_W) '$(srcdir)/conf.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-conf.Tpo" "$(DEPDIR)/mserv-conf.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-conf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='conf.c' object='mserv-conf.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-conf.Po' tmpdepfile='$(DEPDIR)/mserv-conf.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-conf.obj `if test -f 'conf.c'; then $(CYGPATH_W) 'conf.c'; else $(CYGPATH_W) '$(srcdir)/conf.c'; fi`
+
+mserv-conf.lo: conf.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-conf.lo -MD -MP -MF "$(DEPDIR)/mserv-conf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-conf.lo `test -f 'conf.c' || echo '$(srcdir)/'`conf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-conf.Tpo" "$(DEPDIR)/mserv-conf.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-conf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='conf.c' object='mserv-conf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-conf.Plo' tmpdepfile='$(DEPDIR)/mserv-conf.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-conf.lo `test -f 'conf.c' || echo '$(srcdir)/'`conf.c
+
+mserv-defconf.o: defconf.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-defconf.o -MD -MP -MF "$(DEPDIR)/mserv-defconf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-defconf.o `test -f 'defconf.c' || echo '$(srcdir)/'`defconf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-defconf.Tpo" "$(DEPDIR)/mserv-defconf.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-defconf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='defconf.c' object='mserv-defconf.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-defconf.Po' tmpdepfile='$(DEPDIR)/mserv-defconf.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-defconf.o `test -f 'defconf.c' || echo '$(srcdir)/'`defconf.c
+
+mserv-defconf.obj: defconf.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-defconf.obj -MD -MP -MF "$(DEPDIR)/mserv-defconf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-defconf.obj `if test -f 'defconf.c'; then $(CYGPATH_W) 'defconf.c'; else $(CYGPATH_W) '$(srcdir)/defconf.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-defconf.Tpo" "$(DEPDIR)/mserv-defconf.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-defconf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='defconf.c' object='mserv-defconf.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-defconf.Po' tmpdepfile='$(DEPDIR)/mserv-defconf.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-defconf.obj `if test -f 'defconf.c'; then $(CYGPATH_W) 'defconf.c'; else $(CYGPATH_W) '$(srcdir)/defconf.c'; fi`
+
+mserv-defconf.lo: defconf.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-defconf.lo -MD -MP -MF "$(DEPDIR)/mserv-defconf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-defconf.lo `test -f 'defconf.c' || echo '$(srcdir)/'`defconf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-defconf.Tpo" "$(DEPDIR)/mserv-defconf.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-defconf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='defconf.c' object='mserv-defconf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-defconf.Plo' tmpdepfile='$(DEPDIR)/mserv-defconf.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-defconf.lo `test -f 'defconf.c' || echo '$(srcdir)/'`defconf.c
+
+mserv-opt.o: opt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-opt.o -MD -MP -MF "$(DEPDIR)/mserv-opt.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-opt.o `test -f 'opt.c' || echo '$(srcdir)/'`opt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-opt.Tpo" "$(DEPDIR)/mserv-opt.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-opt.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='opt.c' object='mserv-opt.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-opt.Po' tmpdepfile='$(DEPDIR)/mserv-opt.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-opt.o `test -f 'opt.c' || echo '$(srcdir)/'`opt.c
+
+mserv-opt.obj: opt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-opt.obj -MD -MP -MF "$(DEPDIR)/mserv-opt.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-opt.obj `if test -f 'opt.c'; then $(CYGPATH_W) 'opt.c'; else $(CYGPATH_W) '$(srcdir)/opt.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-opt.Tpo" "$(DEPDIR)/mserv-opt.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-opt.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='opt.c' object='mserv-opt.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-opt.Po' tmpdepfile='$(DEPDIR)/mserv-opt.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-opt.obj `if test -f 'opt.c'; then $(CYGPATH_W) 'opt.c'; else $(CYGPATH_W) '$(srcdir)/opt.c'; fi`
+
+mserv-opt.lo: opt.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-opt.lo -MD -MP -MF "$(DEPDIR)/mserv-opt.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-opt.lo `test -f 'opt.c' || echo '$(srcdir)/'`opt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-opt.Tpo" "$(DEPDIR)/mserv-opt.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-opt.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='opt.c' object='mserv-opt.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-opt.Plo' tmpdepfile='$(DEPDIR)/mserv-opt.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-opt.lo `test -f 'opt.c' || echo '$(srcdir)/'`opt.c
+
+mserv-filter.o: filter.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-filter.o -MD -MP -MF "$(DEPDIR)/mserv-filter.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-filter.o `test -f 'filter.c' || echo '$(srcdir)/'`filter.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-filter.Tpo" "$(DEPDIR)/mserv-filter.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-filter.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='filter.c' object='mserv-filter.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-filter.Po' tmpdepfile='$(DEPDIR)/mserv-filter.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-filter.o `test -f 'filter.c' || echo '$(srcdir)/'`filter.c
+
+mserv-filter.obj: filter.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-filter.obj -MD -MP -MF "$(DEPDIR)/mserv-filter.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-filter.obj `if test -f 'filter.c'; then $(CYGPATH_W) 'filter.c'; else $(CYGPATH_W) '$(srcdir)/filter.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-filter.Tpo" "$(DEPDIR)/mserv-filter.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-filter.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='filter.c' object='mserv-filter.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-filter.Po' tmpdepfile='$(DEPDIR)/mserv-filter.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-filter.obj `if test -f 'filter.c'; then $(CYGPATH_W) 'filter.c'; else $(CYGPATH_W) '$(srcdir)/filter.c'; fi`
+
+mserv-filter.lo: filter.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-filter.lo -MD -MP -MF "$(DEPDIR)/mserv-filter.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-filter.lo `test -f 'filter.c' || echo '$(srcdir)/'`filter.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-filter.Tpo" "$(DEPDIR)/mserv-filter.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-filter.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='filter.c' object='mserv-filter.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-filter.Plo' tmpdepfile='$(DEPDIR)/mserv-filter.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-filter.lo `test -f 'filter.c' || echo '$(srcdir)/'`filter.c
+
+mserv-output-icecast.o: output-icecast.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-output-icecast.o -MD -MP -MF "$(DEPDIR)/mserv-output-icecast.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-output-icecast.o `test -f 'output-icecast.c' || echo '$(srcdir)/'`output-icecast.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-output-icecast.Tpo" "$(DEPDIR)/mserv-output-icecast.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-output-icecast.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='output-icecast.c' object='mserv-output-icecast.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-output-icecast.Po' tmpdepfile='$(DEPDIR)/mserv-output-icecast.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-output-icecast.o `test -f 'output-icecast.c' || echo '$(srcdir)/'`output-icecast.c
+
+mserv-output-icecast.obj: output-icecast.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-output-icecast.obj -MD -MP -MF "$(DEPDIR)/mserv-output-icecast.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-output-icecast.obj `if test -f 'output-icecast.c'; then $(CYGPATH_W) 'output-icecast.c'; else $(CYGPATH_W) '$(srcdir)/output-icecast.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-output-icecast.Tpo" "$(DEPDIR)/mserv-output-icecast.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-output-icecast.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='output-icecast.c' object='mserv-output-icecast.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-output-icecast.Po' tmpdepfile='$(DEPDIR)/mserv-output-icecast.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-output-icecast.obj `if test -f 'output-icecast.c'; then $(CYGPATH_W) 'output-icecast.c'; else $(CYGPATH_W) '$(srcdir)/output-icecast.c'; fi`
+
+mserv-output-icecast.lo: output-icecast.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -MT mserv-output-icecast.lo -MD -MP -MF "$(DEPDIR)/mserv-output-icecast.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mserv-output-icecast.lo `test -f 'output-icecast.c' || echo '$(srcdir)/'`output-icecast.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mserv-output-icecast.Tpo" "$(DEPDIR)/mserv-output-icecast.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mserv-output-icecast.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='output-icecast.c' object='mserv-output-icecast.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mserv-output-icecast.Plo' tmpdepfile='$(DEPDIR)/mserv-output-icecast.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mserv_CPPFLAGS) $(CPPFLAGS) $(mserv_CFLAGS) $(CFLAGS) -c -o mserv-output-icecast.lo `test -f 'output-icecast.c' || echo '$(srcdir)/'`output-icecast.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

@@ -27,12 +27,13 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
+#include <alloca.h>
 
 #include "mserv.h"
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.3 2004/03/28 17:24:26 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.4 2004/03/28 18:53:03 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -127,17 +128,47 @@ int ossaudio_output_sync(t_channel *c, t_channel_outputstream *os,
 {
   t_ossaudio *ossaudio = (t_ossaudio *)private;
   (void)c;
-  (void)os;
-
+  unsigned int sample;
+  unsigned int channel;
+  int i;
+  int written;
+  int buffer_size = sizeof(unsigned char) * os->channels * os->samplerate;
+  unsigned char *buffer = alloca(buffer_size);
+  
   if (!ossaudio->playing) {
     // Nothing's playing, we don't need to do anything to be
     // MSERV_SUCCESSful
     return MSERV_SUCCESS;
   }
+
+  // Create a one second sample for the sound card
+  i = 0;
+  for (sample = 0; sample < os->samplerate; sample++) {
+    for (channel = 0; channel < os->channels; channel++) {
+      // The output contains floats in the range -1.0 - 1.0
+      buffer[i++] = (unsigned char)((os->output[sample * os->channels + channel] + 1.0f) * 127.0f);
+    }
+  }
+
+  if ((written = write(ossaudio->output_fd,
+		       buffer,
+		       buffer_size)) != buffer_size)
+  {
+    if (written == -1) {
+      snprintf(error, errsize,
+	       "failed to send data to soundcard: %s",
+	       strerror(errno));
+    } else {
+      snprintf(error, errsize,
+	       "attempted to send %d bytes to soundcard, but only %d bytes were written",
+	       buffer_size,
+	       written);
+    }
+    
+    return MSERV_FAILURE;
+  }
   
-  snprintf(error, errsize, "%s() unimplemented", __FUNCTION__);
-  
-  return MSERV_FAILURE;
+  return MSERV_SUCCESS;
 }
 
 /* read/set volume */
@@ -204,15 +235,23 @@ int ossaudio_output_start(t_channel *c, t_channel_outputstream *os,
   } 
   
   // Set stereo output
-  stereo = 1;
-  if (ioctl(output_fd, SNDCTL_DSP_STEREO, &stereo) == -1) {
+  if (os->channels != 1 && os->channels != 2) {
     snprintf(error, errsize,
-	     "failed asking soundcard for stereo output");
+	     "the OSS output plugin supports only mono or stereo, %d channels is neither",
+	     os->channels);
     goto failed;
   }
-  if (stereo != 1) {
+  stereo = (os->channels == 2 ? 1 : 0);
+  if (ioctl(output_fd, SNDCTL_DSP_STEREO, &stereo) == -1) {
     snprintf(error, errsize,
-	     "sound card doesn't support stereo");
+	     "failed asking soundcard for %s output",
+	     stereo ? "stereo" : "mono");
+    goto failed;
+  }
+  if (stereo != (os->channels == 2 ? 1 : 0)) {
+    snprintf(error, errsize,
+	     "sound card doesn't support %s output",
+	     os->channels == 2 ? "stereo" : "mono");
     goto failed;
   }
   

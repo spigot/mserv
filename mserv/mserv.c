@@ -2994,8 +2994,14 @@ static void mserv_checkshutdown(void)
  * when determining what track to play next.
  *
  * Called from mserv_recalcratings().
+ *
+ * The int pointed out by the "artificial" parameter gets set to TRUE
+ * if the rating has been calculated, and FALSE if the rating is the
+ * user's actual rating.
  */
-static double mserv_getcookedrate(const char *user, t_track *track)
+static double mserv_getcookedrate(const char *user,
+				  t_track *track,
+				  int *artificial)
 {
   t_rating *rate;
   double fallback;
@@ -3012,8 +3018,10 @@ static double mserv_getcookedrate(const char *user, t_track *track)
   
   /* Simple case, the user has rated the track */
   if (rate != NULL && rate->rating != 0) {
+    *artificial = 0;
     return ((double)(rate->rating - 1)) / 4.0; /* 1-5 -> percentage */
   }
+  *artificial = 1;
   
   if (rate == NULL) {
     fallback = opt_rate_unheard;
@@ -3124,13 +3132,17 @@ static inline double mserv_recalcprating(t_track *track)
   t_client *cl;
   
   for (cl = mserv_clients; cl; cl = cl->next) {
+    int artificial;
+    
     if (!cl->authed || cl->state == st_closed ||
 	cl->mode == mode_computer || cl->userlevel == level_guest)
       continue;
     
     /* Note that if the experimental fairness is disabled,
      * cl->weight will always be 1.0. */
-    rating += cl->weight * mserv_getcookedrate(cl->user, track);
+    rating += cl->weight * mserv_getcookedrate(cl->user,
+					       track,
+					       &artificial);
     total_weight += cl->weight;
   }
   
@@ -3556,6 +3568,9 @@ t_rating *mserv_getrate(const char *user, t_track *track)
  * in *satisfaction.  Returns the number of milliseconds on which the
  * average is based.
  *
+ * UNRATED and UNHEARD songs count only half as much as properly rated
+ * songs.
+ *
  * If no heard songs have been played yet, 0 is returned and the value
  * stored in *satisfaction is undefined. */
 int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
@@ -3563,6 +3578,7 @@ int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
   int i;
   int totalDuration = 0;
   double sum = 0.0;
+  double totalWeight = 0.0;
   int maxsongs;
   
   maxsongs = mserv_n_songs_started - cl->loggedinatsong;
@@ -3576,16 +3592,27 @@ int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
 	 && totalDuration < 60 * 60 * 1000;
        i++)
   {
-    double songscore = mserv_getcookedrate(cl->user, mserv_history[i]->track);
+    int artificial;
+    double songscore = mserv_getcookedrate(cl->user,
+					   mserv_history[i]->track,
+					   &artificial);
     int songduration = mserv_history[i]->durationMsecs;
+
+    double weight = songduration;
+    if (artificial) {
+      weight *= 0.5;
+    }
     
-    sum += songscore * songduration;
+    sum += songscore * weight;
+    totalWeight += weight;
     totalDuration += songduration;
   }
-  
-  if (totalDuration > 0) {
-    *satisfaction = sum / totalDuration;
-  }
+  /*   if (totalDuration > 0.0) { */
+  /*     assert(totalWeight > 0.0); */
+  /*   } */
+
+  /* If totalWeight is 0.0, *satisfaction will be NaN. */
+  *satisfaction = sum / totalWeight;
   
   return totalDuration;
 }

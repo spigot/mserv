@@ -968,7 +968,7 @@ static void mserv_cmd_tracks(t_client *cl, const char *ru, const char *line)
   }
   mserv_responsent(cl, "TRACKS", "%d\t%s\t%s", album->id, album->author,
 		   album->name);
-  for (i = 0; i < TRACKSPERALBUM; i++) {
+  for (i = 0; i < album->ntracks; i++) {
     if (album->tracks[i]) {
       rate = mserv_getrate(ru, album->tracks[i]);
       sprintf(bit, "%d/%d", album->tracks[i]->n_album,
@@ -1130,7 +1130,7 @@ static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line)
   unsigned int i, j, k, numtracks;
   t_rating *rate;
   int random, mode;
-  unsigned char tracktally[TRACKSPERALBUM];
+  unsigned char *tracktally;
 
   if (!*line) {
     if (!mserv_queue) {
@@ -1204,34 +1204,38 @@ static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line)
       mserv_responsent(cl, "QADDR", NULL);
     if (random) {
       numtracks = 0;
-      for (i = 0; i < TRACKSPERALBUM; i++) {
-	if (album->tracks[i]) {
-	  numtracks++;
-	  tracktally[i] = 0;
-	} else {
-	  tracktally[i] = 1;
-	}
+      if ((tracktally = malloc(album->ntracks)) == NULL) {
+        mserv_log("Out of memory creating tally for album randomisation");
+      } else {
+        /* this code seems to think tracks could be missing in an album?! */
+        for (i = 0; i < album->ntracks; i++) {
+          if (album->tracks[i]) {
+            numtracks++;
+            tracktally[i] = 0;
+          } else {
+            tracktally[i] = 1;
+          }
+        }
+        for (i = 0; i < numtracks; i++) {
+          j = ((double)(numtracks-i))*rand()/(RAND_MAX+1.0);
+          for (k = 0; k < album->ntracks; k++) {
+            if (!tracktally[k]) {
+              if (!j--)
+                break;
+            }
+          }
+          if (k >= album->ntracks || tracktally[k]) {
+            /* assertion - should never happen */
+            mserv_log("Internal error in randomising album (%d)", k);
+            break;
+          }
+          tracktally[k] = 1;
+          mserv_cmd_queue_sub(cl, album, k+1, 0);
+        }
+        free(tracktally);
       }
-      for (i = 0; i < numtracks; i++) {
-	mserv_log("LOOP: %d of %d", i, numtracks);
-	j = ((double)(numtracks-i))*rand()/(RAND_MAX+1.0);
-	mserv_log("  -->%d", j);
-	for (k = 0; k < TRACKSPERALBUM; k++) {
-	  if (!tracktally[k]) {
-	    if (!j--)
-	      break;
-	  }
-	}
-	if (k >= TRACKSPERALBUM || tracktally[k]) {
-	  /* should never happen */
-	  mserv_log("Internal error in randomising album (%d)", k);
-	  exit(1);
-	}
-	tracktally[k] = 1;
-	mserv_cmd_queue_sub(cl, album, k+1, 0);
-      }	
     } else {     
-      for (i = 0; i < TRACKSPERALBUM; i++) {
+      for (i = 0; i < album->ntracks; i++) {
 	if (album->tracks[i])
 	  mserv_cmd_queue_sub(cl, album, i+1, 0);
       }
@@ -1246,7 +1250,7 @@ static void mserv_cmd_queue(t_client *cl, const char *ru, const char *line)
     mserv_response(cl, "NAN", NULL);
     return;
   }
-  if (n_track < 1 || n_track >= TRACKSPERALBUM || !album->tracks[n_track-1]) {
+  if (n_track < 1 || n_track >= album->ntracks || !album->tracks[n_track-1]) {
     mserv_response(cl, "NOTRACK", NULL);
     return;
   }
@@ -1925,7 +1929,7 @@ static void mserv_cmd_set_genre(t_client *cl, const char *ru,
       mserv_response(cl, "NOALBUM", NULL);
       return;
     }
-    for (i = 0; i < TRACKSPERALBUM; i++) {
+    for (i = 0; i < album->ntracks; i++) {
       if (album->tracks[i]) {
 	/* altertrack invalidates track pointer */
 	if (mserv_altertrack(album->tracks[i], NULL, NULL, str[n-1],
@@ -2251,7 +2255,7 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
     if (cl->mode == mode_human) {
       ratetoo = 0;
       for (album = mserv_albums; album; album = album->next) {
-	for (i = 0; i < TRACKSPERALBUM; i++) {
+	for (i = 0; i < album->ntracks; i++) {
 	  track2 = album->tracks[i];
 	  if (track2 && track2 != track &&
 	      !stricmp(track2->author, track->author) &&
@@ -2288,7 +2292,7 @@ static void mserv_cmd_rate(t_client *cl, const char *ru, const char *line)
     }
     rate = NULL;
     total = 0;
-    for (i = 0; i < TRACKSPERALBUM; i++) {
+    for (i = 0; i < album->ntracks; i++) {
       if (album->tracks[i]) {
 	if ((rate2 = mserv_getrate(cl->user, album->tracks[i])) == NULL ||
 	    rate2->rating == 0) { /* 0 means heard, not rated */
@@ -2333,7 +2337,7 @@ static void mserv_cmd_check(t_client *cl, const char *ru, const char *line)
     return;
   }
   for (author = mserv_authors; author; author = author->next) {
-    for (i = 0; i < TRACKSPERALBUM-1; i++) {
+    for (i = 0; i < author->ntracks; i++) {
       if ((track1 = author->tracks[i]) && (track2 = author->tracks[i+1])) {
 	if (!stricmp(track1->author, track2->author) &&
 	    !stricmp(track1->name, track2->name)) {
@@ -2408,7 +2412,7 @@ static void mserv_cmd_search(t_client *cl, const char *ru, const char *line)
     return;
   }
   for (author = mserv_authors; author; author = author->next) {
-    for (i = 0; i < TRACKSPERALBUM; i++) {
+    for (i = 0; i < author->ntracks; i++) {
       if ((track = author->tracks[i])) {
 	if ((stristr(track->author, line)) ||
 	    (stristr(track->name, line))) {
@@ -2502,7 +2506,7 @@ static void mserv_cmd_searchf(t_client *cl, const char *ru, const char *line)
     return;
   }
   for (author = mserv_authors; author; author = author->next) {
-    for (i = 0; i < TRACKSPERALBUM; i++) {
+    for (i = 0; i < author->ntracks; i++) {
       if ((track = author->tracks[i])) {
 	if (filter_check(line, track) == 1) {
 	  if (!f) {
@@ -2594,7 +2598,7 @@ static void mserv_cmd_info(t_client *cl, const char *ru, const char *line)
         return;
       }
       ttime = 0;
-      for (i = 0; i < TRACKSPERALBUM; i++) {
+      for (i = 0; i < album->ntracks; i++) {
 	if (album->tracks[i])
 	  ttime+= album->tracks[i]->duration;
       }
@@ -2683,7 +2687,7 @@ static void mserv_cmd_x_authors(t_client *cl, const char *ru,
   for (author = mserv_authors; author; author = author->next) {
     total = 0;
     rated = 0;
-    for (i = 0; i < TRACKSPERALBUM; i++) {
+    for (i = 0; i < author->ntracks; i++) {
       if (author->tracks[i]) {
 	total++;
 	rate = mserv_getrate(ru, author->tracks[i]);
@@ -2742,7 +2746,7 @@ static void mserv_cmd_x_authorinfo(t_client *cl, const char *ru,
     if (author->id == n_author) {
       total = 0;
       rated = 0;
-      for (i = 0; i < TRACKSPERALBUM; i++) {
+      for (i = 0; i < author->ntracks; i++) {
 	if (author->tracks[i]) {
 	  total++;
 	  rate = mserv_getrate(ru, author->tracks[i]);
@@ -2781,7 +2785,7 @@ static void mserv_cmd_x_authortracks(t_client *cl, const char *ru,
   for (author = mserv_authors; author; author = author->next) {
     if (author->id == n_author) {
       mserv_responsent(cl, "AUTHTRK", "%d\t%s", author->id, author->name);
-      for (i = 0; i < TRACKSPERALBUM; i++) {
+      for (i = 0; i < author->ntracks; i++) {
 	if (author->tracks[i]) {
 	  rate = mserv_getrate(ru, author->tracks[i]);
 	  sprintf(bit, "%d/%d", author->tracks[i]->n_album,
@@ -2975,17 +2979,17 @@ static void mserv_cmd_x_genres(t_client *cl, const char *ru, const char *line)
   mserv_responsent(cl, "GENRES", NULL);
   for (genre = mserv_genres; genre; genre = genre->next) {
     rated = 0;
-    for (ui = 0; ui < genre->total; ui++) {
+    for (ui = 0; ui < genre->ntracks; ui++) {
       rate = mserv_getrate(ru, genre->tracks[ui]);
       if (rate && rate->rating) /* rate->rating being 0 means 'heard' */
 	rated++;
     }
     if (cl->mode == mode_human) {
       sprintf(buffer, "[] %3d %-62.62s %4d %4d\r\n", genre->id,
-	      genre->name, rated, genre->total);
+	      genre->name, rated, genre->ntracks);
     } else {
       sprintf(buffer, "%d\t%s\t%d\t%d\r\n", genre->id, genre->name,
-	      genre->total, rated);
+	      genre->ntracks, rated);
     }
     mserv_send(cl, buffer, 0);
   }
@@ -3030,13 +3034,13 @@ static void mserv_cmd_x_genreinfo(t_client *cl, const char *ru,
   for (genre = mserv_genres; genre; genre = genre->next) {
     if (genre->id == n_genre) {
       rated = 0;
-      for (ui = 0; ui < genre->total; ui++) {
+      for (ui = 0; ui < genre->ntracks; ui++) {
 	rate = mserv_getrate(ru, genre->tracks[ui]);
 	if (rate && rate->rating) /* rate->rating being 0 means 'heard' */
 	  rated++;
       }
       mserv_response(cl, "GENINF", "%d\t%s\t%d\t%d", genre->id, genre->name,
-		     genre->total, rated);
+		     genre->ntracks, rated);
       return;
     }
   }
@@ -3066,8 +3070,8 @@ static void mserv_cmd_x_genretracks(t_client *cl, const char *ru,
   for (genre = mserv_genres; genre; genre = genre->next) {
     if (genre->id == n_genre) {
       mserv_responsent(cl, "GENTRK", "%d\t%s\t%d", genre->id, genre->name,
-		       genre->total);
-      for (ui = 0; ui < genre->total; ui++) {
+		       genre->ntracks);
+      for (ui = 0; ui < genre->ntracks; ui++) {
 	rate = mserv_getrate(ru, genre->tracks[ui]);
 	sprintf(bit, "%d/%d", genre->tracks[ui]->n_album,
 		genre->tracks[ui]->n_track);

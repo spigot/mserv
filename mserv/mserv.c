@@ -187,7 +187,7 @@ static void mserv_init()
   mserv_nextid_album = 1;
 
   for (album = mserv_albums; album; album = album->next) {
-    for (i = 0; i < TRACKSPERALBUM; i++) {
+    for (i = 0; i < album->ntracks; i++) {
       if (album->tracks[i])
         album->tracks[i]->n_album = mserv_nextid_album;
     }
@@ -404,6 +404,13 @@ int main(int argc, char *argv[])
 	      mserv_conf, strerror(errno));
       exit(1);
     }
+  }
+  if ((f_conf = open(opt_path_distconf,
+                     O_WRONLY|O_CREAT|O_TRUNC, 0644)) != -1) {
+    if (write(f_conf, defconf_file, defconf_size) == -1)
+      fprintf(stderr, "%s: unable to write to %s: %s\n", progname,
+              opt_path_distconf, strerror(errno));
+    close(f_conf);
   }
   if (acl_load()) {
     mserv_log("Unable to load ACL file");
@@ -1143,7 +1150,7 @@ static void mserv_replacetrack(t_track *track, t_track *newtrack)
 
   /* change album track pointers */
   for (album = mserv_albums; album; album = album->next) {
-    for (ui = 0; ui < TRACKSPERALBUM; ui++) {
+    for (ui = 0; ui < album->ntracks; ui++) {
       if (album->tracks[ui] == track)
 	album->tracks[ui] = newtrack;
     }
@@ -1170,14 +1177,14 @@ static void mserv_replacetrack(t_track *track, t_track *newtrack)
       mserv_history[ui]->track = newtrack;
   }
   for (au = mserv_authors; au; au = au->next) {
-    for (ui = 0; ui < TRACKSPERALBUM; ui++) {
+    for (ui = 0; ui < au->ntracks; ui++) {
       if (au->tracks[ui] == track) {
 	au->tracks[ui] = newtrack;
       }
     }
   }
   for (gen = mserv_genres; gen; gen = gen->next) {
-    for (ui = 0; ui < gen->total; ui++) {
+    for (ui = 0; ui < gen->ntracks; ui++) {
       if (gen->tracks[ui] == track) {
 	gen->tracks[ui] = newtrack;
       }
@@ -1194,7 +1201,9 @@ static void mserv_replacealbum(t_album *album, t_album *newalbum)
 
   newalbum->id = album->id;
   newalbum->next = album->next;
-  memcpy(newalbum->tracks, album->tracks, TRACKSPERALBUM*sizeof(t_track *));
+  newalbum->tracks_size = album->tracks_size;
+  newalbum->ntracks = album->ntracks;
+  newalbum->tracks = album->tracks;
 
   /* change album linked list pointer */
   for (al = mserv_albums; al; al = al->next) {
@@ -1610,11 +1619,13 @@ static void mserv_scandir_recurse(const char *pathname)
   char fullpath[1024];
   char *filename;
   int llen;
-  int tnum, toomany;
-  t_track *(tracks[TRACKSPERALBUM]);
   struct stat buf;
   int i;
   t_album *album;
+  t_track **tracks;
+  unsigned int ntracks;
+  unsigned int tracks_size;
+  unsigned int ui;
   int flag = 0;
 
   /* pathname is "" or "directory/" or "directory/directory/..." */
@@ -1622,10 +1633,16 @@ static void mserv_scandir_recurse(const char *pathname)
   if (mserv_verbose)
     mserv_log("Scan directory: %s", pathname);
 
-  for (tnum = 0; tnum < TRACKSPERALBUM; tnum++)
-    tracks[tnum] = NULL;
-  tnum = 0;
-  toomany = 0;
+  /* create initial tracks array, 64 entries */
+
+  tracks_size = 64;
+  ntracks = 0;
+  if ((tracks = malloc(tracks_size * sizeof(t_track *))) == NULL) {
+    mserv_log("Out of memory creating album structure");
+    return;
+  }
+  for (ui = 0; ui < tracks_size; ui++)
+    tracks[ui] = NULL;
 
   /* find music files and use .trk files if they exist */
 
@@ -1653,8 +1670,7 @@ static void mserv_scandir_recurse(const char *pathname)
     }
     /* get details about this file */
     if (stat(fullpath, &buf)) {
-      perror("stat");
-      mserv_log("Unable to stat '%s'", fullpath);
+      mserv_log("Unable to stat '%s': %s", fullpath, strerror(errno));
       continue;
     }
     filename = fullpath+strlen(opt_path_tracks)+1;
@@ -1664,46 +1680,49 @@ static void mserv_scandir_recurse(const char *pathname)
       mserv_scandir_recurse(filename);
       continue;
     }
-    if (toomany || !S_ISREG(buf.st_mode))
-      /* ignore files once we're got too many or they aren't regular */
+    if (!S_ISREG(buf.st_mode))
+      /* ignore files if they aren't regular */
       continue;
     /* we have found a normal track - check there is a player for it */
     if (mserv_getplayer(ent->d_name) == NULL)
       continue; /* extension not found */
-    if (tnum >= TRACKSPERALBUM) {
-      mserv_log("The limit of tracks per album was reached, and some "
-		"tracks were discarded. To increase this limit "
-		"recompile with TRACKSPERALBUM set higher.  A better "
-		"solution is to sub-divide your tracks into more "
-		"directories.");
-      toomany = 1;
-      break;
+    if (tracks_size == ntracks) {
+      /* we need a bigger block */
+      if ((tracks = realloc(tracks, (tracks_size + 64) *
+                            sizeof(t_track *))) == NULL) {
+        mserv_log("Out of memory increasing size of album structure");
+        return;
+      }
+      for (ui = tracks_size; ui < tracks_size + 64; ui++)
+        tracks[ui] = NULL;
+      tracks_size+= 64;
     }
     if (mserv_verbose)
       mserv_log("Track file: %s", fullpath);
-    if ((tracks[tnum] = mserv_loadtrk(filename)) == NULL) {
+    if ((tracks[ntracks] = mserv_loadtrk(filename)) == NULL) {
       mserv_log("Unable to add track '%s'", fullpath);
-    } else {
-      tracks[tnum]->id = mserv_nextid_track++;
-      tracks[tnum]->n_album = mserv_nextid_album;
-      tracks[tnum]->n_track = tnum+1;
-      tracks[tnum]->next = mserv_tracks;
-      mserv_tracks = tracks[tnum++];
+      continue;
     }
+    tracks[ntracks]->id = mserv_nextid_track++;
+    tracks[ntracks]->n_album = mserv_nextid_album;
+    tracks[ntracks]->n_track = ntracks + 1; /* 1... */
+    tracks[ntracks]->next = mserv_tracks;
+    mserv_tracks = tracks[ntracks];
+    ntracks++;
     flag = 1; /* there is at least one track in this directory */
   }
   closedir(dir);
   /* load album, but only if there is an album file or flag is set */
   if ((album = mserv_loadalbum(pathname, flag ? 0 : 1)) == NULL)
     return;
-  qsort(tracks, TRACKSPERALBUM, sizeof(t_track *),
-	mserv_trackcompare_filename);
+  qsort(tracks, ntracks, sizeof(t_track *), mserv_trackcompare_filename);
   /* we've sorted so we need to renumber tracks */
-  for (i = 0; i < TRACKSPERALBUM; i++) {
-    album->tracks[i] = tracks[i];
-    if (album->tracks[i])
-      album->tracks[i]->n_track = i+1;
+  for (i = 0; i < ntracks; i++) {
+    tracks[i]->n_track = i+1;
   }
+  album->tracks = tracks;
+  album->tracks_size = tracks_size;
+  album->ntracks = ntracks;
   if (mserv_verbose)
     mserv_log("Added album: '%s' by %s", album->name, album->author);
   if (album_insertsort(album)) {
@@ -1893,7 +1912,7 @@ static t_album *mserv_loadalbum(const char *filename, int onlyifexists)
     mtime = time(NULL);
   }
   if (!*author)
-    strcpy(author, "!-Unindexed");
+    strcpy(author, "Unnamed");
   if (!*name) {
     if (!*filename || !*(filename+1)) {
       strcpy(name, "rootdir");
@@ -2173,6 +2192,7 @@ int mserv_addqueue(t_client *cl, t_track *track)
 
   if ((newq = malloc(sizeof(t_queue))) == NULL) {
     mserv_log("Out of memory adding to queue");
+    mserv_broadcast("MEMORY", NULL);
     return -1;
   }
   newq->supinfo.track = track;
@@ -2507,12 +2527,12 @@ void mserv_recalcratings(void)
       track->rating = 0; /* filtered out */
   }
   if (ntracks != mserv_nextid_track-1) {
-    mserv_log("Track list has become correct (ntracks!=nextid-1)");
+    mserv_log("Track list has become incorrect (ntracks!=nextid-1)");
     exit(1);
   }
   DEBUG(mserv_log("sort..."));
   if (ntracks) {
-    if ((sbuf = malloc(sizeof(t_track *)*ntracks)) == NULL) {
+    if ((sbuf = malloc(sizeof(t_track *) * ntracks)) == NULL) {
       mserv_log("Out of memory creating sort buffer");
       mserv_broadcast("MEMORY", NULL);
     } else {
@@ -2757,15 +2777,15 @@ t_track *mserv_gettrack(unsigned int n_album, unsigned int n_track)
   t_album *album;
   t_track *track;
 
-  if (n_track == 0 || n_track > TRACKSPERALBUM)
+  if (n_track == 0)
     return NULL;
   track = NULL;
   for (album = mserv_albums; album; album = album->next) {
     if (album->id != n_album)
       continue;
-    if ((track = album->tracks[n_track-1]) == NULL)
+    if (n_track >= album->ntracks)
       return NULL;
-    return track;
+    return album->tracks[n_track - 1];
   }
   return NULL;
 }
@@ -2849,13 +2869,12 @@ static t_author *mserv_authorlist(void)
   t_author *authorlist = NULL;
   t_author *author;
   t_track *track, *strack;
-  int i;
+  unsigned int ui;
 
   for (track = mserv_tracks; track; track = track->next) {
     for (author = authorlist; author; author = author->next) {
-      if (!stricmp(track->author, author->name)) {
+      if (!stricmp(track->author, author->name))
 	break;
-      }
     }
     if (author)
       continue;
@@ -2865,26 +2884,45 @@ static t_author *mserv_authorlist(void)
       mserv_broadcast("MEMORY", NULL);
       return authorlist;
     }
-    author->name = (char *)(author+1);
+    author->name = (char *)(author + 1);
     strcpy(author->name, track->author);
-    i = 0;
-    for (strack = track; i < TRACKSPERALBUM && strack; strack = strack->next) {
-      if (!stricmp(strack->author, track->author)) {
-	author->tracks[i++] = strack;
-      }
+    author->ntracks = 0;
+    author->tracks_size = 64;
+    if ((author->tracks = malloc(author->tracks_size * 
+                                 sizeof(t_track *))) == NULL) {
+      mserv_log("Out of memory creating author structure");
+      return;
     }
-    while (i < TRACKSPERALBUM) {
-      author->tracks[i++] = NULL;
+    for (ui = 0; ui < author->tracks_size; ui++)
+      author->tracks[ui] = NULL;
+    for (strack = track; strack; strack = strack->next) {
+      if (!stricmp(strack->author, track->author)) {
+        /* we've got one */
+        if (author->tracks_size == author->ntracks) {
+          /* we need a bigger block */
+          if ((author->tracks = realloc(author->tracks,
+                                        (author->tracks_size + 64) *
+                                        sizeof(t_track *))) == NULL) {
+            mserv_log("Out of memory increasing size of author structure");
+            return;
+          }
+          for (ui = author->tracks_size; ui < author->tracks_size + 64; ui++)
+            author->tracks[ui] = NULL;
+          author->tracks_size+= 64;
+        }
+	author->tracks[author->ntracks++] = strack;
+      }
     }
     if (author_insertsort(&authorlist, author)) {
       mserv_log("Internal authorlist error");
     }
-    qsort(author->tracks, TRACKSPERALBUM, sizeof(t_track *),
+    qsort(author->tracks, author->tracks_size, sizeof(t_track *),
 	  mserv_trackcompare_name);
   }
-  i = 1;
+  /* number authors */
+  ui = 1;
   for (author = authorlist; author; author = author->next) {
-    author->id = i++;
+    author->id = ui++;
   }
   return authorlist;
 }
@@ -3124,9 +3162,9 @@ static t_genre *mserv_genrelist(void)
 	}
 	genre->name = (char *)(genre+1);
 	strcpy(genre->name, genres_str[gn]);
-	genre->size = 64;
-	genre->total = 0;
-	for (ui = 0; ui < genre->size; ui++) {
+	genre->ntracks = 0;
+	genre->tracks_size = 64;
+	for (ui = 0; ui < genre->tracks_size; ui++) {
 	  genre->tracks[ui] = NULL;
 	}
 	if (genre_insertsort(&genrelist, genre)) {
@@ -3134,21 +3172,21 @@ static t_genre *mserv_genrelist(void)
 	  return genrelist;
 	}
       }
-      if (genre->size == genre->total) {
+      if (genre->tracks_size == genre->ntracks) {
 	/* we need a bigger block */
-	if ((genre->tracks = realloc(genre->tracks, (genre->size+64)*
+	if ((genre->tracks = realloc(genre->tracks, (genre->tracks_size + 64) *
 				     sizeof(t_track *))) == NULL) {
 	  mserv_log("Out of memory increasing size of genre structure");
 	  mserv_broadcast("MEMORY", NULL);
 	  return genrelist;
 	}
-	for (ui = genre->size; ui < genre->size+64; ui++) {
+	for (ui = genre->tracks_size; ui < (genre->tracks_size + 64); ui++) {
 	  genre->tracks[ui] = NULL;
 	}
-	genre->size+= 64;
+	genre->tracks_size+= 64;
       }
       /* add track to genrelist entry */
-      genre->tracks[genre->total++] = track;
+      genre->tracks[genre->ntracks++] = track;
     }
   }
   i = 1;

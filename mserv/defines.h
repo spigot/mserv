@@ -38,9 +38,6 @@
 /* maximum misc format-specific length */
 #define MISCINFOLEN 128
 
-/* maximum number of tracks in each album */
-#define TRACKSPERALBUM 200
-
 /* maximum language line length */
 #define LANGLINELEN 1024
 

@@ -131,25 +131,29 @@ typedef struct _t_album {
   struct _t_album *next;
   unsigned int id;
   unsigned int modified;
+  unsigned int tracks_size;
+  unsigned int ntracks;
   char *author;
   char *name;
   char *filename;
   time_t mtime;
-  t_track *(tracks[TRACKSPERALBUM]);
+  t_track **tracks;
 } t_album;
 
 typedef struct _t_author {
   struct _t_author *next;
   unsigned int id;
+  unsigned int tracks_size;
+  unsigned int ntracks;
   char *name;
-  t_track *(tracks[TRACKSPERALBUM]);
+  t_track **tracks;
 } t_author;
 
 typedef struct _t_genre {
   struct _t_genre *next;
   unsigned int id;
-  unsigned int size;
-  unsigned int total;
+  unsigned int tracks_size;
+  unsigned int ntracks;
   char *name;
   t_track **tracks;
 } t_genre;

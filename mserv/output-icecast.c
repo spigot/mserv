@@ -469,16 +469,17 @@ void output_sync(t_output *o)
         close(o->input->fd);
         o->input->fd = -1;
         if (o->buffer_bytes & 1) {
-          mserv_log("Odd number of bytes in 16 bit input stream!");
+          mserv_log("Warning: odd number of bytes in 16 bit input stream!");
           o->buffer_float[o->buffer_bytes / 2] = 0.f;
           o->buffer_bytes++;
         }
       } else {
+#ifdef DEBUG_OUTPUT
         mserv_log("%d bytes read from input stream", ret);
+#endif
         /* if we had a left over byte from before, and we now have the byte,
          * add one to the number of words we can now convert to floats */
         words = (ret / 2) + ((o->buffer_bytes & 1) && (ret & 1) ? 1 : 0);
-        mserv_log("%d words", words);
         sp = (signed short *)o->buffer_char + (o->buffer_bytes / 2);
         fp = (float *)o->buffer_float + (o->buffer_bytes / 2);
         for (i = 0; i < words; i++)

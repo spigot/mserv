@@ -20,12 +20,14 @@ prog_mpg123=/usr/local/bin/mpg123 -b 1024\n\
 prog_freeamp=/usr/local/bin/freeamp -ui mpg123\n\
 prog_mservplay=/usr/local/bin/mservplay 0 mpg123 -b 1024\n\
 prog_play=/usr/local/bin/play\n\
+prog_ogg123=/usr/local/bin/ogg123\n\
 \n\
 # Set players for each file extension we want to support, unknown extensions\n\
 # are ignored by mserv\n\
 player_mp3=prog_mpg123\n\
 player_wav=prog_play\n\
 player_au=prog_play\n\
+player_ogg=prog_ogg\n\
 \n\
 # Set default random mode, either on or off.  You must still tell mserv to\n\
 # start playing (PLAY).\n\

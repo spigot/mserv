@@ -2,7 +2,7 @@
 
 $guestuser = 'guest';
 $guestpass = 'guest';
-$host = 'fox.oaktree.net.uk:4444';
+$host = 'localhost:4444';
 $mservcmd = '/usr/local/bin/mservcmd';
 
 use POSIX;

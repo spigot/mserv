@@ -596,10 +596,7 @@ static void mserv_cmd_status(t_client *cl, const char *ru, const char *line)
   (void)ru;
   (void)line;
   if (mserv_playing.track) {
-    if (mserv_paused)
-      a = "STATPAU";
-    else
-      a = "STATPLA";
+    a = mserv_paused ? "STATPAU" : "STATPLA";
     ago = time(NULL)-mserv_playingstart;
     mserv_response(cl, a, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%d\t%d:%02d\t%s\t%.2f",
 		   mserv_getfilter(), mserv_filter_ok, mserv_filter_notok,
@@ -1294,7 +1291,7 @@ static int mserv_cmd_queue_sub(t_client *cl, t_album *album, int n_track,
 	      album->tracks[i]->name, mserv_ratestr(rate),
 	      (album->tracks[i]->duration / 100) / 60,
 	      (album->tracks[i]->duration / 100) % 60);
-      mserv_send(cl, buffer, 0);
+      mserv_send(client, buffer, 0);
     }
   }
   return 0;
@@ -1883,7 +1880,7 @@ static void mserv_cmd_set_genre(t_client *cl, const char *ru,
 	}
       }
     }
-    mserv_broadcast("GENREAL", "%s\t%d\t%d\t%s\t%s\t%s", cl->user,
+    mserv_broadcast("GENREAL", "%s\t%d\t%s\t%s\t%s", cl->user,
 		    n_album, album->author, album->name, str[2]);
     if (cl->mode != mode_human)
       mserv_response(cl, "GENRER", NULL);

@@ -52,8 +52,6 @@ met:
 #include "mserv.h"
 #include "output-icecast.h"
 
-#define DEBUG_OUTPUT
-
 /*
  *
  * There are two buffers:
@@ -113,7 +111,7 @@ t_output *output_create(const char *destination, const char *parameters,
     return NULL;
   o->input = NULL;
   o->paused = 0;
-  o->stopped = 0;
+  o->stopped = 1;
   o->channels = 2;
   o->samplerate = 44100;
   o->bitrate = atoi(parameters);
@@ -377,9 +375,8 @@ void output_sync(t_output *o)
 
   /* if it's time to send data, send everything we have */
   if (shout_delay(o->shout) <= 0) {
-#ifdef DEBUG_OUTPUT
-    mserv_log("delay sync");
-#endif
+    if (mserv_debug)
+      mserv_log("libshout says it is time for more data...");
     if (o->buffer_ready_bytes <= 0) {
       mserv_log("Output underrun for mount '%s'!", o->url);
     } else {
@@ -387,6 +384,8 @@ void output_sync(t_output *o)
                      o->buffer_ready_bytes) != SHOUTERR_SUCCESS) {
         mserv_log("Failed to send to shout: %s", shout_get_error(o->shout));
       }
+      if (mserv_debug)
+        mserv_log("  %d bytes given to libshout", o->buffer_ready_bytes);
     }
     o->buffer_ready_bytes = 0;
   }
@@ -395,9 +394,8 @@ void output_sync(t_output *o)
   if (o->buffer_ready_bytes == 0 && o->buffer_bytes == o->buffer_size) {
     vorbbuf = vorbis_analysis_buffer(&o->vd,
                                      o->buffer_size / (o->channels * 2));
-#ifdef DEBUG_OUTPUT
-    mserv_log("another second of data, time to analyse block with vorbis");
-#endif
+    if (mserv_debug)
+      mserv_log("raw PCM input buffer full, applying volume...");
     /* buffer_size is in bytes - divide by 2 for 16-bit samples */
     for (i = 0; i < o->buffer_size / (2 * o->channels); i++) {
       /* apply current volume setting (0-100, where 50 is normal) */
@@ -410,6 +408,9 @@ void output_sync(t_output *o)
           vorbbuf[chan][i] = -1.0f;
       }
     }
+    if (mserv_debug)
+      mserv_log("  writing %d samples to libvorbis...",
+                o->buffer_size / (o->channels * 2));
     vorbis_analysis_wrote(&o->vd, o->buffer_size / (o->channels * 2));
     o->buffer_bytes = 0;
   }
@@ -417,11 +418,11 @@ void output_sync(t_output *o)
   while (o->buffer_bytes < o->buffer_size) {
     /* try and read more from the input stream */
     if (o->paused || o->stopped) {
-#ifdef DEBUG_OUTPUT
-      mserv_log("filling in silence, reason: %s%s",
-                o->paused ? "paused" : "",
-                o->stopped ? "stopped" : "");
-#endif
+      if (mserv_debug) {
+        mserv_log("%s%s, filling in silence to raw PCM input buffer",
+                  o->paused ? "paused" : "",
+                  o->stopped ? "stopped" : "");
+      }
       /* we're paused, output some zeros */
       memset(o->buffer_float + o->buffer_bytes, 0,
              o->buffer_size - o->buffer_bytes);
@@ -435,17 +436,18 @@ void output_sync(t_output *o)
       break;
     }
     if (o->input->zeros_start > 0) {
-#ifdef DEBUG_OUTPUT
-      mserv_log("in silence - %d bytes to go", o->input->zeros_start);
-      mserv_log("buf left = %d", o->buffer_size - o->buffer_bytes);
-      mserv_log("buffer_bytes = %d", o->buffer_bytes);
-#endif
+      if (mserv_debug) {
+        mserv_log("in silence - %d bytes to go", o->input->zeros_start);
+        mserv_log("buf left = %d", o->buffer_size - o->buffer_bytes);
+        mserv_log("buffer_bytes = %d (pre)", o->buffer_bytes);
+      }
       /* we need to output some silence (GAP) to start with */
       i = mserv_MIN(o->buffer_size - o->buffer_bytes, o->input->zeros_start);
       memset(o->buffer_float + o->buffer_bytes, 0, i);
       o->input->zeros_start-= i;
       o->buffer_bytes+= i;
-      mserv_log("buffer_bytes = %d", o->buffer_bytes);
+      if (mserv_debug)
+        mserv_log("buffer_bytes = %d (post)", o->buffer_bytes);
       /* we may have only had a bit of silence and can fill with some data */
       continue;
     }
@@ -474,9 +476,8 @@ void output_sync(t_output *o)
           o->buffer_bytes++;
         }
       } else {
-#ifdef DEBUG_OUTPUT
-        mserv_log("%d bytes read from input stream", ret);
-#endif
+        if (mserv_debug)
+          mserv_log("%d bytes read from input stream", ret);
         /* if we had a left over byte from before, and we now have the byte,
          * add one to the number of words we can now convert to floats */
         words = (ret / 2) + ((o->buffer_bytes & 1) && (ret & 1) ? 1 : 0);
@@ -492,22 +493,25 @@ void output_sync(t_output *o)
       if (o->input->zeros_end <= 0) {
         output_inputfinished(o);
       } else {
-#ifdef DEBUG_OUTPUT
-        mserv_log("in silence - %d bytes to go", o->input->zeros_end);
-        mserv_log("buf left = %d", o->buffer_size - o->buffer_bytes);
-        mserv_log("buffer_bytes = %d", o->buffer_bytes);
-#endif
+        if (mserv_debug) {
+          mserv_log("in silence - %d bytes to go", o->input->zeros_end);
+          mserv_log("buf left = %d", o->buffer_size - o->buffer_bytes);
+          mserv_log("buffer_bytes = %d (pre)", o->buffer_bytes);
+        }
         /* we need to output some silence (GAP) to end with */
         i = mserv_MIN(o->buffer_size - o->buffer_bytes, o->input->zeros_end);
         memset(o->buffer_float + o->buffer_bytes, 0, i);
         o->input->zeros_end-= i;
         o->buffer_bytes+= i;
-        mserv_log("buffer_bytes = %d", o->buffer_bytes);
+        if (mserv_debug)
+          mserv_log("buffer_bytes = %d (post)", o->buffer_bytes);
       }
     }
   }
   /* does vorbis have anything decoded from what we've already sent it via
    * vorbis_analysis_wrote above? */
+  if (mserv_debug)
+    mserv_log("Encoding with libvorbis...");
   pages = 0;
   while (vorbis_analysis_blockout(&o->vd, &o->vb) == 1) {
     vorbis_analysis(&o->vb, NULL);
@@ -542,11 +546,10 @@ void output_sync(t_output *o)
       }
     }
   }
-#ifdef DEBUG_OUTPUT
-  if (pages)
-    mserv_log("Wrote %d Ogg pages (buffer now %d)", pages,
-              o->buffer_ready_bytes);
-#endif
+  if (mserv_debug) {
+    mserv_log("  done. received %d ogg pages from libvorbis", pages);
+    mserv_log("  encoded output buffer now %d bytes", o->buffer_ready_bytes);
+  }
 }
 
 /* end of stream: vorbis_analysis_wrote(&o->vd, 0); */
@@ -557,7 +560,7 @@ void output_sync(t_output *o)
 int output_delay(t_output *o)
 {
   int delay = shout_delay(o->shout);
-  return (delay < 0) ? 0 : delay;
+  return (delay < 50) ? 50 : delay;
 }
 
 /* output_replacetrack - replace track references, if any */

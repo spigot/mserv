@@ -98,6 +98,7 @@ static t_lang *mserv_language;
 
 char *progname = NULL;
 int mserv_verbose = 0;
+int mserv_debug = 0;
 t_client *mserv_clients = NULL;
 t_track *mserv_tracks = NULL;
 t_album *mserv_albums = NULL;
@@ -238,7 +239,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  while ((i = getopt(argc, argv, "c:p:r:v")) != -1) {
+  while ((i = getopt(argc, argv, "c:p:r:vd")) != -1) {
     switch(i) {
     case 'c':
       mserv_conf = optarg;
@@ -251,6 +252,9 @@ int main(int argc, char *argv[])
       break;
     case 'v':
       mserv_verbose = 1;
+      break;
+    case 'd':
+      mserv_debug++;
       break;
     default:
       fputs("mserv: parameters not understood\n", stderr);
@@ -265,6 +269,7 @@ int main(int argc, char *argv[])
 	  "              [-c <config file>]\n"
 	  "              [-p <port>]\n"
 	  "              [-v] (verbose mode)\n"
+	  "              [-d] (debug mode)\n"
 	  "        This is mserv version " VERSION "\n",
 	  stderr);
     exit(2);
@@ -569,6 +574,8 @@ static void mserv_mainloop(void)
     }
     /* work out delay in milliseconds until next output due */
     delay = output_delay(mserv_output);
+    if (mserv_debug >= 2)
+      mserv_log("Output engine requested %d millisecond delay", delay);
     if (delay < 0 || delay > 200)
       delay = 200; /* infinite delay wanted (-1) or out of bounds (max 200) */
     timeout.tv_sec = 0;
@@ -617,7 +624,8 @@ static void mserv_mainloop(void)
     cl->state = st_wait;
     cl->lstate = lst_normal;
     cl->socket = client_socket;
-    DEBUG(mserv_log("%s: Allocated socket %x", inet_ntoa(cl->sin.sin_addr)));
+    if (mserv_debug)
+      mserv_log("%s: Allocated socket %x", inet_ntoa(cl->sin.sin_addr));
     for (i = 0; i < OUTVECTORS; i++) {
       cl->outbuf[i].iov_base = NULL;
       cl->outbuf[i].iov_len = 0;
@@ -711,7 +719,8 @@ static void mserv_pollwrite(t_client *cl)
     }
     return;
   }
-  DEBUG(mserv_log("%s: write %d bytes", inet_ntoa(cl->sin.sin_addr), bytes));
+  if (mserv_debug >= 3)
+    mserv_log("%s: write %d bytes", inet_ntoa(cl->sin.sin_addr), bytes);
   while(bytes) {
     if (cl->outbuf[0].iov_len == 0) {
       mserv_log("%s: Internal output buffer error",
@@ -1527,8 +1536,8 @@ void mserv_log(const char *text, ...)
   char tmp[800], tmp2[1024];
   char timetmp[64];
   struct tm *timeptr;
-  time_t tloc;
   va_list ap;
+  struct timeval tv;
 
   va_start(ap, text);
   vsnprintf(tmp, 799, text, ap);
@@ -1541,11 +1550,12 @@ void mserv_log(const char *text, ...)
     }
   }
 
-  tloc = time(NULL);
-  timeptr = localtime(&tloc);
+  gettimeofday(&tv, NULL);
+  timeptr = localtime(&tv.tv_sec);
 
   strftime(timetmp, 63, "%m/%d %H:%M:%S", timeptr);
-  snprintf(tmp2, 1023, "%s [%06d] %s\n", timetmp, getpid(), tmp);
+  snprintf(tmp2, 1023, "%s.%03d [%06d] %s\n", timetmp, tv.tv_usec / 1000,
+           getpid(), tmp);
 
   fputs(tmp2, mserv_logfile);
   if (mserv_verbose || !mserv_started)
@@ -2473,7 +2483,8 @@ void mserv_recalcratings(void)
   t_track **sbuf;
   int i;
 
-  DEBUG(mserv_log("recalc ratings..."));
+  if (mserv_debug)
+    mserv_log("Calculating ratings of tracks...");
 
   mserv_filter_ok = 0;
   mserv_filter_notok = 0;
@@ -2536,7 +2547,8 @@ void mserv_recalcratings(void)
     mserv_log("Track list has become incorrect (ntracks!=nextid-1)");
     exit(1);
   }
-  DEBUG(mserv_log("sort..."));
+  if (mserv_debug)
+    mserv_log("Sorting tracks for top listing");
   if (ntracks) {
     if ((sbuf = malloc(sizeof(t_track *) * ntracks)) == NULL) {
       mserv_log("Out of memory creating sort buffer");
@@ -2562,7 +2574,8 @@ void mserv_recalcratings(void)
       free(sbuf);
     }
   }
-  DEBUG(mserv_log("end"));
+  if (mserv_debug)
+    mserv_log("Finished recalculation");
   return;
 }
 
@@ -3374,6 +3387,17 @@ void mserv_addtohistory(t_supinfo *sup)
 t_supinfo *mserv_getplaying(void)
 {
   return &mserv_playing;
+}
+
+const char *mserv_clientmodetext(t_client *cl)
+{
+  if (cl->mode == mode_human)
+    return "human";
+  if (cl->mode == mode_computer)
+    return "computer";
+  if (cl->mode == mode_rtcomputer)
+    return "rtcomputer";
+  return "unknown";
 }
 
 int mserv_outputvolume(t_client *cl, const char *line)

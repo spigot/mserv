@@ -55,9 +55,11 @@ int mserv_checklevel(t_client *cl, t_userlevel level);
 void mserv_setplaying(t_supinfo *supinfo);
 t_supinfo *mserv_getplaying(void);
 void mserv_addtohistory(t_supinfo *sup);
+const char *mserv_clientmodetext(t_client *cl);
 
 extern char *progname;
 extern int mserv_verbose;
+extern int mserv_debug;
 extern t_client *mserv_clients;
 extern t_track *mserv_tracks;
 extern t_album *mserv_albums;

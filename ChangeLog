@@ -9,6 +9,10 @@ via CVS the version of the first entry is the forthcoming version number.
 - Default configuration is now written to config.dist on load
 - Album and author lists are now dynamically allocated in the same way as
   genre lists, so no more compiled limit on tracks per album
+- Fix off-by-one error in -r command line option
+- Report an error on start-up if an old configuration file is used
+- Most debugging is now on -d command line option rather than compile-time
+- Log people connecting to Mserv
 
 0.38a - Aug 31st 2003
 ---------------------

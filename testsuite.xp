@@ -10,6 +10,9 @@
 # This script must be run when mserv has just started, as it expects
 # no history entries and nobody logged in to start with.  A successful
 # run ends with mserv being shut down.
+#
+# A failed run ends either with an error message or that the script
+# execution just hangs
 
 # Hang if something unexpected happens
 set timeout -1
@@ -43,6 +46,10 @@ set spawn_id $humanjohan
 send "who\n"
 expect "The following people are online"
 expect "johan"
+expect "johan"
+
+send "agdgdaagdgad\n"
+expect "not understood"
 
 # Test only bogus rating commands, root will test actual re-ratings
 send "rate\n"
@@ -186,6 +193,12 @@ expect -i $computerjohan "=600\tjohan"
 set spawn_id $computerjohan
 
 send "who\n"
+expect "226 The following people are online"
+expect "johan"
+expect "johan"
+
+send "agdgdaagdgad\n"
+expect "500 Command not understood"
 
 # Test only bogus rating commands, root will test actual re-ratings
 send "rate\n"
@@ -333,12 +346,18 @@ expect "1 connected, 1 total"
 
 # Verify that the human Johan got notified
 set spawn_id $humanjohan
-expect "You have been kicked off"
+expect {
+	eof { send_error "*** Human kicked without notification!!\n" ; exit 1 }
+	"You have been kicked off"
+}
 wait
 
-# Verify that the computer Johan got notified
+# Verify that the computer Johan gets notified
 set spawn_id $computerjohan
-expect "=526"
+expect {
+	eof { send_error "*** Computer kicked without notification!!\n" ; exit 1 }
+	"=526 You have been kicked off"
+}
 wait
 
 # Back to root

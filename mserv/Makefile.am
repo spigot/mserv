@@ -1,6 +1,7 @@
 # Process this file with automake to produce Makefile.in
 
 INCLUDES = -I../hdr -DDATADIR=\"${datadir}\" -DBINDIR=\"${bindir}\"
+CTAGSFLAGS = -t -d
 
 bin_PROGRAMS = mserv
 

@@ -142,6 +142,7 @@ AUTOMAKE_OPTIONS = 1.5
 
 SUBDIRS = @MY_SUBDIRS@
 DIST_SUBDIRS = mserv mservcli mservutils
+CTAGSFLAGS = -t -d
 
 EXTRA_DIST = ChangeLog README NEWS AUTHORS COPYING LICENSE
 subdir = .
@@ -271,7 +272,6 @@ ETAGS = etags
 ETAGSFLAGS =
 
 CTAGS = ctags
-CTAGSFLAGS =
 
 tags: TAGS
 

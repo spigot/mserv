@@ -445,6 +445,68 @@ send "stop\n"
 expect "stopped"
 expect -i $computerroot "=623\troot"
 
+# Let the computer root rate stuff and verify that the human gets
+# notified.
+set spawn_id $computerroot
+
+send "rate 1 1 awful\n"
+expect "270"
+expect "root"
+expect "AWFUL"
+expect -i $humanroot "The track 1/1 has been rated AWFUL by root"
+send "rate 1 1 bad\n"
+expect "270"
+expect "root"
+expect "BAD"
+expect -i $humanroot "The track 1/1 has been rated BAD by root"
+send "rate 1 1 good\n"
+expect "270"
+expect "root"
+expect "GOOD"
+expect -i $humanroot "The track 1/1 has been rated GOOD by root"
+send "rate 1 1 superb\n"
+expect "270"
+expect "root"
+expect "SUPERB"
+expect -i $humanroot "The track 1/1 has been rated SUPERB by root"
+send "rate 1 1 neutral\n"
+expect "270"
+expect "root"
+expect "NEUTRAL"
+expect -i $humanroot "The track 1/1 has been rated NEUTRAL by root"
+
+send "ratings 1 1\n"
+expect "229 Ratings of track"
+expect "root\tNEUTRAL"
+
+send "info 1 1\n"
+expect "246 Album 1, track 1"
+expect "NEUTRAL"
+
+send "play\n"
+expect "230 Play commenced"
+expect "\n.\n"
+expect -i $humanroot "Playing:"
+
+send "rate neutral\n"
+expect "270 Rated"
+expect "root"
+expect "NEUTRAL"
+expect -i $humanroot "This track has been rated NEUTRAL by root"
+
+send "ratings\n"
+expect "229 Ratings of track"
+expect "root\tNEUTRAL"
+
+send "info\n"
+expect "246 Album"
+expect "NEUTRAL"
+
+send "stop\n"
+expect "231 Play stopped"
+expect "\n.\n"
+expect -i $humanroot "stopped by root"
+
 send "shutdown\n"
 expect "shutdown by root"
 wait

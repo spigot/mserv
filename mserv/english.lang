@@ -41,8 +41,8 @@ TOP	234	Most likely to be played tracks:
 VOLCUR	235	Volume is currently %01%%
 BASSCUR	236	Bass level is currently %01%%
 TREBCUR	237	Treble level is currently %01%%
-FACTCUR	238	Random play factor is currently %01
-FACTSET	239	Random play factor set to %01
+FACTCUR	238	Random play factor is currently %01, auto-tuning is %02
+FACTSET	239	Random play factor set to %01, auto-tuning %02
 NEXT	240	Moved to next track (%01/%02)
 HISTORY	241	The following tracks were recently played:
 RANCUR	242	Random play is currently %01.
@@ -154,7 +154,7 @@ SUSERR	515	Unable to suspend process
 NOHELP	516	No help available on '%01'
 NAN	517	Invalid number
 BADRATE	518	Bad rate type, must be AWFUL, BAD, NEUTRAL, GOOD or SUPERB
-BADFACT	519	Bad factor, must be in the range 0 to 0.99
+BADFACT	519	Bad factor, must be in the range 0 to 0.99 or "auto"
 SEARCHB	520	No tracks matching search pattern found
 FILEBAD	521	Unable to open file for writing
 MEMORYR	522	Out of memory
@@ -195,7 +195,7 @@ GENREAL	613	The genre of all tracks in album %02 has been set by %01
 RATE	614	The track %02/%03 has been rated %06 by %01
 RATECUR	615	This track has been rated %06 by %01
 RATEDAL	616	Album %02 has been rated %05 by %01 (%06 tracks)
-FACTOR	617	Random play factor set to %01 by %02
+FACTOR	617	Random play factor set to %01, auto-tuning %03 by %02
 QADD	618	The following tracks have been added to the queue by %01:
 QADDTR	619	...
 RANDOM0	620	Random play turned off by %01

@@ -54,6 +54,18 @@ expect "johan"
 send "agdgdaagdgad\n"
 expect "not understood"
 
+# Test the factor command
+send "factor auto\n"
+expect -re {Random play factor set to [0-9.]+, auto-tuning enabled by johan}
+expect -i $computerjohan -re {=617\t[0-9.]+\tjohan\tenabled}
+send "factor\n"
+expect "auto-tuning is enabled"
+send "factor 0.6\n"
+expect "Random play factor set to 0.60, auto-tuning disabled by johan"
+expect -i $computerjohan "=617\t0.60\tjohan\tdisabled"
+send "factor\n"
+expect "auto-tuning is disabled"
+
 # Test only bogus rating commands, root will test actual re-ratings
 send "rate\n"
 expect "Bad rate type"
@@ -265,6 +277,22 @@ expect "\n.\n"
 
 send "agdgdaagdgad\n"
 expect "500 Command not understood"
+
+# Test the factor command
+send "factor auto\n"
+expect "239 Random play factor set to 0.60, auto-tuning enabled"
+expect "0.60\tenabled"
+expect -i $humanjohan "Random play factor set to 0.60, auto-tuning enabled by johan"
+send "factor\n"
+expect "238 Random play factor is currently 0.60, auto-tuning is enabled"
+expect "0.60\tenabled"
+send "factor 0.6\n"
+expect "239 Random play factor set to 0.60, auto-tuning disabled"
+expect "0.60\tdisabled"
+expect -i $humanjohan "Random play factor set to 0.60, auto-tuning disabled by johan"
+send "factor\n"
+expect "238 Random play factor is currently 0.60, auto-tuning is disabled"
+expect "0.60\tdisabled"
 
 # Test only bogus rating commands, root will test actual re-ratings
 send "rate\n"

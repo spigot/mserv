@@ -110,6 +110,7 @@ extern t_acl *mserv_acl;
 extern int mserv_shutdown;
 extern int mserv_random;
 extern double mserv_factor;
+extern int mserv_autofactor;
 extern t_author *mserv_authors;
 extern t_genre *mserv_genres;
 extern unsigned int mserv_filter_ok;

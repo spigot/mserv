@@ -86,6 +86,7 @@ t_acl *mserv_acl = NULL;
 int mserv_shutdown = 0;
 int mserv_random = 0;
 double mserv_factor = 0.6;
+int mserv_autofactor = 1;
 t_author *mserv_authors = NULL;
 t_genre *mserv_genres = NULL;
 unsigned int mserv_filter_ok = 0;
@@ -152,6 +153,21 @@ static RETSIGTYPE mserv_sighandler(int signum)
   }
 }
 
+static void mserv_parse_opt_factor(void)
+{
+  if (stricmp(opt_factor, "auto") == 0) {
+    mserv_autofactor = 1;
+  } else {
+    char *end;
+    mserv_autofactor = 0;
+    mserv_factor = strtod(opt_factor, &end);
+    if (opt_factor[0] == '\0' || *end != '\0') {
+      printf("%s: Error parsing factor from conffile, should be 0.00-0.99 or \"auto\"\n", progname);
+      exit(1);
+    }
+  }
+}
+
 /* General initialisiation to be done after
    starting mserv and also after a reset */
 
@@ -165,7 +181,7 @@ static void mserv_init(void)
   t_client cl;
 
   /* load up defaults */
-  mserv_factor = opt_factor;
+  mserv_parse_opt_factor();
   mserv_random = opt_random;
   mserv_gap = opt_gap;
 

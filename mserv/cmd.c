@@ -176,7 +176,7 @@ t_cmds cmd_cmds[] = {
     "off|<filter>" },
   { 1, level_guest, "FACTOR", NULL, cmd_factor,
     "Set random factor (default 0.6)",
-    "<0=play worst, 0.5=play any, 0.99=play best>" },
+    "<0=play worst, 0.5=play any, 0.99=play best, auto>" },
   { 1, level_guest, "TOP", NULL, cmd_top,
     "Show most likely to be played tracks, default 20 lines",
     "[<lines>]" },
@@ -1423,23 +1423,41 @@ static void cmd_filter(t_client *cl, t_cmdparams *cp)
 static void cmd_factor(t_client *cl, t_cmdparams *cp)
 {
   double f = atof(cp->line);
-
-  if (!*cp->line) {
-    mserv_response(cl, "FACTCUR", "%.2f", mserv_factor);
+  const char *line = cp->line;
+  
+  /* Skip leading space in the command line */
+  while (*line == ' ')
+    line++;
+  
+  if (!*line) {
+    mserv_response(cl, "FACTCUR", "%.2f\t%s",
+		   mserv_factor,
+		   mserv_autofactor ? "enabled" : "disabled");
     return;
   }
+  
   if (cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
     return;
   }
-  if (f < 0 || f > 0.99) {
+  
+  if (stricmp(line, "auto") == 0) {
+    mserv_autofactor = 1;
+  } else if (f >=0 && f <= 0.99) {
+    /* We got a good numeric value */
+    mserv_autofactor = 0;
+    mserv_factor = (double)((int)((f+0.005)*100))/100;
+  } else {
     mserv_response(cl, "BADFACT", NULL);
     return;
   }
-  mserv_factor = (double)((int)((f+0.005)*100))/100;
-  mserv_broadcast("FACTOR", "%.2f\t%s", f, cl->user);
-  if (cl->mode != mode_human)
-    mserv_response(cl, "FACTSET", "%.2f", f);
+  
+  mserv_broadcast("FACTOR", "%.2f\t%s\t%s", mserv_factor, cl->user,
+		  mserv_autofactor ? "enabled" : "disabled");
+  if (cl->mode != mode_human) {
+    mserv_response(cl, "FACTSET", "%.2f\t%s", mserv_factor,
+		   mserv_autofactor ? "enabled" : "disabled");
+  }
 }
 
 static void cmd_top(t_client *cl, t_cmdparams *cp)

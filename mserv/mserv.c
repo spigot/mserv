@@ -2721,16 +2721,21 @@ static const char *mserv_getplayer(char *fname)
   return conf_getvalue(player); /* NULL or player invocation string */
 }
 
-void mserv_abortplay(void)
+/* If "interactive" is set it means this function should prioritize
+ * quick execution before doing a thorough job.
+ */
+void mserv_abortplay(int interactive)
 {
   int pid, st, killed;
   int x;
   char error[256];
+  t_track *stop_me = NULL;
 
   /* channel_stop probably will cause a SIGPIPE in the child */
   if (channel_stop(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
     mserv_log("Failed to stop channel %s: %s\n", mserv_channel->name, error);
   if (mserv_player_playing.track) {
+    stop_me = mserv_player_playing.track;
     if (kill(mserv_player_pid, 0) == 0) {
       /* our process exists */
       killed = 0;
@@ -2779,7 +2784,11 @@ void mserv_abortplay(void)
     mserv_player_playing.track = NULL;
   }
   mserv_player_pid = 0;
-  mserv_recalcratings(); /* recalc ratings now lastplay has changed */
+  if (interactive) {
+    mserv_recalcrating(stop_me);
+  } else {
+    mserv_recalcratings(); /* recalc ratings now lastplay has changed */
+  }
   mserv_savechanges();
   mserv_checkshutdown();
 }
@@ -3051,6 +3060,81 @@ void mserv_recalcratings(void)
     mserv_log("Finished recalculation");
 
   return;
+}
+
+/* Move one single song to its correct location in the top scores
+ * list.  This is a lot faster than doing a full
+ * mserv_recalcratings(), but misses some interactions between logged
+ * in users and between songs in the same album. */
+void mserv_recalcrating(t_track *track)
+{
+  t_trkinfo *playing = channel_getplaying(mserv_channel);
+  double rating;
+  
+  /* Update the track's rating */
+  mserv_recalcweights();
+  track->filterok = (filter_check(mserv_filter, track) == 1) ? 1 : 0;
+  track->prating = mserv_recalcprating(track);
+  if (playing && track == playing->track) {
+    /* currently playing */
+    track->rating = 0;
+  } else {
+    track->rating =
+      mserv_timepenalty(time(NULL) - track->lastplay) *
+      track->prating;
+  }
+  
+  /* Unlink the track from the tracks list */
+  if (mserv_tracks == track) {
+    mserv_tracks = track->next;
+  } else {
+    t_track *previous;
+    
+    for (previous = mserv_tracks;
+	 previous != NULL;
+	 previous = previous->next)
+    {
+      if (previous->next == track) {
+	break;
+      }
+    }
+    
+    if (previous == NULL) {
+      fprintf(stderr, "Internal error, attempt to recalc() non-existant track\n");
+      exit(1);
+    }
+    
+    previous->next = track->next;
+  }
+  track->next = NULL;
+  
+  /* Move the track to its correct location in the tracks list */
+  rating = mserv_fuzz_rating(track->rating);
+  if (rating > mserv_tracks->rating) {
+    /* Put the track first */
+    track->next = mserv_tracks->next;
+    mserv_tracks = track;
+  } else {
+    t_track *previous;
+
+    for (previous = mserv_tracks;
+	 previous != NULL;
+	 previous = previous->next)
+    {
+      if (previous->next == NULL ||
+	  rating > previous->next->rating)
+      {
+	track->next = previous->next;
+	previous->next = track;
+	break;
+      }
+    }
+
+    if (previous == NULL) {
+      fprintf(stderr, "Internal error, unable to place single track in list\n");
+      exit(1);
+    }
+  }
 }
 
 /* splits a string into NULL terminated list of nelements, the last of which

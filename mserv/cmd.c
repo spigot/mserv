@@ -1241,7 +1241,7 @@ static void cmd_stop(t_client *cl, t_cmdparams *cp)
 		     playing->track->album->id, playing->track->n_track,
 		     playing->track->author, playing->track->name);
     }
-    mserv_abortplay();
+    mserv_abortplay(1);
   } else {
     mserv_response(cl, "NOTHING", NULL);
   }
@@ -1292,7 +1292,7 @@ static void cmd_next(t_client *cl, t_cmdparams *cp)
     mserv_broadcast("SKIP", "%s", cl->user);
   if (playing && playing->track == mserv_player_playing.track) {
     /* we haven't moved to the next track yet */
-    mserv_abortplay();
+    mserv_abortplay(1);
     if (mserv_player_playnext()) {
       mserv_broadcast("FINISH", NULL);
       if (cl->mode != mode_human)
@@ -2192,7 +2192,7 @@ static void cmd_reset(t_client *cl, t_cmdparams *cp)
   static int timer = 0;
 
   (void)cp;
-  mserv_abortplay();
+  mserv_abortplay(0);
   acl_save();
   if (mserv_savechanges() && time(NULL) > timer) {
     timer = time(NULL) + 60;

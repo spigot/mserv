@@ -29,6 +29,7 @@ t_userlevel *mserv_strtolevel(const char *level);
 const char *mserv_levelstr(t_userlevel userlevel);
 const char *mserv_stndrdth(int day);
 int mserv_setmixer(t_client *cl, int what, const char *line);
+int mserv_outputvolume(t_client *cl, const char *line);
 int mserv_flush(void);
 void mserv_closedown(int exitcode);
 char *mserv_idletxt(time_t idletime);

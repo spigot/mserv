@@ -3332,6 +3332,58 @@ t_supinfo *mserv_getplaying(void)
   return &mserv_playing;
 }
 
+int mserv_outputvolume(t_client *cl, const char *line)
+{
+  int curval, param, newval;
+  int mixer_fd;
+  char *end;
+  const char *p;
+  int type;
+
+  curval = output_getvolume(mserv_output);
+  if (!*line)
+    return curval;
+  if (*line == '+' || *line == '-') {
+    type = *line == '+' ? 1 : -1;
+    param = 1;
+    p = line+1;
+    if (*line == *p) {
+      while(*p == *line) {
+        p++;
+        param+= 1;
+      }
+      if (*p)
+	goto badnumber;
+    } else {
+      if (*p) {
+	param = strtol(p, &end, 10);
+	if (*end)
+	  goto badnumber;
+      } else {
+	param = 1;
+      }
+    }
+  } else {
+    type = 0;
+    param = 0;
+    newval = strtol(line, &end, 10);
+    if (*end)
+      goto badnumber;
+  }
+  if (type)
+    newval = curval + type*param;
+  if (newval > 100)
+    newval = 100;
+  if (newval < 0)
+    newval = 0;
+  newval = output_setvolume(mserv_output, newval);
+  return newval;
+ badnumber:
+  close(mixer_fd);
+  mserv_response(cl, "NAN", NULL);
+  return -1;
+}
+
 #ifdef SOUNDCARD
 
 static int mserv_readvolume(void)
@@ -3371,7 +3423,6 @@ int mserv_setmixer(t_client *cl, int what, const char *line)
   char *end;
   const char *p;
   int type;
-  int multi = 1;
   
   if (!(mixer_fd = open(opt_path_mixer, O_RDWR, 0))) {
     mserv_response(cl, "MIXER", 0);
@@ -3415,38 +3466,35 @@ int mserv_setmixer(t_client *cl, int what, const char *line)
     if (*end)
       goto badnumber;
   }
-  for (; multi; multi--) {
-    for (attempt = 0; attempt < 10; attempt++, param++) {
-      if (type)
-	newval = curval + type*param;
-      if (newval > 100)
-	newval = 100;
-      if (newval < 0)
-	newval = 0;
-      newval = newval | (newval<<8);
-      if (ioctl(mixer_fd, MIXER_WRITE(what), &newval) == -1) {
-	close(mixer_fd);
-	perror("iotcl write");
-	mserv_response(cl, "IOCTLWR", NULL);
-	return -1;
-      }
-      if (ioctl(mixer_fd, MIXER_READ(what), &newval) == -1) {
-        close(mixer_fd);
-        perror("iotcl read");
-        mserv_response(cl, "IOCTLRD", 0);
-        return -1;
-      }
-      newval = newval & 0xff;
-      if (type == 0 || newval != curval)
-	break;
-      param++;
-    }
-    if (attempt == 10) {
-      mserv_response(cl, "IOCTLEE", NULL);
+  for (attempt = 0; attempt < 10; attempt++, param++) {
+    if (type)
+      newval = curval + type*param;
+    if (newval > 100)
+      newval = 100;
+    if (newval < 0)
+      newval = 0;
+    newval = newval | (newval<<8);
+    if (ioctl(mixer_fd, MIXER_WRITE(what), &newval) == -1) {
       close(mixer_fd);
+      perror("iotcl write");
+      mserv_response(cl, "IOCTLWR", NULL);
       return -1;
     }
-    curval = newval; /* for multi +/-, start from this value */
+    if (ioctl(mixer_fd, MIXER_READ(what), &newval) == -1) {
+      close(mixer_fd);
+      perror("iotcl read");
+      mserv_response(cl, "IOCTLRD", 0);
+      return -1;
+    }
+    newval = newval & 0xff;
+    if (type == 0 || newval != curval)
+      break;
+    param++;
+  }
+  if (attempt == 10) {
+    mserv_response(cl, "IOCTLEE", NULL);
+    close(mixer_fd);
+    return -1;
   }
   close(mixer_fd);
   return newval;

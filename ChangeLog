@@ -6,15 +6,16 @@ via CVS the version of the first entry is the forthcoming version number.
 
 0.38
 --------------------
-- Added SET VOLUME command
+- Added SET VOLUME command to change relative track volume
 - Fixed HELP SET syntax display
 - Increased space for album/track by one (now 7 characters instead of 6) in
   display
 - Added xmp to default configuration
+- Implemented volume control for Icecast output
 
 0.37 - Aug 24th 2003
 --------------------
-- Changed to using execvp so PATH will effect the search for players
+- Changed to using execvp so PATH will affect the search for players
 - Gap between songs is now an exact number of silence bytes, making it
   possible for Mserv to have no gap at all (useful for mixes)
 - GAP now takes a floating point number

@@ -1642,26 +1642,20 @@ static void mserv_cmd_top(t_client *cl, const char *ru, const char *line)
 
 static void mserv_cmd_volume(t_client *cl, const char *ru, const char *line)
 {
-#ifdef SOUNDCARD
   int val;
 
   (void)ru;
   if (*line && cl->userlevel == level_guest) {
     mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_PCM, line)) != -1) {
+  } else if ((val = mserv_outputvolume(cl, line)) != -1) {
     if (!*line) {
-      mserv_response(cl, "VOLCUR", "%d", val & 0xFF);
+      mserv_response(cl, "VOLCUR", "%d", val);
     } else {
-      mserv_broadcast("VOLSET", "%d\t%s", val & 0xFF, cl->user);
+      mserv_broadcast("VOLSET", "%d\t%s", val, cl->user);
       if (cl->mode != mode_human)
-	mserv_response(cl, "VOLREP", "%d", val & 0xFF);
+	mserv_response(cl, "VOLREP", "%d", val);
     }
   }
-#else
-  (void)ru;
-  (void)line;
-  mserv_response(cl, "NOSCARD", NULL);
-#endif
 }
 
 static void mserv_cmd_bass(t_client *cl, const char *ru, const char *line)

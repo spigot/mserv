@@ -52,15 +52,17 @@ met:
 #include "mserv.h"
 #include "output-icecast.h"
 
-#undef DEBUG_OUTPUT
+#define DEBUG_OUTPUT
 
 /*
  *
  * There are two buffers:
  *
- *   buffer/buffer_bytes/buffer_size
- *     the raw PCM data from the player we have a as child process, we try
- *     and maintain this as having a full second's worth of data
+ *   buffer_char/buffer_float/buffer_bytes/buffer_size
+ *     the raw PCM data (buffer_char) from the player we have a as child
+ *     process, we try and maintain this as having a full second's worth of
+ *     data.  buffer_float is the same as buffer_char after being converted
+ *     to floats and modified in volume
  *
  *   buffer_ready/buffer_ready_bytes/buffer_ready_size
  *     the dynamically resizing ogg vorbis encoded data.  we fill this up
@@ -115,13 +117,19 @@ t_output *output_create(const char *destination, const char *parameters,
   o->channels = 2;
   o->samplerate = 44100;
   o->bitrate = atoi(parameters);
-  o->buffer_size = o->samplerate * o->channels * 2 * 2;
-  if ((o->buffer = malloc(o->buffer_size)) == NULL) {
+  o->buffer_size = o->samplerate * o->channels * 2;
+  if ((o->buffer_char = malloc(o->buffer_size)) == NULL) {
+    free(o);
+    return NULL;
+  }
+  /* buffer_float isn't 16 bit, it's probably 32 bit */
+  if ((o->buffer_float = malloc(sizeof(float) *
+                                (o->buffer_size / 2))) == NULL) {
     free(o);
     return NULL;
   }
   o->buffer_bytes = 0;
-  o->volume = 0;
+  o->volume = 50;
   o->buffer_ready = NULL;
   o->buffer_ready_bytes = 0;
   o->buffer_ready_size = 0;
@@ -250,7 +258,8 @@ t_output *output_create(const char *destination, const char *parameters,
   */
   return o;
 failed:
-  free(o->buffer);
+  free(o->buffer_char);
+  free(o->buffer_float);
   free(o);
   return NULL;
 }
@@ -275,7 +284,8 @@ int output_setvolume(t_output *o, int volume)
 void output_close(t_output *o)
 {
   output_stop(o);
-  free(o->buffer);
+  free(o->buffer_char);
+  free(o->buffer_float);
   shout_close(o->shout);
 }
 
@@ -356,11 +366,14 @@ int output_inputfinished(t_output *o)
 void output_sync(t_output *o)
 {
   int ret;
-  unsigned int i;
+  unsigned int chan, i;
   unsigned int pages;
   int datasize, reqbufsize;
   char *newbuf;
+  short int *sp;
+  float *fp;
   float **vorbbuf;
+  int words;
 
   /* if it's time to send data, send everything we have */
   if (shout_delay(o->shout) <= 0) {
@@ -380,17 +393,24 @@ void output_sync(t_output *o)
   /* if we have no ready buffer, and we have a full normal buffer,
    * send it to vorbis */
   if (o->buffer_ready_bytes == 0 && o->buffer_bytes == o->buffer_size) {
-    vorbbuf = vorbis_analysis_buffer(&o->vd, o->buffer_size / o->channels / 2);
+    vorbbuf = vorbis_analysis_buffer(&o->vd,
+                                     o->buffer_size / (o->channels * 2));
 #ifdef DEBUG_OUTPUT
     mserv_log("another second of data, time to analyse block with vorbis");
 #endif
-    for (i = 0; i < o->buffer_size / 4; i++) {
-      vorbbuf[0][i] = ((o->buffer[i * 4 + 1] << 8) |
-                       (0x00ff & o->buffer[i * 4])) / 32768.f;
-      vorbbuf[1][i] = ((o->buffer[i * 4 + 3] << 8) |
-                       (0x00ff & o->buffer[i * 4 + 2])) / 32768.f;
+    /* buffer_size is in bytes - divide by 2 for 16-bit samples */
+    for (i = 0; i < o->buffer_size / (2 * o->channels); i++) {
+      /* apply current volume setting (0-100, where 50 is normal) */
+      for (chan = 0; chan < o->channels; chan++) {
+        vorbbuf[chan][i] = o->buffer_float[i * o->channels + chan] *
+            ((float)o->volume / 50);
+        if (vorbbuf[chan][i] > 1.0f)
+          vorbbuf[chan][i] = 1.0f;
+        if (vorbbuf[chan][i] < -1.0f)
+          vorbbuf[chan][i] = -1.0f;
+      }
     }
-    vorbis_analysis_wrote(&o->vd, o->buffer_size / o->channels / 2);
+    vorbis_analysis_wrote(&o->vd, o->buffer_size / (o->channels * 2));
     o->buffer_bytes = 0;
   }
   /* if we haven't got a full buffer, read in more from the player */
@@ -403,7 +423,7 @@ void output_sync(t_output *o)
                 o->stopped ? "stopped" : "not-stopped");
 #endif
       /* we're paused, output some zeros */
-      memset(o->buffer + o->buffer_bytes, 0,
+      memset(o->buffer_float + o->buffer_bytes, 0,
              o->buffer_size - o->buffer_bytes);
       o->buffer_bytes = o->buffer_size;
       break;
@@ -422,7 +442,7 @@ void output_sync(t_output *o)
 #endif
       /* we need to output some silence (GAP) to start with */
       i = mserv_MIN(o->buffer_size - o->buffer_bytes, o->input->zeros_start);
-      memset(o->buffer + o->buffer_bytes, 0, i);
+      memset(o->buffer_float + o->buffer_bytes, 0, i);
       o->input->zeros_start-= i;
       o->buffer_bytes+= i;
       mserv_log("buffer_bytes = %d", o->buffer_bytes);
@@ -435,7 +455,7 @@ void output_sync(t_output *o)
     }
     if (o->input->fd != -1) {
       /* read PCM data from input stream */
-      ret = read(o->input->fd, o->buffer + o->buffer_bytes,
+      ret = read(o->input->fd, o->buffer_char + o->buffer_bytes,
                  o->buffer_size - o->buffer_bytes);
       if (ret == -1) {
         if (errno != EAGAIN || errno != EINTR) {
@@ -448,7 +468,22 @@ void output_sync(t_output *o)
         mserv_log("End of file properly reached in input stream");
         close(o->input->fd);
         o->input->fd = -1;
+        if (o->buffer_bytes & 1) {
+          mserv_log("Odd number of bytes in 16 bit input stream!");
+          o->buffer_float[o->buffer_bytes / 2] = 0.f;
+          o->buffer_bytes++;
+        }
       } else {
+        mserv_log("%d bytes read from input stream", ret);
+        /* if we had a left over byte from before, and we now have the byte,
+         * add one to the number of words we can now convert to floats */
+        words = (ret / 2) + ((o->buffer_bytes & 1) && (ret & 1) ? 1 : 0);
+        mserv_log("%d words", words);
+        sp = (signed short *)o->buffer_char + (o->buffer_bytes / 2);
+        fp = (float *)o->buffer_float + (o->buffer_bytes / 2);
+        for (i = 0; i < words; i++)
+          fp[i] = (sp[i] / 32768.f) *
+              ((float)o->input->supinfo.track->volume / 100);
         o->buffer_bytes += ret;
       }
     } else {
@@ -463,7 +498,7 @@ void output_sync(t_output *o)
 #endif
         /* we need to output some silence (GAP) to end with */
         i = mserv_MIN(o->buffer_size - o->buffer_bytes, o->input->zeros_end);
-        memset(o->buffer + o->buffer_bytes, 0, i);
+        memset(o->buffer_float + o->buffer_bytes, 0, i);
         o->input->zeros_end-= i;
         o->buffer_bytes+= i;
         mserv_log("buffer_bytes = %d", o->buffer_bytes);

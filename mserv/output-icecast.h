@@ -36,11 +36,12 @@ typedef struct {
   ogg_page og;             /* one Ogg bitstream page containing Vorbis pkts */
   ogg_packet op;           /* one raw packet of data for decode */
   int buffer_ready_bytes;  /* bytes we have so far */
-  int buffer_ready_size;   /* size of buffer_ready buffer */
-  char *buffer_ready;      /* previous buffer that's ready to send or NULL */
+  int buffer_ready_size;   /* size of buffer_ready (icecast data) buffer */
+  char *buffer_ready;      /* encoded buffer that's ready to send or NULL */
   int buffer_bytes;        /* bytes we have so far */
-  int buffer_size;         /* one second buffer for this output stream */
-  char *buffer;            /* one second buffer for this output stream */
+  int buffer_size;         /* size of buffer_char/_float (raw input) buffer */
+  char *buffer_char;       /* one second input buffer for this output stream */
+  float *buffer_float;     /* same as buffer_char, but float and volumeised */
 } t_output;
 
 int output_init(void);

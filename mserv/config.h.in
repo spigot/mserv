@@ -11,6 +11,9 @@
 #define RETSIGTYPE void
 
 /* Define if we have soundcard.h */
+#undef HAVE_SOUNDCARD_H
+
+/* Define if we have sys/soundcard.h */
 #undef HAVE_SYS_SOUNDCARD_H
 
 /* Define if we have strsep() */

@@ -1497,8 +1497,6 @@ static void cmd_top(t_client *cl, t_cmdparams *cp)
     mserv_send(cl, ".\r\n", 0);
 }
 
-#if ENGINE != local
-
 static void cmd_volume(t_client *cl, t_cmdparams *cp)
 {
   int val;
@@ -1518,86 +1516,19 @@ static void cmd_volume(t_client *cl, t_cmdparams *cp)
 
 static void cmd_bass(t_client *cl, t_cmdparams *cp)
 {
+  (void)cl;
+  (void)cp;
+  
   mserv_response(cl, "NOTIMPL", NULL);
 }
 
 static void cmd_treble(t_client *cl, t_cmdparams *cp)
 {
+  (void)cl;
+  (void)cp;
+  
   mserv_response(cl, "NOTIMPL", NULL);
 }
-
-#else
-
-static void cmd_volume(t_client *cl, t_cmdparams *cp)
-{
-#ifdef SOUNDCARD
-  int val;
-
-  (void)cp;
-  if (*cp->line && cl->userlevel == level_guest) {
-    mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_PCM, cp->line)) != -1) {
-    if (!*cp->line) {
-      mserv_response(cl, "VOLCUR", "%d", val & 0xFF);
-    } else {
-      mserv_broadcast("VOLSET", "%d\t%s", val & 0xFF, cl->user);
-      if (cl->mode != mode_human)
-        mserv_response(cl, "VOLREP", "%d", val & 0xFF);
-    }
-  }
-#else
-  (void)cp;
-  mserv_response(cl, "NOSCARD", NULL);
-#endif
-}
-
-static void cmd_bass(t_client *cl, t_cmdparams *cp)
-{
-#ifdef SOUNDCARD
-  int val;
-
-  (void)cp;
-  if (*cp->line && cl->userlevel == level_guest) {
-    mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_BASS, cp->line)) != -1) {
-    if (!*cp->line) {
-      mserv_response(cl, "BASSCUR", "%d", val & 0xFF);
-    } else {
-      mserv_broadcast("BASSSET", "%d\t%s", val & 0xFF, cl->user);
-      if (cl->mode != mode_human)
-	mserv_response(cl, "BASSREP", "%d", val & 0xFF);
-    }
-  }
-#else
-  (void)cp;
-  mserv_response(cl, "NOSCARD", NULL);
-#endif
-}
-
-static void cmd_treble(t_client *cl, t_cmdparams *cp)
-{
-#ifdef SOUNDCARD
-  int val;
-
-  (void)cp;
-  if (*cp->line && cl->userlevel == level_guest) {
-    mserv_response(cl, "ACLFAIL", NULL);
-  } else if ((val = mserv_setmixer(cl, SOUND_MIXER_TREBLE, cp->line)) != -1) {
-    if (!*cp->line) {
-      mserv_response(cl, "TREBCUR", "%d", val & 0xFF);
-    } else {
-      mserv_broadcast("TREBSET", "%d\t%s", val & 0xFF, cl->user);
-      if (cl->mode != mode_human)
-	mserv_response(cl, "TREBREP", "%d", val & 0xFF);
-    }
-  }
-#else
-  (void)cp;
-  mserv_response(cl, "NOSCARD", NULL);
-#endif
-}
-
-#endif
 
 static void cmd_say(t_client *cl, t_cmdparams *cp)
 {
@@ -1682,7 +1613,6 @@ static void cmd_rate(t_client *cl, t_cmdparams *cp)
   t_channel *channel = channel_find(cl->channel);
   t_trkinfo *playing = channel_getplaying(channel);
   char linespl[LINEBUFLEN];
-  char buffer[AUTHORLEN+NAMELEN+64];
   char *str[4];
   unsigned int n_album, n_track;
   int val;

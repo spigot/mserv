@@ -173,11 +173,11 @@ int opt_read(const char *root)
       return -1;
     }
   }
-  /* special case - player variable is an indirected to another variable */
+  /* special case - player variable is an indirection to another variable */
   if ((val = conf_getvalue("player")) == NULL) {
-    if (mserv_verbose)
-      printf("No player specified, defaulting to /usr/local/bin/mpg123\n");
-    opt_player = "/usr/local/bin/mpg123";
+    fprintf(stderr, "%s: no 'player' configuration setting found - "
+            "corrupt or invalid configuration file?\n", progname);
+    return -1;
   } else {
     if ((opt_player = conf_getvalue(val)) == NULL) {
       fprintf(stderr, "%s: player setting '%s' not found\n", progname,

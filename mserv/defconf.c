@@ -53,6 +53,14 @@ player_mod=prog_xmp\n\
 # possible.\n\
 # gap=1\n\
 \n\
+# Default user rating for songs that haven't been heard yet (0 - 1)\n\
+# 0=awful, 0.25=bad, 0.50=neutral, 0.75=good, 1=superb\n\
+# opt_rate_unheard=0.55\n\
+\n\
+# Default user rating for songs that haven't been rated yet (0 - 1)\n\
+# 0=awful, 0.25=bad, 0.50=neutral, 0.75=good, 1=superb\n\
+# opt_rate_unrated=0.50\n\
+\n\
 ";
 
 unsigned int defconf_size = sizeof(defconf_file)-1;

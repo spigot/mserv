@@ -65,6 +65,8 @@ double opt_gap = 1;
 unsigned int opt_play = 0;
 unsigned int opt_random = 0;
 double opt_factor = 0.6;
+double opt_rate_unheard = 0.55;
+double opt_rate_unrated = 0.50;
 const char *opt_player = NULL;
 const char *opt_filter = NULL;
 
@@ -94,6 +96,8 @@ t_opts opt_opts[] = {
   { "play",           "switch",  &opt_play,           "off" },
   { "random",         "switch",  &opt_random,         "off" },
   { "factor",         "double",  &opt_factor,         "0.60" },
+  { "rate_unheard",   "double",  &opt_rate_unheard,   "0.55" },
+  { "rate_unrated",   "double",  &opt_rate_unrated,   "0.50" },
   { "filter",         "string",  &opt_filter,         "" },
   { NULL, NULL, NULL, NULL }
 };

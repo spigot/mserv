@@ -2469,17 +2469,16 @@ void mserv_recalcratings(void)
 	  continue;
 	if ((rate = mserv_getrate(cl->user, track)) != NULL) {
 	  if (rate->rating == 0)
-	    rating+= RATE_HEARD; /* heard but not rated - NEUTRAL */
+	    rating+= opt_rate_unrated; /* 0.50 */
 	  else
-	    rating+= rate->rating;
+	    rating+= ((double)rate->rating - 1) / 4; /* 1-5 -> percentage */
 	} else { /* user has not rated song */
-	  rating+= RATE_NOTHEARD; /* GOOD */
+	  rating+= opt_rate_unheard; /* 0.55 */
 	}
       }
-      /* convert accumulative ratings (1-5) to (0-4) to %age */
-      track->prating = (rating-totalusers)/(totalusers*4);
+      track->prating = rating/totalusers;
     } else {
-      track->prating = ((double)RATE_NOTHEARD-1)/4;
+      track->prating = RATE_NOTHEARD;
     }
     track->rating = track->prating;
     off = time(NULL) - track->lastplay;

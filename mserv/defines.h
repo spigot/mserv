@@ -47,12 +47,6 @@
 /* number of entries to keep in history */
 #define HISTORYLEN 20
 
-/* rating of unheard songs, 1-5 (4=good) */
-#define RATE_NOTHEARD 4
-
-/* rating of heard songs, 1-5 (3=neutral) */
-#define RATE_HEARD 3
-
 /* maximum number of passed parameters to setuid player */
 #define PLAYER_MAXPARAMS 10
 

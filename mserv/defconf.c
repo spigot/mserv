@@ -11,7 +11,7 @@ path_trackinfo=trackinfo\n\
 path_playout=player.out\n\
 path_idea=idea\n\
 path_mixer=/dev/mixer\n\
-path_language=" SHAREDIR "/english.lang\n\
+path_language=" DATADIR "/english.lang\n\
 \n\
 # Define player invokation methods\n\
 # mservplay is our special wrapper, the first parameter is a 'nice' level\n\

@@ -40,7 +40,7 @@ met:
 #include <stdio.h>
 #include <string.h>
 
-#include "mserv.h"
+#include "config.h"
 #include "misc.h"
 
 /*** file-scope globals ***/

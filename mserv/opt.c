@@ -82,7 +82,7 @@ t_opts opt_opts[] = {
   { "path_playout",   "path",    &opt_path_playout,   "player.out" },
   { "path_idea",      "path",    &opt_path_idea,      "idea" },
   { "path_mixer",     "path",    &opt_path_mixer,     "/dev/mixer" },
-  { "path_language",  "path",    &opt_path_language, SHAREDIR "/english.lang"},
+  { "path_language",  "path",    &opt_path_language, DATADIR "/english.lang"},
   { "port",           "int",     &opt_port,           "4444" },
   { "gap",            "int",     &opt_gap,            "1" },
   { "play",           "switch",  &opt_play,           "off" },

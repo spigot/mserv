@@ -1,21 +1,3 @@
-/* version string */
-#define VERSION         "0.34"
-/* #define VERSION         "0.33-yourname.00" */
-
-/* paths relative to mserv root directory */
-/*
-#define PATH_ROOT_TRACKS	"tracks"
-#define PATH_ROOT_TRACKINFO	"trackinfo"
-#define PATH_ROOT_LOGFILE	"log"
-#define PATH_ROOT_ACL           "acl"
-#define PATH_ROOT_WEBACL        "webacl"
-#define PATH_ROOT_PLAYOUT       "player.out"
-#define PATH_ROOT_IDEA          "ideas"
-#define PATH_ROOT_CONF          "conf"
-#define PATH_MIXER		"/dev/mixer"
-#define PATH_LANGUAGE		SHAREDIR "/english.lang"
-*/
-
 /* maximum amount to queue in each output buffer */
 #define OUTBUFLEN 32*1024
 

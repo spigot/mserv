@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <ctype.h>
+
 #include "mservcli.h"
 
 #define MAXLINE 1024
@@ -16,9 +18,9 @@
 static int mservcli_processrt(struct mservcli_id *id);
 
 struct mservcli_id *mservcli_connect(const struct sockaddr_in *servaddr,
-				     char *buffer, unsigned int buflen,
-				     const char *user, const char *pass,
-				     int rtflag)
+                                     char *buffer, unsigned int buflen,
+                                     const char *user, const char *pass,
+                                     int rtflag)
 {
   struct protoent *ip = getprotobyname("IP");
   struct mservcli_id *id;
@@ -37,7 +39,7 @@ struct mservcli_id *mservcli_connect(const struct sockaddr_in *servaddr,
   id->rtflag = rtflag ? 0 : 1;
   if (((id->sock = socket(AF_INET, SOCK_STREAM, ip->p_proto)) == -1) ||
       (connect(id->sock, (const struct sockaddr *)servaddr,
-	       sizeof(*servaddr)) == -1)) {
+               sizeof(*servaddr)) == -1)) {
     free(id);
     return NULL;
   }
@@ -45,8 +47,6 @@ struct mservcli_id *mservcli_connect(const struct sockaddr_in *servaddr,
       (id->out = fdopen(id->sock, "w")) == NULL) {
     goto error;
   }
-  /* cheers linux for not telling me what the return code is, I'll just
-     have to wait until I get to a nice BSD box and ask it, grr */
   setvbuf(id->out, NULL, _IOLBF, 0);
   if (buffer && buflen) {
     id->buffer = buffer;
@@ -79,7 +79,7 @@ struct mservcli_id *mservcli_connect(const struct sockaddr_in *servaddr,
   if (mservcli_discarddata(id) == -1)
     goto error;
   snprintf(outbuf, sizeof(outbuf), "PASS %s %s\r\n", pass,
-	   rtflag ? "RTCOMPUTER" : "COMPUTER");
+           rtflag ? "RTCOMPUTER" : "COMPUTER");
   if (mservcli_send(id, outbuf) == -1)
     goto error;
   if ((code = mservcli_getresult(id)) == -1)
@@ -112,9 +112,9 @@ int mservcli_free(struct mservcli_id *id)
 }
 
 int mservcli_rthandler(struct mservcli_id *id,
-		       void (*rth)(void *, int, struct mservcli_data *),
-		       void *private,
-		       struct mservcli_data *data)
+                       void (*rth)(void *, int, struct mservcli_data *),
+                       void *private,
+                       struct mservcli_data *data)
 {
   id->rt_handler = rth;
   id->rt_private = private;
@@ -144,7 +144,7 @@ int mservcli_getresult(struct mservcli_id *id)
       id->buffer[--i] = '\0';
     if (*id->buffer == '=') {
       if (mservcli_processrt(id) == -1)
-	return -1;
+        return -1;
       rt = 1;
     }
   } while (rt);
@@ -185,7 +185,7 @@ int mservcli_getdata(struct mservcli_id *id, struct mservcli_data *data)
       id->buffer[--i] = '\0';
     if (*id->buffer == '=') {
       if (mservcli_processrt(id) == -1)
-	return -1;
+        return -1;
       rt = 1;
     }
   } while (rt);
@@ -259,20 +259,20 @@ int mservcli_discarddata(struct mservcli_id *id)
   do {
     do {
       if (fgets(id->buffer, id->buflen, id->in) == NULL) {
-	errno = EPIPE;
-	return -1;
+        errno = EPIPE;
+        return -1;
       }
       if (!*id->buffer || id->buffer[(i = strlen(id->buffer))-1] != '\n') {
-	errno = EPIPE;
-	return -1;
+        errno = EPIPE;
+        return -1;
       }
       id->buffer[--i] = '\0';
       if (*id->buffer && id->buffer[i-1] == '\r')
         id->buffer[--i] = '\0';
       if (*id->buffer == '=') {
-	if (mservcli_processrt(id) == -1)
-	  return -1;
-	rt = 1;
+        if (mservcli_processrt(id) == -1)
+          return -1;
+        rt = 1;
       }
     } while (rt);
   } while (*id->buffer != '.' && *(id->buffer+1) != '\0');
@@ -308,4 +308,67 @@ int mservcli_poll(struct mservcli_id *id)
   if (ungetc(c, id->in) == EOF)
     return -1;
   return 0;
+}
+
+int mservcli_stricmp(const char *str1, const char *str2)
+{
+  while(tolower(*str1) == tolower(*str2++)) {
+    if (*str1++ == '\0')
+      return 0;
+  }
+  return (tolower(*str1) - tolower(*--str2));
+}
+
+int mservcli_strnicmp(const char *str1, const char *str2, int n)
+{
+  while (n-- > 0) {
+    if (tolower(*str1) != tolower(*str2++))
+      return (tolower(*str1) - tolower(*--str2));
+    if (*str1++ == '\0')
+      break;
+  }
+  return(0);
+}
+
+const char *mservcli_stristr(const char *s, const char *find)
+{
+  char c, sc;
+  int len;
+
+  if ((c = *find++)) {
+    len = strlen(find);
+    do {
+      do {
+        if ((sc = *s++) == 0)
+          return NULL;
+      } while (tolower(sc) != tolower(c));
+    } while (mservcli_strnicmp(s, find, len) != 0);
+    s--;
+  }
+  return s;
+}
+
+char *mservcli_strsep(char **str, const char *stuff)
+{
+  const char *p;
+  char *s, *tok;
+  unsigned char c, sc;
+
+  if (!(s = *str))
+    return NULL;
+  tok = s;
+  do {
+    p = stuff;
+    c = *s++;
+    do {
+      if ((sc = *p++) == c) {
+        if (!c)
+          s = NULL;
+        else
+          s[-1] = 0;
+        *str = s;
+        return tok;
+      }
+    } while (sc);
+  } while (1);
 }

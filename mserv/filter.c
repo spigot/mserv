@@ -47,7 +47,7 @@ met:
 #include "misc.h"
 #include "filter.h"
 
-#define PARSERDEBUG 0
+#undef PARSERDEBUG
 
 /*** externed variables ***/
 

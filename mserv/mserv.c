@@ -3366,8 +3366,10 @@ int mserv_setmixer(t_client *cl, int what, const char *line)
     param = 1;
     p = line+1;
     if (*line == *p) {
-      while(*p++ == *line)
-	param+= 1;
+      while(*p == *line) {
+        p++;
+        param+= 1;
+      }
       if (*p)
 	goto badnumber;
     } else {

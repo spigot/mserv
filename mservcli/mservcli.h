@@ -39,4 +39,9 @@ int mservcli_send(struct mservcli_id *id, const char *output);
 int mservcli_discarddata(struct mservcli_id *id);
 int mservcli_poll(struct mservcli_id *id);
 
+int mservcli_stricmp(const char *str1, const char *str2);
+int mservcli_strnicmp(const char *str1, const char *str2, int n);
+const char *mservcli_stristr(const char *s, const char *find);
+char *mservcli_strsep(char **str, const char *stuff);
+
 #endif /* _MSERVCLIH */

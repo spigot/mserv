@@ -1,0 +1,122 @@
+What next?
+==========
+
+Here's a quick-start guide of what to do next:
+
+As something that isn't root, run 'mserv'.  This will start the server on
+port 4444.
+
+Take a look in ~/.mserv and you will see all the files that mserv will
+have created:
+
+drwxr-xr-x   4 moo      users        1024 Dec 12 22:54 .
+drwxr-xr-x   3 moo      root         1024 Dec 12 22:54 ..
+-rw-------   1 moo      users          52 Dec 12 22:54 acl
+-rw-r--r--   1 moo      users        1148 Dec 12 22:54 config
+-rw-r--r--   1 moo      users          67 Dec 12 22:54 log
+drwxr-xr-x   2 moo      users        1024 Dec 12 22:54 trackinfo
+drwxr-xr-x   2 moo      users        1024 Dec 12 22:54 tracks
+-rw-r--r--   1 moo      users          39 Dec 12 22:54 webacl
+
+The first thing you should do is load the config file, and change the
+parameters for the player you wish to use.  By default Mserv uses mpg123
+at /usr/local/bin/mpg123.
+
+The acl/webacl files contain the access control lists, by default there
+are two users:
+
+user=root, pass=root, access=MASTER
+user=guest, pass=guest, access=GUEST
+
+(Normally you would leave the guest account alone, it's useful for the command
+line program, however, you should use the PASSWORD command to change the
+root password as soon as possible.)
+
+The log file logs what the server is doing, so if anything goes wrong this
+is the first place to look.
+
+The tracks and trackinfo directories contain the tracks and trackinfo
+files respectively!  You can symlink the two directories together if you
+want the '.trk' info files to be in the same directories as the mp3 files
+themselves, but that's usually messy.
+
+Put some mp3 files into the tracks directory.  You should put them in
+sub-directories to categorise them.  Each sub-directory is treated as an
+'album' by mserv, and mserv will recursively search down the tracks
+directory.  So you might have:
+
+~/.mserv/tracks
+  albums1
+    jamiorquai
+      travelling_without_moving
+        01.mp3 etc
+    louise
+      naked
+        01.mp3 etc
+      woman_in_me
+        01.mp3 etc
+  albums2
+    ...etc
+
+They layout is completely up to you, FILENAMES ARE IRRELEVANT to mserv.
+Mserv supports the ID3 tag system, and will read them when it first sees
+a file, but will not update them or re-read them ever again.  The above
+example shows two directories called albums1 and albums2, this is just to
+show that you could have sub-sub-directories, you don't have to, the depth
+of the mp3 files is not important.
+
+My mserv installation solely has mp3'd real CDs.  The tracks are all
+named 01.mp3, 02.mp3 etc, as Mserv orders the tracks within an album based on
+alphabetical order of filenames.  I use my own script to rip/compress, it's
+simply cdparanoia and bladenc, so is simple to construct - there should be
+a better 'solution' really.
+
+Once you've run mserv with some tracks in the tracks directory, it will
+populate the trackinfo directory with corresponding '.trk' files.  If
+you already have mserv running, enter the command 'RESET' to re-scan the
+database.
+
+Telnet to port 4444, login as root/root and then issue a command like this:
+  help create
+  [] Create a user, or change details if it exists
+  [] Syntax: CREATE <username> <password> <GUEST|USER|PRIV|MASTER>
+
+So type 'CREATE bob wibble PRIV' to create yourself a proper user.  PRIV
+users can kick people, and stuff, so make most people USERs.
+
+Then type 'albums' and it will list all the albums on the server.  You
+will now want to name them, which you can do with the SET command, so:
+
+  SET ALBUMAUTHOR 1 Various
+  SET ALBUMNAME 1 Misc Tracks
+
+Then you can set the individual tracks:
+
+  SET AUTHOR 1 1 My Friend
+  SET NAME 1 1 Blue
+
+  SET AUTHOR 1 2 My Other Friend
+  SET NAME 1 2 Green
+
+This gets tiring, so alternatively you can go into the trackinfo directory
+for your album and run mservedit:
+
+  $ cd ~/.mserv/trackinfo/myalbum
+  $ mservedit .
+
+This will open an editor into your unix editor - it uses the environment
+variable EDITOR to work this out, so make sure this is set.  Alter the
+data and save the file, it will update the on-disk database.  To sync
+the database on disk with that running in mserv, issue the 'SYNC' command.
+
+Other things that come with Mserv: a web client is available in the
+'webclient' directory of the Mserv distribution, and there is also 'mservcmd'
+that lets you talk to the server from the command line.  Other clients are
+available, see http://www.mserv.org/clients/
+
+And lastly, send an email to the author at james@squish.net to say you
+like Mserv and appreciate it's continuing development.
+
+Remember, an mserv installation is only as good as your track data.  It's
+a pain entering the names, dates and genres when you already have a collection,
+but if you get into the habit from day 1 you'll reap the benefits.

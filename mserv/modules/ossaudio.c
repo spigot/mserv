@@ -33,7 +33,7 @@
 #include "mserv-soundcard.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.4 2004/03/28 18:53:03 johanwalles Exp $";
+static char mserv_rcs_id[] = "$Id: ossaudio.c,v 1.5 2004/03/28 20:39:27 johanwalles Exp $";
 MSERV_MODULE(ossaudio, "0.01", "OSS output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -128,12 +128,12 @@ int ossaudio_output_sync(t_channel *c, t_channel_outputstream *os,
 {
   t_ossaudio *ossaudio = (t_ossaudio *)private;
   (void)c;
-  unsigned int sample;
+  unsigned int sample_number;
   unsigned int channel;
   int i;
   int written;
-  int buffer_size = sizeof(unsigned char) * os->channels * os->samplerate;
-  unsigned char *buffer = alloca(buffer_size);
+  int buffer_size = sizeof(signed short) * os->channels * os->samplerate;
+  signed short *buffer = alloca(buffer_size);
   
   if (!ossaudio->playing) {
     // Nothing's playing, we don't need to do anything to be
@@ -143,10 +143,15 @@ int ossaudio_output_sync(t_channel *c, t_channel_outputstream *os,
 
   // Create a one second sample for the sound card
   i = 0;
-  for (sample = 0; sample < os->samplerate; sample++) {
+  for (sample_number = 0;
+       sample_number < os->samplerate;
+       sample_number++)
+  {
     for (channel = 0; channel < os->channels; channel++) {
+      float sample = os->output[sample_number * os->channels + channel];
+
       // The output contains floats in the range -1.0 - 1.0
-      buffer[i++] = (unsigned char)((os->output[sample * os->channels + channel] + 1.0f) * 127.0f);
+      buffer[i++] = (signed short)(sample * 32767.0f);
     }
   }
 
@@ -220,16 +225,16 @@ int ossaudio_output_start(t_channel *c, t_channel_outputstream *os,
   // Set the sample format
   
   // FIXME: What should we set it to?  Until I have a good answer to
-  // that question I'll be using eight bits unsigned data.
-  format = AFMT_U8;
+  // that question I'll be using sixteen bits signed data.
+  format = AFMT_S16_NE;
   if (ioctl(output_fd, SNDCTL_DSP_SETFMT, &format) == -1) {
     snprintf(error, errsize,
-	     "failed setting audio format to AFMT_U8");
+	     "failed setting audio format to AFMT_S16_NE");
     goto failed;
   }
-  if (format != AFMT_U8) {
+  if (format != AFMT_S16_NE) {
     snprintf(error, errsize,
-	     "audio format AFMT_U8 not supported by sound card (got %d when trying)",
+	     "audio format AFMT_S16_NE not supported by sound card (got %d when trying)",
 	     format);
     goto failed;
   } 

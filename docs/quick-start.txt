@@ -4,7 +4,8 @@ What next?
 Here's a quick-start guide of what to do next:
 
 As something that isn't root, run 'mserv'.  This will start the server on
-port 4444.
+port 4444.  Any problems now, or later, run mserv with "-v" for verbose and
+"-d" for debugging.
 
 Take a look in ~/.mserv and you will see all the files that mserv will
 have created:
@@ -19,8 +20,9 @@ drwxr-xr-x   2 moo      users        1024 Dec 12 22:54 tracks
 -rw-r--r--   1 moo      users          39 Dec 12 22:54 webacl
 
 The first thing you should do is load the config file, and change the
-parameters for the player you wish to use.  By default Mserv uses mpg123
-at /usr/local/bin/mpg123.
+parameters for the player you wish to use.  By default Mserv uses mpg123 for
+.mp3 files and ogg123 for .ogg files.  All other file extensions are ignored
+unless you change the configuration file.
 
 The acl/webacl files contain the access control lists, by default there
 are two users:
@@ -58,7 +60,11 @@ directory.  So you might have:
   albums2
     ...etc
 
-They layout is completely up to you, FILENAMES ARE IRRELEVANT to mserv.
+They layout is completely up to you, filenames are mostly irrelevant to mserv.
+It uses the file extension to work out what player to use (see configuration
+file), and if it has never seen a track before and it has no ID3 tag it will
+use the filename as the track name.
+
 Mserv supports the ID3 tag system, and will read them when it first sees
 a file, but will not update them or re-read them ever again.  The above
 example shows two directories called albums1 and albums2, this is just to
@@ -67,9 +73,8 @@ of the mp3 files is not important.
 
 My mserv installation solely has mp3'd real CDs.  The tracks are all
 named 01.mp3, 02.mp3 etc, as Mserv orders the tracks within an album based on
-alphabetical order of filenames.  I use my own script to rip/compress, it's
-simply cdparanoia and bladenc, so is simple to construct - there should be
-a better 'solution' really.
+alphabetical order of filenames.  I use my own script to rip/compress
+(included in support directory: mservripcd).
 
 Once you've run mserv with some tracks in the tracks directory, it will
 populate the trackinfo directory with corresponding '.trk' files.  If

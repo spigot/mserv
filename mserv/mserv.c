@@ -2521,7 +2521,8 @@ void mserv_recalcratings(void)
   t_track **sbuf;
   int i;
   t_trkinfo *playing = channel_getplaying(mserv_channel);
-
+  double total_weight = 0.0;
+  
   if (mserv_debug)
     mserv_log("Calculating ratings of tracks...");
 
@@ -2530,7 +2531,32 @@ void mserv_recalcratings(void)
   for (cl = mserv_clients; cl; cl = cl->next) {
     if (cl->authed && cl->state != st_closed && cl->mode != mode_computer
 	&& cl->userlevel != level_guest)
+    {
       totalusers++;
+
+      if (opt_experimental_fairness) {
+	double satisfaction;
+      
+	if (!mserv_getsatisfaction(cl, &satisfaction)) {
+	  /* No satisfaction value available for this user, use the
+	   * neutral value 0.5 */
+	  satisfaction = 0.5;
+	}
+	/* The user's weight will become 101% minus the user's
+	 * satisfaction.  Thus, if a user has heard only SUPERB songs,
+	 * that user's weight will be 0.01.  If a user has heard only
+	 * AWFUL songs, the weight will be 1.01.  This way nobody ever
+	 * gets their opinion entirely ignored (i.e. a weight of
+	 * 0.0). */
+	cl->weight = 1.01 - satisfaction;
+      } else {
+	/* Experimental fairness disabled; all users get a weight of
+	 * 1.0. */
+	cl->weight = 1.0;
+      }
+      
+      total_weight += cl->weight;
+    }
   }
   ntracks = 0;
   for (track = mserv_tracks; track; track = track->next) {
@@ -2540,7 +2566,7 @@ void mserv_recalcratings(void)
       mserv_filter_ok++;
     else
       mserv_filter_notok++;
-    if (!totalusers) {
+    if (totalusers == 0) {
       track->prating = 0;
     } else if (track->ratings) {
       rating = 0;
@@ -2548,16 +2574,23 @@ void mserv_recalcratings(void)
 	if (!cl->authed || cl->state == st_closed ||
 	    cl->mode == mode_computer || cl->userlevel == level_guest)
 	  continue;
+	
+	/* Note that if the experimental fairness is disabled,
+	 * cl->weight will always be 1.0. */
 	if ((rate = mserv_getrate(cl->user, track)) != NULL) {
-	  if (rate->rating == 0)
-	    rating+= opt_rate_unrated; /* 0.50 */
-	  else
-	    rating+= ((double)rate->rating - 1) / 4; /* 1-5 -> percentage */
+	  if (rate->rating == 0) {
+	    rating += cl->weight * opt_rate_unrated; /* 0.50 */
+	  } else {
+	    rating += cl->weight *
+	      ((double)(rate->rating - 1)) / 4.0; /* 1-5 -> percentage */
+	  }
 	} else { /* user has not rated song */
-	  rating+= opt_rate_unheard; /* 0.55 */
+	  rating += cl->weight * opt_rate_unheard; /* 0.55 */
 	}
       }
-      track->prating = rating/totalusers;
+      /* If the experimental fairness is disabled, total_weight will
+       * be equal to totalusers. */
+      track->prating = rating / total_weight;
     } else {
       track->prating = opt_rate_unheard;
     }
@@ -3561,6 +3594,10 @@ void mserv_addtohistory(t_trkinfo *sup)
     memcpy(mserv_history[0], sup, sizeof(t_trkinfo));
   }
   mserv_n_songs_started++;
+  if (opt_experimental_fairness) {
+    // Keep user weights up to date
+    mserv_recalcratings();
+  }
 }
 
 const char *mserv_clientmodetext(t_client *cl)

@@ -107,6 +107,7 @@ typedef struct _t_client {
   char user[USERNAMELEN+1];
   t_userlevel userlevel;
   t_mode mode;
+  double weight;
   int loggedinatsong;
   char channel[CHANNELNAMELEN+1]; /* current channel */
   unsigned int authed:1;

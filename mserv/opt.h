@@ -17,6 +17,7 @@ extern double opt_factor;
 extern double opt_rate_unheard;
 extern double opt_rate_unrated;
 extern const char *opt_filter;
+extern unsigned int opt_experimental_fairness;
 extern unsigned int opt_queue_clear_human;
 extern unsigned int opt_queue_clear_computer;
 extern unsigned int opt_queue_clear_rtcomputer;

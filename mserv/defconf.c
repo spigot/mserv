@@ -113,6 +113,13 @@ player_mod=prog_xmp\n\
 # 0=awful, 0.25=bad, 0.50=neutral, 0.75=good, 1=superb\n\
 # rate_unrated=0.50\n\
 #\n\
+#\n\
+# Enable experimental fairness algorithm.  When enabled, users who have\n\
+# had their music played a lot will become less important when selecting\n\
+# the next song to play.  Users who have heard bad music lately will become\n\
+# more important.\n\
+# experimental_fairness=on\n\
+#\n\
 # Set whether or not each type of user has their queue cleared on disconnect\n\
 # queue_clear_human=on\n\
 # queue_clear_computer=off\n\

@@ -46,6 +46,7 @@ double opt_factor = 0.6;
 double opt_rate_unheard = 0.55;
 double opt_rate_unrated = 0.50;
 const char *opt_filter = NULL;
+unsigned int opt_experimental_fairness = 0;
 unsigned int opt_queue_clear_human = 1;
 unsigned int opt_queue_clear_computer = 0;
 unsigned int opt_queue_clear_rtcomputer = 1;
@@ -87,6 +88,7 @@ t_opts opt_opts[] = {
   { "rate_unheard",           "double", &opt_rate_unheard,           "0.55" },
   { "rate_unrated",           "double", &opt_rate_unrated,           "0.50" },
   { "filter",                 "string", &opt_filter,                 "" },
+  { "experimental_fairness",  "switch", &opt_experimental_fairness,  "off" },
   { "queue_clear_human",      "switch", &opt_queue_clear_human,      "on" },
   { "queue_clear_computer",   "switch", &opt_queue_clear_computer,   "off" },
   { "queue_clear_rtcomputer", "switch", &opt_queue_clear_rtcomputer, "on" },

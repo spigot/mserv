@@ -1,0 +1,13 @@
+Thanks to:
+
+Johannes Herlitz <j_herlit@zweibruecken.net>
+- Suggested searching for .mp3 files case in-sensitively (1.30)
+- Fix for web client for some versions of perl (1.30)
+
+Mike Pilone <mpilone@slac.com>
+- Debugging of set genre <album> - it segv'd (1.30)
+- Reporting of queue broadcast bug (1.30)
+- Mservgui (qt/c++) application for X/Windows (1.30)
+
+Niklas Mehner <wombat@uni.de>
+- Mserv (delphi) application for Windows (1.30)

@@ -253,11 +253,13 @@ expect "227 Albums available"
 
 send "queue\n"
 expect "404 There are no tracks in the queue"
+expect "\n.\n"
 send "queue 1 1\n"
 expect "247 The following tracks have been added to the queue"
 
 send "queue\n"
 expect "225 The following tracks are in the queue"
+expect "\n.\n"
 send "unqueue 1 1\n"
 expect "254 Track"
 
@@ -277,15 +279,19 @@ expect "246 Album 1, track 1"
 # Start playing and try some commands again
 send "play\n"
 expect "230 Play commenced"
+expect "\n.\n"
 
 send "status\n"
 expect "222 Playing"
+expect "\n.\n"
 
 send "ratings\n"
 expect "229 Ratings of track"
+expect "\n.\n"
 
 send "tracks\n"
 expect "228 Tracks in album"
+expect "\n.\n"
 
 send "pause\n"
 expect "232 Play paused"
@@ -295,6 +301,7 @@ expect "406 Already paused"
 
 send "play\n"
 expect "230 Play commenced"
+expect "\n.\n"
 
 send "next\n"
 expect "240 Moved to next track"
@@ -307,6 +314,7 @@ expect "402 Already playing"
 
 send "stop\n"
 expect "231 Play stopped"
+expect "\n.\n"
 
 send "quit\n"
 expect "220 Goodbye"

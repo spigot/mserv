@@ -1,7 +1,19 @@
 Changes
 =======
 
-This documents changes as they are made.
+This documents changes as they are made.  Note that if you received this file
+via CVS the version of the first entry is the forthcoming version number.
+
+0.31 - Jan 25th 2000
+--------------------
+- Fixed mserv.cgi so that there is no sub next() as this conflicts with some
+  perls
+- Altered scaning code so that it looks for .mp3's case insensitively
+- Bug fix to queuing - any computer users online when a user queues a track
+  resulted in broadcasts going to the queuing user rather than the other users
+- Bug fix in set genre for an album, so that it doesn't segv.
+- Incorporated patch from Jan Hecking <jhecking@informatik.uni-rostock.de>
+  which cleans up the initialisation code.
 
 0.30 - Jan 2nd 2000
 -------------------

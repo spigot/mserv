@@ -159,7 +159,7 @@ int module_load(char *name, char *error, int errsize)
     module_list = mi;
   }
 
-  mserv_log("Module '%s' (%s) loaded.\n", name, module->version);
+  mserv_log("Module '%s' (%s) loaded", name, module->version);
 
   /* look for functions */
 
@@ -183,7 +183,7 @@ int module_load(char *name, char *error, int errsize)
       goto failed;
   }
 
-  mserv_log("Module '%s' (%s) initialised.\n", name, module->version);
+  mserv_log("Module '%s' (%s) initialised", name, module->version);
 
   return MSERV_SUCCESS;
 failed:

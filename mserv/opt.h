@@ -10,6 +10,7 @@ extern const char *opt_path_language;
 extern unsigned int opt_port;
 extern unsigned int opt_gap;
 extern unsigned int opt_random;
+extern unsigned int opt_play;
 extern double opt_factor;
 extern const char *opt_player;
 extern const char *opt_filter;

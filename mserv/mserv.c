@@ -467,6 +467,11 @@ int main(int argc, char *argv[])
   signal(SIGPIPE, SIG_IGN);
   signal(SIGCHLD, mserv_sighandler);
 
+  if (opt_play) {
+    if (mserv_playnext())
+      mserv_broadcast("FINISH", NULL); /* who are we telling? :) */
+  }
+
   mserv_mainloop();
 
   return(0);

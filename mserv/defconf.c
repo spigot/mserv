@@ -26,6 +26,9 @@ player=mpg123
 # start playing (PLAY).
 random=off
 
+# Set whether or not you would like play to start as soon as mserv has loaded.
+play=off
+
 # Set default random factor, 0.5 is completely random, 0.6 is less random
 # and takes into account your ratings, 0.4 plays your worst tunes. 0.99 max.
 factor=0.60

@@ -60,6 +60,7 @@ const char *opt_path_mixer = NULL;
 const char *opt_path_language = NULL;
 unsigned int opt_port = 4444;
 unsigned int opt_gap = 1;
+unsigned int opt_play = 0;
 unsigned int opt_random = 0;
 double opt_factor = 0.6;
 const char *opt_player = NULL;
@@ -84,6 +85,7 @@ t_opts opt_opts[] = {
   { "path_language",  "path",    &opt_path_language, SHAREDIR "/english.lang"},
   { "port",           "int",     &opt_port,           "4444" },
   { "gap",            "int",     &opt_gap,            "1" },
+  { "play",           "switch",  &opt_play,           "off" },
   { "random",         "switch",  &opt_random,         "off" },
   { "factor",         "double",  &opt_factor,         "0.60" },
   { "filter",         "string",  &opt_filter,         "" },

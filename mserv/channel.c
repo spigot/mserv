@@ -397,6 +397,7 @@ int channel_inputfinished(t_channel *c)
     close(i->fd);
   c->input = i->next;
   free(i);
+  i = c->input;
   if (c->input)
     mserv_log("channel %s: decoding of %d/%d started", c->name,
               i->trkinfo.track->album->id, i->trkinfo.track->n_track);

@@ -543,6 +543,8 @@ static void mserv_mainloop(void)
   long timestampBeforeSleep = 0;
   long timestampBeforeSoundIo = 0;
   long timestampBeforeNewConnections = 0;
+  long timestampAfterSleep = 0;
+  int atLeastOneLapDone = 0;
   
   // We should attempt to sync the sound and talk to the users
   // at least this often
@@ -552,23 +554,6 @@ static void mserv_mainloop(void)
     long timestampCycleWrap = mserv_getMSecsSinceEpoch();
     int soundBufferMs = channel_getSoundBufferMs();
     int cycleTime;
-    
-    if (soundBufferMs > 0) {
-      int ioTime = timestampBeforeSleep - timestampBeforeUserIo;
-      int sleepTime = timestampBeforeSoundIo - timestampBeforeSleep;
-      int soundTime = timestampBeforeNewConnections - timestampBeforeSoundIo;
-      int newConnectionTime = timestampCycleWrap - timestampBeforeNewConnections;
-      int cycleTime = timestampCycleWrap - timestampBeforeUserIo;
-      
-      if (cycleTime >= soundBufferMs) {
-	mserv_log("Warning: Main loop cycle took %dms, which is longer than the %dms sound buffer.",
-		  cycleTime,
-		  soundBufferMs);
-	mserv_log("         Expect sound skips.  Start mserv with -d for more info on where time is spent.");
-	mserv_log("         Cycle time (%dms) = user IO (%dms) + sleep (%dms) + sound IO (%dms) + new connections (%dms)",
-		  cycleTime, ioTime, sleepTime, soundTime, newConnectionTime);
-      }
-    }
     
     timestampBeforeUserIo = mserv_getMSecsSinceEpoch();
     
@@ -617,12 +602,30 @@ static void mserv_mainloop(void)
       }
     }
     
-    cycleTime = timestampBeforeSleep - timestampBeforeSoundIo;
+    cycleTime = timestampBeforeSleep - timestampAfterSleep;
     
     // If the last cycle was fast enough, we can get some sleep
     if (cycleTime >= 0 && cycleTime < cycleTimeGoalMsecs) {
       int sleepMsecs = cycleTimeGoalMsecs - cycleTime;
       usleep(sleepMsecs * 1000);
+    }
+    
+    timestampAfterSleep = mserv_getMSecsSinceEpoch();
+    if (atLeastOneLapDone && soundBufferMs > 0) {
+      int ioTime = timestampBeforeSleep - timestampBeforeUserIo;
+      int sleepTime = timestampAfterSleep - timestampBeforeSleep;
+      int soundTime = timestampBeforeNewConnections - timestampBeforeSoundIo;
+      int newConnectionTime = timestampCycleWrap - timestampBeforeNewConnections;
+      int cycleTime = timestampAfterSleep - timestampBeforeSoundIo;
+      
+      if (cycleTime > soundBufferMs) {
+	mserv_log("Warning: Main loop cycle took %dms, which is longer than the %dms sound buffer.",
+		  cycleTime,
+		  soundBufferMs);
+	mserv_log("         Expect sound skips.  Start mserv with -d for more info on where time is spent.");
+	mserv_log("         Cycle time (%dms) = user IO (%dms) + sleep (%dms) + sound IO (%dms) + new connections (%dms)",
+		  cycleTime, ioTime, sleepTime, soundTime, newConnectionTime);
+      }
     }
     
     timestampBeforeSoundIo = mserv_getMSecsSinceEpoch();
@@ -689,6 +692,8 @@ static void mserv_mainloop(void)
     mserv_send(cl, "200 Mserv " VERSION " (c) James Ponder 1999-2003 - "
 	       "Type: USER <username>\r\n", 0);
     mserv_send(cl, ".\r\n", 0);
+    
+    atLeastOneLapDone = 1;
   }
 }
 

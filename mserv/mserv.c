@@ -3488,10 +3488,10 @@ t_rating *mserv_getrate(const char *user, t_track *track)
   return NULL;
 }
 
-/* Retrieves the user's average rating of the last 15 tracks (which is
- * supposed to be a bit less than an hour) heard by the user.  UNHEARD
- * tracks count as HEARD.  The average is stored in *satisfaction.
- * Returns the number of milliseconds on which the average is based.
+/* Retrieves the user's average rating of the last hour of music heard
+ * by the user.  UNHEARD tracks count as HEARD.  The average is stored
+ * in *satisfaction.  Returns the number of milliseconds on which the
+ * average is based.
  *
  * If no heard songs have been played yet, 0 is returned and the value
  * stored in *satisfaction is undefined. */
@@ -3506,11 +3506,13 @@ int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
   if (maxsongs > HISTORYLEN) {
     maxsongs = HISTORYLEN;
   }
-  if (maxsongs > 15) {
-    maxsongs = 15;
-  }
   
-  for (i = 0; mserv_history[i] && i < maxsongs; i++) {
+  for (i = 0;
+       mserv_history[i]
+	 && i < maxsongs
+	 && totalDuration < 60 * 60 * 1000;
+       i++)
+  {
     double songscore = mserv_getcookedrate(cl->user, mserv_history[i]->track);
     int songduration = mserv_history[i]->durationMsecs;
     

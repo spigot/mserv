@@ -3441,6 +3441,46 @@ void mserv_setplaying(t_supinfo *supinfo)
   }
 }
 
+void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
+                          unsigned int bold, const char *user)
+{
+  char buffer[strlen("[] \x1B[1m") + USERNAMELEN +
+      strlen(" 999999/999999 G ") + AUTHORLEN + strlen(", ") + NAMELEN +
+      strlen(" XXXXXX:XX\x1B[0m\r\n") + 64]; /* too much, to be sure */
+  char bit[64];
+  char *p = buffer;
+  int w;
+  unsigned int width_user = 10;
+  unsigned int width_author = 22;
+  unsigned int width_track = 7;
+  unsigned int width_screen = 79;
+
+  if (user)
+    p+= sprintf(p, "%*s ", -width_user, user);
+  sprintf(bit, "%d/%d", track->n_album, track->n_track);
+  p+= sprintf(p, "%*s ", width_track, bit);
+  p+= sprintf(p, "%-1.1s ", rate && rate->rating ? mserv_ratestr(rate) : "-");
+  if (strlen(track->author) > width_author) {
+    p+= sprintf(p, "%.*s.., ", width_author - 2, track->author);
+  } else {
+    p+= sprintf(p, "%s, ", track->author);
+  }
+  sprintf(bit, " %ld:%02ld", (track->duration / 100) / 60,
+          (track->duration / 100) % 60);
+  w = (width_screen - strlen("[] ")) - strlen(bit) - (p - buffer);
+  if (w > 1)
+    p+= sprintf(p, "%*.*s%s", w, w, track->name, bit);
+  if (bold) {
+    mserv_send(cl, "[] \x1B[1m", 0);
+    mserv_send(cl, buffer, 0);
+    mserv_send(cl, "\x1B[0m", 0);
+  } else {
+    mserv_send(cl, "[] ", 0);
+    mserv_send(cl, buffer, 0);
+  }
+  mserv_send(cl, "\r\n", 0);
+}
+
 void mserv_addtohistory(t_supinfo *sup)
 {
   t_supinfo *history;

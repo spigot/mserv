@@ -9,12 +9,20 @@ This package includes:
 
 You should be able to:
 
-  ./configure
+  ./configure --with-engine-icecast
   make
   make install
 
 Unless you specify a different --prefix, Mserv will install in to /usr/local
 by default.
+
+You need to specify which engine to use (this release only supports icecast)
+
+  --with-engine-local     Use the local output engine (default)
+  --with-engine-icecast   Use the icecast output engine
+
+Once you have installed Mserv with icecast support, set default_icecast_output
+in the Mserv configuration file to the location of your Icecast server.
 
 Other switches:
 

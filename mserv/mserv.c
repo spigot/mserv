@@ -2624,6 +2624,15 @@ int mserv_player_playnext(void)
   int playerpipe[2];
   char error[256];
 
+  /* If experimental fairness is enabled, the users' satisfaction will
+   * impact the song selection.  The number of milliseconds the
+   * current song has been playing affects all users' satisfaction.
+   * Thus, to make sure the top list is up to date before choosing the
+   * next track, we need to recalculate it here. */
+  if (opt_experimental_fairness) {
+    mserv_recalcratings();
+  }
+  
   if (mserv_queue == NULL) { /* no more tracks to play! */
     if (!mserv_random) {
       if (channel_stop(mserv_channel, error, sizeof(error)) != MSERV_SUCCESS)
@@ -3468,14 +3477,14 @@ t_rating *mserv_getrate(const char *user, t_track *track)
 /* Retrieves the user's average rating of the last 15 tracks (which is
  * supposed to be a bit less than an hour) heard by the user.  UNHEARD
  * tracks count as HEARD.  The average is stored in *satisfaction.
- * Returns the number of tracks included in the average.
+ * Returns the number of milliseconds on which the average is based.
  *
  * If no heard songs have been played yet, 0 is returned and the value
  * stored in *satisfaction is undefined. */
 int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
 {
   int i;
-  int n_songs = 0;
+  int totalDuration = 0;
   double sum = 0.0;
   int maxsongs;
   
@@ -3488,15 +3497,27 @@ int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
   }
   
   for (i = 0; mserv_history[i] && i < maxsongs; i++) {
-    sum += mserv_getcookedrate(cl->user, mserv_history[i]->track);
-    n_songs++;
+    double songscore = mserv_getcookedrate(cl->user, mserv_history[i]->track);
+    int songduration = mserv_history[i]->durationMsecs;
+
+    /* If this is the currently playing track... */
+    if (i == 0 &&
+	mserv_history[i]->track == mserv_player_playing.track)
+    {
+      /* ... the history entry will contain a duration of 0.  Check
+       * manually for how long it has been playing. */
+      songduration = channel_getplaying_msecs(mserv_channel);
+    }
+
+    sum += songscore * songduration;
+    totalDuration += songduration;
   }
   
-  if (n_songs > 0) {
-    *satisfaction = sum / n_songs;
+  if (totalDuration > 0) {
+    *satisfaction = sum / totalDuration;
   }
   
-  return n_songs;
+  return totalDuration;
 }
 
 /* If a user by that name is logged in, return a corresponding

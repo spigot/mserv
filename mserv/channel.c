@@ -690,6 +690,7 @@ int channel_stop(t_channel *c, char *error, int errsize)
     close(i->fd);
     free(i);
   }
+  c->playing.track = NULL;
   c->input = NULL;
   c->stopped = 1;
   c->paused = 0;

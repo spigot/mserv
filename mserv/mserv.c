@@ -692,7 +692,20 @@ static void mserv_setHistoricalDuration(const t_track *track,
   }
   
   if (entry != NULL) {
+    int bigdifference = abs(durationmsecs - entry->durationMsecs) > 2500;
+    
     entry->durationMsecs = durationmsecs;
+
+    if (opt_experimental_fairness && bigdifference) {
+      /* We have updated the song's length by a significant amount
+       * (more than 2.5 seconds).  The song length affects the users'
+       * satisfaction.  The satisfaction affects the top list.
+       *
+       * Thus we have to recalculate the top list because it will have
+       * changed.
+       */
+      mserv_recalcratings();
+    }
   }
 }
 
@@ -2628,15 +2641,6 @@ int mserv_player_playnext(void)
   const char *player;
   int playerpipe[2];
   char error[256];
-
-  /* If experimental fairness is enabled, the users' satisfaction will
-   * impact the song selection.  The number of milliseconds the
-   * current song has been playing affects all users' satisfaction.
-   * Thus, to make sure the top list is up to date before choosing the
-   * next track, we need to recalculate it here. */
-  if (opt_experimental_fairness) {
-    mserv_recalcratings();
-  }
   
   if (mserv_queue == NULL) { /* no more tracks to play! */
     if (!mserv_random) {
@@ -3509,16 +3513,7 @@ int mserv_getsatisfaction(const t_client *cl, double *satisfaction)
   for (i = 0; mserv_history[i] && i < maxsongs; i++) {
     double songscore = mserv_getcookedrate(cl->user, mserv_history[i]->track);
     int songduration = mserv_history[i]->durationMsecs;
-
-    /* If this is the currently playing track... */
-    if (i == 0 &&
-	mserv_history[i]->track == mserv_player_playing.track)
-    {
-      /* ... the history entry will contain a duration of 0.  Check
-       * manually for how long it has been playing. */
-      songduration = channel_getplaying_msecs(mserv_channel);
-    }
-
+    
     sum += songscore * songduration;
     totalDuration += songduration;
   }
@@ -4237,6 +4232,11 @@ void mserv_addtohistory(const t_trkinfo *addme)
     newentry->track = addme->track;
     strncpy(newentry->user, addme->user,
 	    strnlen(addme->user, USERNAMELEN+1));
+    /* Assume the song will play its full length.
+     * 
+     * Track duration is in 1/100 seconds, but history duration is in
+     * milliseconds. */
+    newentry->durationMsecs = addme->track->duration * 10;
     
     mserv_history[0] = newentry;
   }

@@ -630,6 +630,7 @@ static void mserv_mainloop(void)
     mserv_clients = cl;
     cl->sin = sin_client;
     cl->state = st_wait;
+    cl->userlevel = level_guest;
     cl->lstate = lst_normal;
     cl->socket = client_socket;
     if (mserv_debug)

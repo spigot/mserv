@@ -125,7 +125,7 @@ sub data {
 		print "</body></html>\n";
 		exit();
 	    } else {
-		print "<b>Internal error ($exit)</b>\n";
+		print "<b>Internal error ($exit) executing ($cmd)</b>\n";
 		print "</body></html>\n";
 		exit();
 	    }

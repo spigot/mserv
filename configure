@@ -1802,7 +1802,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=mserv
- VERSION=0.38
+ VERSION=0.40
 
 
 cat >>confdefs.h <<_ACEOF

@@ -28,7 +28,7 @@
 #include "mserv.h"
 #include "params.h"
 
-static char mserv_rcs_id[] = "$Id: icecast.c,v 1.4 2003/11/30 02:44:30 squish Exp $";
+static char mserv_rcs_id[] = "$Id: icecast.c,v 1.5 2004/03/20 18:26:06 johanwalles Exp $";
 MSERV_MODULE(icecast, "0.01", "Icecast output streaming",
              MSERV_MODFLAG_OUTPUT);
 
@@ -208,10 +208,10 @@ int icecast_output_create(t_channel *c, t_channel_outputstream *os,
     goto failed;
   }
   p = splitbuf + strlen("http://");
-  user = p; while (*p && *p != ':') p++; *p++ = '\0';
-  pass = p; while (*p && *p != '@') p++; *p++ = '\0';
-  host = p; while (*p && *p != ':') p++; *p++ = '\0';
-  port = p; while (*p && *p != '/') p++; *p++ = '\0';
+  user = p; while (*p && *p != ':') p++; if (!*p) goto badurl; *p++ = '\0'
+  pass = p; while (*p && *p != '@') p++; if (!*p) goto badurl; *p++ = '\0'
+  host = p; while (*p && *p != ':') p++; if (!*p) goto badurl; *p++ = '\0'
+  port = p; while (*p && *p != '/') p++; if (!*p) goto badurl; *p++ = '\0'
   if ((strlen(p) + 1) >= sizeof(mount)) {
     snprintf(error, errsize, "icecast: mount portion of URL too long");
     goto failed;
@@ -219,9 +219,7 @@ int icecast_output_create(t_channel *c, t_channel_outputstream *os,
   snprintf(mount, sizeof(mount), "/%s", p);
   mserv_log("icecast: request to create channel to %s:%s", host, port);
   if (!*user || !*pass || !*host || !*port || !mount[1]) {
-    snprintf(error, errsize, "icecast: location invalid, use "
-             "http://user:pass@host:port/mount");
-    goto failed;
+    goto badurl;
   }
   if (shout_set_host(icecast->shout, host) != SHOUTERR_SUCCESS) {
     snprintf(error, errsize, "icecast: failed setting libshout hostname: %s",
@@ -245,7 +243,7 @@ int icecast_output_create(t_channel *c, t_channel_outputstream *os,
     goto failed;
   }
   if (shout_set_mount(icecast->shout, mount) != SHOUTERR_SUCCESS) {
-    snprintf(error, errsize, "icecast: failed setting libshout hostname: %s",
+    snprintf(error, errsize, "icecast: failed setting libshout mount name: %s",
              shout_get_error(icecast->shout));
     goto failed;
   }
@@ -268,6 +266,9 @@ int icecast_output_create(t_channel *c, t_channel_outputstream *os,
   }
   *private = (void *)icecast;
   return MSERV_SUCCESS;
+badurl:
+  snprintf(error, errsize, "icecast: location invalid, use "
+	   "http://user:pass@host:port/mount");
 failed:
   if (icecast->shout)
     shout_free(icecast->shout);

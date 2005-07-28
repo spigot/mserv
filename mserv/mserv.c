@@ -3340,7 +3340,7 @@ void mserv_recalcrating(t_track *track)
   rating = mserv_fuzz_rating(track->rating);
   if (rating > mserv_tracks->rating) {
     /* Put the track first */
-    track->next = mserv_tracks->next;
+    track->next = mserv_tracks;
     mserv_tracks = track;
   } else {
     t_track *previous;

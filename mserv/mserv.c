@@ -551,7 +551,7 @@ static void mserv_mainloop(void)
   t_client *cl, *last;
   int client_socket;
   struct sockaddr_in sin_client;
-  int sin_client_len = sizeof(sin_client);
+  size_t sin_client_len = sizeof(sin_client);
   int flags;
   int i;
 

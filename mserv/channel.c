@@ -155,7 +155,9 @@ int channel_addoutput(t_channel *c, const char *modname, const char *location,
   t_channel_outputstream *os, **osend;
   t_modinfo *mi;
   int resampletype;
+#if HAVE_LIBSAMPLERATE
   int src_errno;
+#endif
   char *val;
  
   if ((mi = module_find(modname)) == NULL) {
@@ -228,8 +230,10 @@ int channel_addoutput(t_channel *c, const char *modname, const char *location,
   }
   return MSERV_SUCCESS;
 failed:
+#if HAVE_LIBSAMPLERATE
   if (os->resampler)
     src_delete((SRC_STATE *)os->resampler);
+#endif
   if (os->output)
     free(os->output);
   if (os->params)
@@ -269,8 +273,10 @@ int channel_removeoutput(t_channel *c, const char *modname,
   if (mi->output_destroy(c, os, &os_last->private,
                          error, errsize) != MSERV_SUCCESS)
     return MSERV_FAILURE;
+#if HAVE_LIBSAMPLERATE
   if (os_last->resampler)
     src_delete((SRC_STATE *)os_last->resampler);
+#endif
   *osp_last = os_last->next;
   free(os_last);
   return MSERV_SUCCESS;

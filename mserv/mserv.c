@@ -64,7 +64,7 @@ extern int optind;
 static FILE *mserv_logfile = NULL;
 static int mserv_socket = 0;
 static int mserv_nextid_album = 1;
-static int mserv_nextid_track = 1;
+static int mserv_ntracks = 0;
 static int mserv_player_pid = 0;
 static int mserv_player_pipe = -1;
 static int mserv_started = 0;
@@ -1975,7 +1975,7 @@ static void mserv_scandir_recurse(const char *pathname)
       mserv_log("Unable to add track '%s'", fullpath);
       continue;
     }
-    tracks[ntracks]->id = mserv_nextid_track++;
+    tracks[ntracks]->id = ++mserv_ntracks;
     tracks[ntracks]->n_track = ntracks + 1; /* 1... */
     tracks[ntracks]->next = mserv_tracks;
     mserv_tracks = tracks[ntracks];
@@ -3236,8 +3236,8 @@ void mserv_recalcratings(void)
     }
   }
   
-  if (ntracks != mserv_nextid_track-1) {
-    mserv_log("Track list has become incorrect (ntracks!=nextid-1)");
+  if (ntracks != mserv_ntracks) {
+    mserv_log("Track list has become incorrect (ntracks!=mserv_ntracks)");
     exit(1);
   }
 
@@ -3930,7 +3930,7 @@ void mserv_reset(void)
 
   /* other stuff */
   mserv_nextid_album = 1;
-  mserv_nextid_track = 1;
+  mserv_ntracks = 0;
   mserv_player_playing.track = NULL;
   mserv_player_pid = 0;
   mserv_shutdown = 0;
@@ -4322,16 +4322,104 @@ void mserv_send_trackinfo(t_client *cl, t_track *track, t_rating *rate,
   mserv_send(cl, "\r\n", 0);
 }
 
-/* Scan through all logged in users and find the one with the lowest
- * satisfaction value.  Return the lowest satisfaction value.  Point
- * most_dissatisfied_user to the name of the user with the lowest
- * satisfaction. */
-static double mserv_getlowestsatisfaction(const char **most_dissatisfied_user)
+/* Is this user helped by a high factor?  Go through the top 0.5% of
+ * all songs.  If the user has rated at least half of those GOOD or
+ * SUPERB, the answer is yes.
+ *
+ * The number 0.5% comes from that if the factor is 0.99, it is a 50%
+ * chance that one of the top 0.5% songs gets played.  So this
+ * function is an estimate of the question "with a factor of 0.99, is
+ * it a better than 25% chance that this user gets to hear something
+ * we know for sure (s)he likes"?.
+ */
+static int mserv_benefitsfromhighfactor(t_client *cl)
+{
+  int nInterestingTracks;
+  int i;
+  int nUprated;
+  t_track *track;
+  
+  if (!cl->authed || cl->state == st_closed ||
+      cl->mode == mode_computer || cl->userlevel == level_guest)
+  {
+    /* This user doesn't influence the song selection at all, so the
+     * factor doesn't matter for this user. */
+    return 0;
+  }
+  
+  /* Find out how many songs we are to go through */
+  nInterestingTracks = ((mserv_ntracks * 5) / 1000) + 1;
+  
+  /* For that number of songs... */
+  track = mserv_tracks;
+  nUprated = 0;
+  for (i = 0; i < nInterestingTracks; i++, track = track->next) {
+    /* ... count how many this user has rated up. */
+    t_rating *rate = mserv_getrate(cl->user, track);
+    
+    if (rate == NULL) {
+      /* Track is unheard */
+      continue;
+    }
+    
+    if (rate->rating <= 3) {
+      /* Track is rated lower than GOOD */
+      continue;
+    }
+    
+    /* Track is rated GOOD or SUPERB */
+    nUprated++;
+  }
+  
+  /* Return true if the uprated songs were more than half of the
+   * scanned songs. */
+  return nUprated > ((nInterestingTracks + 1) / 2);
+}
+
+/* Scan through all logged in users which benefit from a high factor
+ * and find the one with the lowest satisfaction value.  Return the
+ * lowest satisfaction value.  Point needs_help_most to the name of
+ * the user with the lowest satisfaction. */
+static double mserv_getautofactorbasevalue(const char **needs_help_most)
 {
   double lowestsatisfaction = MSERV_NAN;
   t_client *cl;
 
-  *most_dissatisfied_user = NULL;
+  *needs_help_most = NULL;
+  for (cl = mserv_clients; cl; cl = cl->next) {
+    double satisfaction;
+    if (!cl->authed || cl->state == st_closed ||
+	cl->mode == mode_computer || cl->userlevel == level_guest)
+    {
+      continue;
+    }
+    
+    if (!mserv_benefitsfromhighfactor(cl)) {
+      mserv_log("Autofactor: Potentially ignoring user %s who doesn't benefit from a high factor.  %s needs to rate more songs GOOD / SUPERB.",
+		cl->user,
+		cl->user);
+      continue;
+    }
+    
+    if (!mserv_getsatisfaction(cl, &satisfaction)) {
+      /* This user isn't in the game (yet) */
+      continue;
+    }
+
+    if (*needs_help_most == NULL
+	|| satisfaction < lowestsatisfaction)
+    {
+      *needs_help_most = cl->user;
+      lowestsatisfaction = satisfaction;
+    }
+  }
+  
+  /* Did we find anybody to base the autofactor decision upon? */
+  if (*needs_help_most != NULL) {
+    return lowestsatisfaction;
+  }
+  
+  /* Try again with all logged in users */
   for (cl = mserv_clients; cl; cl = cl->next) {
     double satisfaction;
     if (!cl->authed || cl->state == st_closed ||
@@ -4343,14 +4431,13 @@ static double mserv_getlowestsatisfaction(const char **most_dissatisfied_user)
       continue;
     }
 
-    if (*most_dissatisfied_user == NULL
+    if (*needs_help_most == NULL
 	|| satisfaction < lowestsatisfaction)
     {
-      *most_dissatisfied_user = cl->user;
+      *needs_help_most = cl->user;
       lowestsatisfaction = satisfaction;
     }
   }
-  
   return lowestsatisfaction;
 }
 
@@ -4409,7 +4496,7 @@ double mserv_getsatisfactiongoal(void)
  */
 static void mserv_adjustfactor(void)
 {
-  const char *most_dissatisfied_user;
+  const char *needs_help_most;
   double lowestsatisfaction;
   double satisfaction_goal;
   
@@ -4420,10 +4507,10 @@ static void mserv_adjustfactor(void)
    * moving.  Delta will be positive on upwards movement and negative
    * on downwards.*/
   lowestsatisfaction =
-    mserv_getlowestsatisfaction(&most_dissatisfied_user);
+    mserv_getautofactorbasevalue(&needs_help_most);
   satisfactiondelta = lowestsatisfaction - lastsatisfaction;
   lastsatisfaction = lowestsatisfaction;
-  if (most_dissatisfied_user == NULL) {
+  if (needs_help_most == NULL) {
     /* Nobody is logged in / most dissatisfied, no adjustment
      * necessary. */
     return;
@@ -4443,7 +4530,7 @@ static void mserv_adjustfactor(void)
       mserv_log("Autofactor: not raising factor from %.2f since lowest satisfaction (currently %.2f for user %s) is moving towards the goal of %.2f",
 		mserv_factor,
 		lowestsatisfaction,
-		most_dissatisfied_user,
+		needs_help_most,
 		satisfaction_goal);
       return;
     }
@@ -4454,7 +4541,7 @@ static void mserv_adjustfactor(void)
     }
     mserv_log("Autofactor: factor raised to %.2f because user %s is only %.2f satisfied, goal is %.2f",
 	      mserv_factor,
-	      most_dissatisfied_user,
+	      needs_help_most,
 	      lowestsatisfaction,
 	      satisfaction_goal);
   } else if (lowestsatisfaction > satisfaction_goal) {
@@ -4470,7 +4557,7 @@ static void mserv_adjustfactor(void)
       mserv_log("Autofactor: not lowering factor from %.2f since lowest satisfaction (currently %.2f for user %s) is moving towards the goal of %.2f",
 		mserv_factor,
 		lowestsatisfaction,
-		most_dissatisfied_user,
+		needs_help_most,
 		satisfaction_goal);
       return;
     }
@@ -4481,7 +4568,7 @@ static void mserv_adjustfactor(void)
     }
     mserv_log("Autofactor: factor lowered to %.2f because user %s is %.2f satisfied, which is above the goal of %.2f",
 	      mserv_factor,
-	      most_dissatisfied_user,
+	      needs_help_most,
 	      lowestsatisfaction,
 	      satisfaction_goal);
   }

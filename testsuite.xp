@@ -224,12 +224,16 @@ if { $percentage > 10.0 } then {
 send "info\n"
 expect "Track name"
 # Verify that mserv remembers when the current track was last played
-expect -re {Played: +([0-9]+) ([a-zA-Z]+) ago}
-set amount $expect_out(1,string)
-set unit $expect_out(2,string)
-if { $unit == "seconds" && $amount <= 10 } then {
-	send_error "*** The info command says the just started song was last played only $amount seconds ago\n"
-	exit 1
+expect {
+    -re {Played: +([0-9]+) ([a-zA-Z]+) ago} {
+	set amount $expect_out(1,string)
+	set unit $expect_out(2,string)
+	if { $unit == "seconds" && $amount <= 10 } then {
+		send_error "*** The info command says the just started song was last played only $amount seconds ago\n"
+		exit 1
+	    }
+    }
+    {Played: never}
 }
 # Verify that mserv gives a penalty to the currently playing song
 expect -re {temporally adjusted to +([0-9]+\.[0-9])%}

@@ -233,7 +233,7 @@ expect {
 		exit 1
 	    }
     }
-    {Played: +never}
+    -re {Played: +never}
 }
 # Verify that mserv gives a penalty to the currently playing song
 expect -re {temporally adjusted to +([0-9]+\.[0-9])%}

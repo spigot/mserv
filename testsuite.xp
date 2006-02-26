@@ -530,7 +530,7 @@ wait
 set spawn_id $computerjohan
 expect {
 	eof { send_error "*** Computer kicked without notification!!\n" ; exit 1 }
-	"=526 You have been kicked off"
+	"=526"
 }
 wait
 

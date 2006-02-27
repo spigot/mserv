@@ -221,6 +221,8 @@ if { $percentage > 10.0 } then {
 	exit 1
 }
 
+send_user "Giving mserv a chance to forget when the current track was last played...\n"
+sleep 5
 send "info\n"
 expect "Track name"
 # Verify that mserv remembers when the current track was last played

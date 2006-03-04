@@ -17,6 +17,40 @@
 # Hang if something unexpected happens
 set timeout -1
 
+# Verifies that MServ remembers when the currently playing track was
+# last played.  This function expects the current user to be human.
+proc verify_playing_track { } {
+    send_user "Giving mserv a chance to forget when the current track was last played...\n"
+    sleep 5
+    send "info\n"
+    expect "Track name"
+    # Verify that mserv remembers when the current track was last played
+    expect {
+	-re {Played: +([0-9]+) ([a-zA-Z]+) ago} {
+	    set amount $expect_out(1,string)
+	    set unit $expect_out(2,string)
+	    if { $unit == "seconds" && $amount <= 10 } then {
+		    send_error "*** The info command says the just started song was last played only $amount seconds ago\n"
+		    exit 1
+		}
+	}
+	-re {Played: +never}
+    }
+    # Verify that mserv gives a penalty to the currently playing song
+    expect -re {temporally adjusted to +([0-9]+\.[0-9])%}
+    set percentage $expect_out(1,string)
+    if { $percentage > 10.0 } then {
+	    send_error "*** The info command says the current song hasn't gotten enough temporal penalty\n"
+	    exit 1
+	}
+}
+
+# Strip leading zeroes from a number
+proc stripzeros {value} {
+    regsub ^0+(.+) $value \\1 retval
+    return $retval
+}
+
 # Log in as Johan and mess around
 spawn telnet localhost 4444
 set humanjohan $spawn_id
@@ -154,7 +188,7 @@ send "status\n"
 expect "Track name"
 expect -re {Time playing: +([0-9]+):([0-9][0-9])[^0-9]}
 set minutes $expect_out(1,string)
-set seconds $expect_out(2,string)
+set seconds [stripzeros $expect_out(2,string)]
 if { $minutes > 0 || $seconds >= 2 } then {
 	send_error "*** The status command says the just started song has played too long\n"
 	exit 1
@@ -221,29 +255,7 @@ if { $percentage > 10.0 } then {
 	exit 1
 }
 
-send_user "Giving mserv a chance to forget when the current track was last played...\n"
-sleep 5
-send "info\n"
-expect "Track name"
-# Verify that mserv remembers when the current track was last played
-expect {
-    -re {Played: +([0-9]+) ([a-zA-Z]+) ago} {
-	set amount $expect_out(1,string)
-	set unit $expect_out(2,string)
-	if { $unit == "seconds" && $amount <= 10 } then {
-		send_error "*** The info command says the just started song was last played only $amount seconds ago\n"
-		exit 1
-	    }
-    }
-    -re {Played: +never}
-}
-# Verify that mserv gives a penalty to the currently playing song
-expect -re {temporally adjusted to +([0-9]+\.[0-9])%}
-set percentage $expect_out(1,string)
-if { $percentage > 10.0 } then {
-	send_error "*** The info command says the current song hasn't gotten enough temporal penalty\n"
-	exit 1
-}
+verify_playing_track
 
 send "play\n"
 expect "Already playing"
@@ -466,7 +478,7 @@ send "pause\n"
 expect "paused"
 send "status\n"
 expect -re {Time playing: +[0-9]+:([0-9][0-9])\.([0-9])}
-set seconds $expect_out(1,string)
+set seconds [stripzeros $expect_out(1,string)]
 set tenths $expect_out(2,string)
 set t0 [expr 10 * $seconds + $tenths]
 if { $t0 == 0 } then {
@@ -477,7 +489,7 @@ send_user "Giving mserv a chance to mess up the timing...\n"
 sleep 1
 send "status\n"
 expect -re {Time playing: +[0-9]+:([0-9][0-9])\.([0-9])}
-set seconds $expect_out(1,string)
+set seconds [stripzeros $expect_out(1,string)]
 set tenths $expect_out(2,string)
 set t1 [expr 10 * $seconds + $tenths]
 send "stop\n"
@@ -728,7 +740,7 @@ if { $currentAlbum == $previousAlbum &&
 send "info $previousAlbum $previousTrack\n"
 expect -re {Duration: +([0-9]+):([0-9]+)}
 set minutes $expect_out(1,string)
-set seconds $expect_out(2,string)
+set seconds [stripzeros $expect_out(2,string)]
 set infoduration [expr $minutes * 60 * 1000 + $seconds * 1000]
 set difference [expr abs($infoduration - $realduration)]
 if { $difference > 5000 } {
@@ -754,6 +766,10 @@ if { $percentage > 10.0 } then {
 	send_error "*** The info command says the last song didn't get enough temporal penalty\n"
 	exit 1
 }
+
+# Verify the next track
+set spawn_id $humanroot
+verify_playing_track
 
 # Stop playback
 set spawn_id $computerroot

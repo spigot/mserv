@@ -1,4 +1,5 @@
 
+#define MP3ID3_TAGLEN 3
 #define MP3ID3_TITLELEN 30
 #define MP3ID3_ARTISTLEN 30
 #define MP3ID3_ALBUMLEN 30
@@ -17,3 +18,5 @@ typedef struct {
 
 int mserv_mp3info_readlen(const char *fname, int *bitrate_ret,
 			  t_id3tag *id3tag);
+
+ 	  	 

@@ -10,3 +10,10 @@ Thanks to:
   Jan Hecking <jhecking@informatik.uni-rostock.de>
   David Kimdon (Debian port)
   David Brownlee (NetBSD port)
+
+
+Patches added from
+  Perette Barella (perette @ sourceforge):
+	Improved Filtering, Enhanced ID3v2 support,
+	Fixed VBR file length calculation
+

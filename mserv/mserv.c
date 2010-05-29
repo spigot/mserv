@@ -68,7 +68,7 @@ static int mserv_ntracks = 0;
 static int mserv_player_pid = 0;
 static int mserv_player_pipe = -1;
 static int mserv_started = 0;
-static char mserv_filter[FILTERLEN+1] = "";
+static t_filter *mserv_filter;
 static double mserv_gap = 0;
 static t_lang *mserv_language;
 
@@ -3958,21 +3958,24 @@ double mserv_getgap(void)
 
 int mserv_setfilter(const char *filter)
 {
+  t_filter *new_filter;
   if (!mserv_tracks)
     return -1;
-  if (strlen(filter) > FILTERLEN)
-    return -1;
-  /* run the filter on the first track in the mserv_tracks list, filter_check
-     returns true/false or -1 for parse error, so we can check validity */
-  if (*filter && filter_check(filter, mserv_tracks) == -1)
-    return -1;
-  strcpy(mserv_filter, filter);
+  if (strcmp (filter, "") == 0) {
+    new_filter = 0;
+  } else {
+    if (!(new_filter = build_filter (filter)))
+      return -1;
+  }
+  if (mserv_filter)
+    free_filter (mserv_filter);
+  mserv_filter = new_filter;
   return 0;
 }
 
 char *mserv_getfilter(void)
 {
-  return mserv_filter;
+  return mserv_filter ? mserv_filter->filter_cmd : "";
 }
 
 int mserv_checkgenre(const char *genres)

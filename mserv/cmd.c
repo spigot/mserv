@@ -1950,24 +1950,26 @@ static void cmd_searchf(t_client *cl, t_cmdparams *cp)
   t_track *track;
   t_author *author;
   t_rating *rate;
+  t_filter *filter;
   int f = 0;
   unsigned int ui;
 
   if (!*cp->line) {
+
     mserv_response(cl, "BADPARM", NULL);
     return;
   }
-  if (mserv_tracks == NULL || filter_check(cp->line, mserv_tracks) == -1) {
+  if (!(filter = build_filter (cp->line))) {
     mserv_response(cl, "BADFILT", NULL);
     return;
   }
   for (author = mserv_authors; author; author = author->next) {
     for (ui = 0; ui < author->ntracks; ui++) {
       if ((track = author->tracks[ui])) {
-	if (filter_check(cp->line, track) == 1) {
-	  if (!f) {
-	    f = 1;
-	    mserv_responsent(cl, "SEARCFA", NULL);
+      if (filter_check(filter, track) == 1) {
+        if (!f) {
+          f = 1;
+          mserv_responsent(cl, "SEARCFA", NULL);
 	  }
 	  rate = mserv_getrate(cp->ru, track);
 	  if (cl->mode == mode_human) {
@@ -1984,6 +1986,7 @@ static void cmd_searchf(t_client *cl, t_cmdparams *cp)
       }
     }
   }
+  free_filter (filter);
   if (f) {
     if (cl->mode != mode_human)
       mserv_send(cl, ".\r\n", 0);

@@ -1,0 +1,31 @@
+Improved Filtering
+------------------
+
+A replacement for the mserv filter mechanism. It's backward-compatible
+with the old filter, but adds some new features.
+
+Overview:
+- The old filter re-parsed the command line for every song it filtered. The
+new one pre-parses the command line, building a parse tree and that is
+utilized when evaluating each song. Thus, it's faster when processing
+huge numbers of songs.
+- The new filter uses short-circuit logic to improve performance.
+- The new filter has some additional syntax.
+- The old filter only had "search=" which did substring searches on title
+and author, the new one adds "author=" and "title=" which do exact
+matches. For example, "searchf author=bond" will get my Bond
+sountrack but not pick up other songs with "bond" somewhere in the
+song name. The compare does skip "The " at the start of songs, though,
+so "searchf author=beatles" will match both "Beatles" and "The Beatles". It
+does support a wildcard '*' at the end of a string (but not the middle).
+- The new filter supports arbitrary length, whereas the old one used
+arrays and therefore had some limits.
+- Whitespace is allowed, allowing expressions to be more legible.
+
+Enhanced ID3v2 support & correct VBR file length
+------------------------------------------------
+
+Replacement file for mp3info.c with ID3 V2.2, 2.3, and 2.4 support.
+Wraps in prior enhancement for correctly calculating VBR file
+lengths.
+

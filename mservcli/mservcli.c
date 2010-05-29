@@ -272,6 +272,7 @@ int mservcli_discarddata(struct mservcli_id *id)
   int i;
 
   do {
+    rt= 0;
     if (fgets(id->buffer, id->buflen, id->in) == NULL) {
       errno = EPIPE;
       return -1;

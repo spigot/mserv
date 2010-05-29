@@ -59,14 +59,27 @@ const int sampling_freq_table[4][3] =
 
 /* structure of id3 tag in mp3 file */
 
+// RVW: MP3ID3_TITLE and others are made longer. Now the do
+//     not correspond to the lengths on disc any more.
+//     so use specific set for the id3v1 lengths
+#define MP3ID3V1_DISC_TITLELEN 30
+#define MP3ID3V1_DISC_ARTISTLEN 30
+#define MP3ID3V1_DISC_ALBUMLEN 30
+#define MP3ID3V1_DISC_YEARLEN  4
+#define MP3ID3V1_DISC_COMMENTLEN 30
+
 typedef struct id3tag_disc_str
 {
-  char tag[MP3ID3_TAGLEN];
   char title[MP3ID3_TITLELEN];
   char artist[MP3ID3_ARTISTLEN];
   char album[MP3ID3_ALBUMLEN];
   char year[MP3ID3_YEARLEN];
   char comment[MP3ID3_COMMENTLEN];
+  char title[MP3ID3V1_DISC_TITLELEN];
+  char artist[MP3ID3V1_DISC_ARTISTLEN];
+  char album[MP3ID3V1_DISC_ALBUMLEN];
+  char year[MP3ID3V1_DISC_YEARLEN];
+  char comment[MP3ID3V1_DISC_COMMENTLEN];
   unsigned char genre;
 } id3tag_disc;
 
@@ -340,32 +353,32 @@ int read_id3_v1_trailer (FILE *f, t_id3tag *id3tag)
 
   id3tag->present = 1;
 
-  memcpy(id3tag->title, tag_disc.title, MP3ID3_TITLELEN);
-  id3tag->title[MP3ID3_TITLELEN] = '\0';
+  memcpy(id3tag->title, tag_disc.title, MP3ID3V1_DISC_TITLELEN);
+  id3tag->title[MP3ID3V1_DISC_TITLELEN] = '\0';
   e = id3tag->title + strlen(id3tag->title);
   while (e > id3tag->title && *(e-1) == ' ')
     *--e = '\0';
   
-  memcpy(id3tag->artist, tag_disc.artist, MP3ID3_ARTISTLEN);
-  id3tag->artist[MP3ID3_ARTISTLEN] = '\0';
+  memcpy(id3tag->artist, tag_disc.artist, MP3ID3V1_DISC_ARTISTLEN);
+  id3tag->artist[MP3ID3V1_DISC_ARTISTLEN] = '\0';
   e = id3tag->artist + strlen(id3tag->artist);
   while (e > id3tag->artist && *(e-1) == ' ')
     *--e = '\0';
 
-  memcpy(id3tag->album, tag_disc.album, MP3ID3_ALBUMLEN);
-  id3tag->album[MP3ID3_ALBUMLEN] = '\0';
+  memcpy(id3tag->album, tag_disc.album, MP3ID3V1_DISC_ALBUMLEN);
+  id3tag->album[MP3ID3V1_DISC_ALBUMLEN] = '\0';
   e = id3tag->album + strlen(id3tag->album);
   while (e > id3tag->album && *(e-1) == ' ')
     *--e = '\0';
 
-  memcpy(id3tag->year, tag_disc.year, MP3ID3_YEARLEN);
-  id3tag->year[MP3ID3_YEARLEN] = '\0';
+  memcpy(id3tag->year, tag_disc.year, MP3ID3V1_DISC_YEARLEN);
+  id3tag->year[MP3ID3V1_DISC_YEARLEN] = '\0';
   e = id3tag->year + strlen(id3tag->year);
   while (e > id3tag->year && *(e-1) == ' ')
     *--e = '\0';
   
-  memcpy(id3tag->comment, tag_disc.comment, MP3ID3_COMMENTLEN);
-  id3tag->comment[MP3ID3_COMMENTLEN] = '\0';
+  memcpy(id3tag->comment, tag_disc.comment, MP3ID3V1_DISC_COMMENTLEN);
+  id3tag->comment[MP3ID3V1_DISC_COMMENTLEN] = '\0';
   e = id3tag->comment + strlen(id3tag->comment);
   while (e > id3tag->comment && *(e-1) == ' ')
     *--e = '\0';
